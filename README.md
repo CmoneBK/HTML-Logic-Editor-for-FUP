@@ -6,6 +6,12 @@
 
 A powerful, browser-based logic circuit editor and live simulator. This tool automatically converts simple text-based boolean expressions into a fully interactive Function Block Diagram (FBD/FBS) with smart cable routing and real-time simulation.
 
+<p align="center">
+  <a href="/Logik Editor Preview.png" target="_blank">
+    <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
+  </a>
+</p>
+
 ## ✨ Features
 
 * **Text-to-Diagram Generation**: Write logic in a clean text editor, and the app instantly compiles it into a graphical node-based circuit.
@@ -72,6 +78,12 @@ SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
 
 Ein leistungsstarker, browserbasierter Logikschaltungs-Editor und Live-Simulator. Dieses Tool wandelt einfache textbasierte Boolesche Ausdrücke automatisch in einen vollständig interaktiven Funktionsbausteinplan (FBP/FBS) mit intelligentem Auto-Routing und Echtzeit-Simulation um.
 
+<p align="center">
+  <a href="/Logik Editor Preview.png" target="_blank">
+    <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
+  </a>
+</p>
+
 ## ✨ Funktionen
 
 * **Text-zu-Diagramm Generierung**: Schreiben Sie Ihre Logik in einen übersichtlichen Texteditor, und die App kompiliert sie sofort in eine grafische, knotenbasierte Schaltung.
@@ -130,10 +142,3 @@ SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
 
 * **HTML5 / CSS3 / Vanilla JavaScript**
 * [svg-pan-zoom](https://github.com/bumbu/svg-pan-zoom) (v3.6.1) für die Canvas-Manipulation.
-
-<a href="/Logik Editor Preview.png" target="_blank">
-          <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
- 
-
-
- 
