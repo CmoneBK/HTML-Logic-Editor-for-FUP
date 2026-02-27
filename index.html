@@ -85,6 +85,21 @@
         .fbs-line-halo { fill: none; stroke: #ffffff; stroke-width: 7px; stroke-linejoin: round; stroke-linecap: round; }
         .fbs-line { fill: none; stroke-width: 2.5px; stroke-linejoin: round; stroke-linecap: round; }
         .fbs-io-box { fill: #f0f0f0; stroke-width: 2px; rx: 4px; ry: 4px; }
+      
+      /* Live-Simulation Styles (Nur aktiv, wenn das SVG die Klasse 'sim-running' trägt) */
+        .fbs-block, .fbs-io-box, .fbs-line, .fbs-dot, .fbs-bubble { 
+            transition: stroke 0.2s ease, fill 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease; 
+        }
+        
+        svg.sim-running .fbs-block.active { stroke-width: 3.5px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
+        svg.sim-running .fbs-block.inactive { stroke: #444 !important; }
+        
+        svg.sim-running .fbs-io-box.active { stroke-width: 3px; }
+        svg.sim-running .fbs-io-box.inactive { stroke: #444 !important; color: #888; }
+        
+        svg.sim-running .fbs-line.inactive { stroke: #333 !important; opacity: 0.3; }
+        svg.sim-running .fbs-dot.inactive { fill: #333 !important; opacity: 0.3; }
+        svg.sim-running .fbs-bubble.inactive { stroke: #333 !important; }
     </style>
 </head>
 <body>
@@ -125,8 +140,11 @@
     <div id="graph-container">
         <div class="graph-top-bar">
             <div class="info-box">
-                <strong>Smart Fit & Routing:</strong> Keine verlorenen Leitungen mehr! Garantierte Mindestabstände verhindern das Durchschneiden von Gattern. Zwischenmerker (z.B. S2_MAN) leiten Signale sauber weiter.
+                <strong>Grafische Darstellung der Logik mit Simulation:</strong> Nach Klick auf "Simulation Starten" können mit den generierten Buttons und Schaltern auf der Linken Seite die Pfade simuliert werden.
             </div>
+            
+            <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B;" onclick="toggleSimulation()">Simulation starten</button>
+            
             <button class="btn-export" onclick="exportSVG()">Als SVG speichern</button>
         </div>
         
@@ -157,6 +175,7 @@
         let spsState = {};
         let simulationFunction = null;
         let saveTimeout = null;
+        let currentGraph = null;
 
         const DEFAULT_CODE = `S1 := ST
 R1 := RT || NH
@@ -170,6 +189,9 @@ PZ_V2_AUS := Q2 && ¬NH
 PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
 
         const palette = ['#e6194B', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#00b3b3', '#f032e6', '#8cbd00', '#008080', '#9a6324', '#800000', '#000075', '#808000', '#f08080', '#20b2aa', '#cd5c5c', '#ba55d3', '#ff1493', '#4b0082', '#ff8c00'];
+
+        // Sichert, dass niemals NaN-Koordinaten ins SVG geschrieben werden
+        function safe(val) { return isNaN(val) ? 0 : Math.round(val); }
 
         class LogicGraph {
             constructor() {
@@ -214,10 +236,24 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             const rsBlocks = new Set();
             const exprCache = new Map();
 
+            // Pre-Scan: Alle RS-Glieder vorab sammeln
+            lines.forEach(line => {
+                let cleanLine = line.split('//')[0].trim();
+                if (!cleanLine || !cleanLine.includes(':=')) return;
+                const match = cleanLine.split(':=')[0].trim().match(/^([SR])(\d+)$/);
+                if (match) rsBlocks.add(match[2]);
+            });
+
             function createGate(type, inputObjs) {
                 const gateId = (type === '&' ? 'AND_' : 'OR_') + graph.gateCounter++;
                 graph.addNode(gateId, 'GATE', type === '&' ? '&' : '>=1');
                 inputObjs.forEach(inp => graph.addEdge(inp.id, gateId, '', inp.inverted));
+
+                // NEU: Sim-Code für DIESES konkrete Gatter erzeugen
+                const operator = type === '&' ? '&&' : '||';
+                const jsInputs = inputObjs.map(inp => (inp.inverted ? '!' : '') + `state.${inp.id}`).join(` ${operator} `);
+                jsCompiledCode += `    state.${gateId} = ${jsInputs || 'false'};\n`;
+
                 return gateId;
             }
 
@@ -230,16 +266,14 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                     expr = expr.substring(1).trim();
                 }
 
-                if (expr.startsWith('AND_') || expr.startsWith('OR_')) return { id: expr, inverted }; 
+                if (/^(AND_|OR_)\d+$/.test(expr)) return { id: expr, inverted }; 
                 
-                let canonicalKey = expr.replace(/\s+/g, '');
+                let canonicalKey = expr;
                 if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
 
                 let resultId;
                 let orParts = expr.split('||').map(s => s.trim());
                 if (orParts.length > 1) { 
-                    canonicalKey = orParts.map(s => s.replace(/\s+/g, '')).sort().join('||');
-                    if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
                     resultId = createGate('||', orParts.map(p => evaluateFlat(p))); 
                     exprCache.set(canonicalKey, resultId);
                     return { id: resultId, inverted };
@@ -247,18 +281,21 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                 
                 let andParts = expr.split('&&').map(s => s.trim());
                 if (andParts.length > 1) { 
-                    canonicalKey = andParts.map(s => s.replace(/\s+/g, '')).sort().join('&&');
-                    if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
                     resultId = createGate('&', andParts.map(p => evaluateFlat(p))); 
                     exprCache.set(canonicalKey, resultId);
                     return { id: resultId, inverted };
                 }
 
-                let rawInput = expr;
-                let cleanId = rawInput.replace(/[^a-zA-Z0-9_]/g, '_');
-                graph.addNode(cleanId, 'INPUT', rawInput);
-                allUsedInputs.add(cleanId);
-                resultId = cleanId;
+                let cleanId = expr.trim();
+                
+                const qMatch = cleanId.match(/^Q(\d+)$/);
+                if (qMatch && rsBlocks.has(qMatch[1])) {
+                    resultId = `RS_${qMatch[1]}`;
+                } else {
+                    graph.addNode(cleanId, 'INPUT', cleanId);
+                    allUsedInputs.add(cleanId);
+                    resultId = cleanId;
+                }
                 
                 exprCache.set(canonicalKey, resultId);
                 return { id: resultId, inverted };
@@ -304,17 +341,18 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                 const sourceObj = parseExpression(expressionStr);
                 graph.addEdge(sourceObj.id, targetId, targetPin, sourceObj.inverted);
 
-                let jsExpr = cleanLine.replace(/¬/g, '!').replace(':=', '=');
-                jsExpr = jsExpr.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, 'state.$1');
-                jsCompiledCode += "    " + jsExpr + ";\n";
+                // NEU: Sim-Code exakt anhand des Graphen generieren
+                if (rsMatch) {
+                    jsCompiledCode += `    state.${targetId}_${targetPin} = ${sourceObj.inverted ? '!' : ''}state.${sourceObj.id};\n`;
+                } else {
+                    jsCompiledCode += `    state.${targetId} = ${sourceObj.inverted ? '!' : ''}state.${sourceObj.id};\n`;
+                }
             });
 
+            // NEU: RS-FlipFlop Auswertung
             rsBlocks.forEach(num => {
-                const rsId = `RS_${num}`;
-                const qId = `Q${num}`;
-                graph.addNode(qId, 'OUTPUT', qId);
-                graph.addEdge(rsId, qId, 'Q');
-                jsCompiledCode += `    if (state.R${num}) { state.Q${num} = false; } else if (state.S${num}) { state.Q${num} = true; }\n`;
+                jsCompiledCode += `    if (state.RS_${num}_R) { state.RS_${num} = false; } else if (state.RS_${num}_S) { state.RS_${num} = true; }\n`;
+                jsCompiledCode += `    state.Q${num} = state.RS_${num};\n`;
             });
 
             graph.nodes.forEach(node => {
@@ -349,8 +387,8 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             let maxLevel = 0;
             graph.nodes.forEach(n => { if(n.level > maxLevel) maxLevel = n.level; });
             
-            // Outputs nur ganz nach rechts zwingen, wenn sie nirgendwo als Eingang dienen (Final Outputs).
-            // S2_MAN ist ein Zwischenmerker (hasOut ist true), deshalb bleibt er in seiner natürlichen Spalte!
+            // NUR End-Ausgänge (die nirgendwo mehr weitergeleitet werden) rutschen in die letzte Spalte.
+            // S2_MAN wird weitergeleitet und bleibt deshalb sichtbar in der Mitte stehen!
             const hasOut = new Set(graph.edges.map(e => e.sourceId));
             graph.nodes.forEach(n => { if(n.type === 'OUTPUT' && !hasOut.has(n.id)) n.level = maxLevel + 1; });
 
@@ -361,21 +399,19 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             });
 
             const COLUMN_WIDTH = 220;
-            const MIN_GAP = 25; // Sichert einen echten, durchlässigen Kanal zwischen allen Gattern
+            const MIN_GAP = 25; 
             
             Object.keys(columns).forEach(level => {
                 let totalHeight = 0;
                 
                 columns[level].forEach(node => {
-                    // Breite dynamisch an Textlänge anpassen
-                    node.width = (node.type === 'RS' ? 50 : (node.type === 'GATE' ? 40 : Math.max(70, node.label.length * 7.5 + 15)));
-                    node.height = (node.type === 'RS' ? 60 : (node.type === 'GATE' ? Math.max(30, node.inputs.length * 15 + 15) : 26));
+                    node.width = (node.type === 'RS' ? 50 : (node.type === 'GATE' ? 45 : Math.max(60, node.label.length * 8 + 10)));
+                    node.height = (node.type === 'RS' ? 65 : (node.type === 'GATE' ? Math.max(30, node.inputs.length * 15 + 15) : 30));
                     totalHeight += node.height + MIN_GAP;
                 });
                 totalHeight -= MIN_GAP;
 
-                // Zentriert die Stapel in Y-Richtung
-                let currentY = Math.max(30, (600 - totalHeight) / 2); 
+                let currentY = Math.max(40, (600 - totalHeight) / 2); 
                 columns[level].forEach(node => {
                     node.x = 40 + parseInt(level) * COLUMN_WIDTH;
                     node.y = currentY;
@@ -384,23 +420,19 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             });
         }
 
-        // Der extrem robuste Kollisions-Scanner
         function findFreeY(startY, x1, x2, nodes, horizontalUsage) {
             let blocked = [];
-            // Erfasst alle Gatter-Höhen, die durchkreuzt werden würden
             for (let [id, n] of nodes) {
                 if ((n.x - 10) < x2 && (n.x + n.width + 10) > x1) {
-                    blocked.push({ min: n.y - 10, max: n.y + n.height + 10 });
+                    blocked.push({ min: n.y - 12, max: n.y + n.height + 12 });
                 }
             }
-            // Erfasst bereits liegende horizontale Hauptlinien
             for (let h of horizontalUsage) {
                 if (Math.max(x1, h.x1) < Math.min(x2, h.x2)) {
-                    blocked.push({ min: h.y - 5, max: h.y + 5 });
+                    blocked.push({ min: h.y - 4, max: h.y + 4 });
                 }
             }
             
-            // Scannt in 5-Pixel-Schritten spiralförmig nach oben und unten nach dem ersten freien Spalt
             for (let offset = 0; offset < 800; offset += 5) {
                 for (let sign of [1, -1]) {
                     if (offset === 0 && sign === -1) continue;
@@ -412,46 +444,43 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                             break;
                         }
                     }
-                    if (!isBlocked) return testY; // Freie Lücke gefunden!
+                    if (!isBlocked) return testY; 
                 }
             }
             return startY; 
         }
 
-        function drawPath(d, color) {
+        function drawPath(d, color, sourceId) {
             const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
             halo.setAttribute("d", d);
-            halo.setAttribute("class", "fbs-line-halo");
+            halo.setAttribute("class", `fbs-line-halo net-source-${sourceId}`);
             svgHalos.appendChild(halo);
 
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", d);
-            path.setAttribute("class", "fbs-line");
+            path.setAttribute("class", `fbs-line net-source-${sourceId}`);
             path.setAttribute("stroke", color);
             svgLines.appendChild(path);
         }
 
-        function drawBubble(cx, cy, color) {
+        function drawBubble(cx, cy, color, sourceId) {
             const bubble = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            bubble.setAttribute("cx", cx);
-            bubble.setAttribute("cy", cy);
-            bubble.setAttribute("r", 3.5);
-            bubble.setAttribute("fill", "#ffffff");
-            bubble.setAttribute("stroke", color);
-            bubble.setAttribute("stroke-width", "2");
+            bubble.setAttribute("cx", cx); bubble.setAttribute("cy", cy); bubble.setAttribute("r", 3.5);
+            bubble.setAttribute("fill", "#ffffff"); bubble.setAttribute("stroke", color); bubble.setAttribute("stroke-width", "2");
+            bubble.setAttribute("class", `fbs-bubble net-source-${sourceId}`);
             svgNodes.appendChild(bubble);
         }
 
-        function drawDot(cx, cy, color) {
+        function drawDot(cx, cy, color, sourceId) {
             const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            dot.setAttribute("cx", cx);
-            dot.setAttribute("cy", cy);
-            dot.setAttribute("r", 4);
+            dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", 4);
             dot.setAttribute("fill", color);
+            dot.setAttribute("class", `fbs-dot net-source-${sourceId}`);
             svgNodes.appendChild(dot);
         }
 
         function drawGraph(graph) {
+            currentGraph = graph;
             svgHalos.innerHTML = '';
             svgLines.innerHTML = '';
             svgNodes.innerHTML = '';
@@ -466,7 +495,7 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                 if(!source || !target) return;
 
                 let startY = source.y + (source.height / 2);
-                if (source.type === 'RS' && edge.targetPin === 'Q') startY = source.y + 15;
+                if (source.type === 'RS') startY = source.y + 15;
 
                 const netKey = edge.sourceId + '_' + startY;
                 if (!nets[netKey]) nets[netKey] = { source, startY, edges: [], color: edge.color };
@@ -474,14 +503,15 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             });
 
             Object.values(nets).forEach(net => {
-                let startX = net.source.x + net.source.width;
+                let startX = safe(net.source.x + net.source.width);
                 
                 net.edges.forEach(edge => {
                     const target = graph.nodes.get(edge.targetId);
                     let endY = target.y + (target.height / 2);
 
                     if (target.type === 'GATE') {
-                        const inIndex = target.inputs.indexOf(edge.originalSourceId);
+                        let inIndex = target.inputs.indexOf(edge.originalSourceId);
+                        if(inIndex === -1) inIndex = 0; 
                         const usableHeight = target.height - 20; 
                         const spacing = usableHeight / Math.max(1, target.inputs.length);
                         endY = target.y + 20 + spacing * (inIndex + 0.5); 
@@ -489,20 +519,20 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                         if (edge.targetPin === 'S') endY = target.y + 15;
                         if (edge.targetPin === 'R') endY = target.y + target.height - 15;
                     }
-                    edge.calcEndY = endY;
-                    edge.calcEndX = target.x;
+                    edge.calcEndY = safe(endY);
+                    edge.calcEndX = safe(target.x);
                     
                     if (!channelUsage[target.level]) channelUsage[target.level] = 0;
-                    edge.calcMidX = target.x - 12 - (channelUsage[target.level] * 5);
+                    // Noch engere Bündelung für Kabelkanäle (4px)
+                    edge.calcMidX = safe(target.x - 12 - (channelUsage[target.level] * 4));
                     channelUsage[target.level]++;
                 });
 
-                let maxMidX = Math.max(...net.edges.map(e => e.calcMidX));
-                
-                // Intelligente Y-Höhe für Trunk-Kabel finden
-                let trunkY = net.startY;
+                let maxMidX = safe(Math.max(...net.edges.map(e => e.calcMidX)));
+                let trunkY = safe(net.startY);
+
                 if (maxMidX > startX + 10) {
-                    trunkY = findFreeY(net.startY, startX + 10, maxMidX, graph.nodes, horizontalUsage);
+                    trunkY = safe(findFreeY(net.startY, startX + 10, maxMidX, graph.nodes, horizontalUsage));
                     horizontalUsage.push({y: trunkY, x1: startX + 10, x2: maxMidX});
                 }
 
@@ -513,7 +543,7 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                     } else {
                         trunkD += ` L ${maxMidX} ${trunkY}`; 
                     }
-                    drawPath(trunkD, net.color);
+                    drawPath(trunkD, net.color, net.source.id);
                 }
 
                 const dots = new Set();
@@ -523,13 +553,13 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                     
                     if (edge.inverted) {
                         actualEndX -= 7;
-                        drawBubble(actualEndX + 3.5, edge.calcEndY, net.color);
+                        drawBubble(actualEndX + 3.5, edge.calcEndY, net.color, net.source.id);
                     }
 
                     let dropD = "";
                     if (maxMidX > startX) {
-                        // Zieht perfekt gerade Linien ohne Micro-Knicke, wenn möglich
-                        if (Math.abs(trunkY - edge.calcEndY) <= 2) {
+                        // Toleranz für schnurgerade Linien ohne Knick erhöht (Toleranz: 4px)
+                        if (Math.abs(trunkY - edge.calcEndY) <= 4) {
                             dropD = `M ${edge.calcMidX} ${trunkY} L ${actualEndX} ${trunkY}`;
                         } else {
                             dropD = `M ${edge.calcMidX} ${trunkY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
@@ -548,29 +578,30 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                         dropD = `M ${startX} ${net.startY} L ${edge.calcMidX} ${net.startY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
                     }
 
-                    drawPath(dropD, net.color);
+                    drawPath(dropD, net.color, net.source.id);
                 });
 
                 dots.forEach(d => {
                     const [dx, dy] = d.split(',').map(Number);
-                    drawDot(dx, dy, net.color);
+                    drawDot(dx, dy, net.color, net.source.id);
                 });
             });
 
             graph.nodes.forEach(node => {
                 const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                g.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+                g.setAttribute("transform", `translate(${safe(node.x)}, ${safe(node.y)})`);
 
                 if (node.type === 'GATE' || node.type === 'RS') {
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                    rect.setAttribute("width", node.width);
-                    rect.setAttribute("height", node.height);
+                    rect.setAttribute("id", `node-block-${node.id}`);
+                    rect.setAttribute("width", safe(node.width));
+                    rect.setAttribute("height", safe(node.height));
                     rect.setAttribute("class", "fbs-block");
                     rect.setAttribute("stroke", node.color);
                     g.appendChild(rect);
 
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    text.setAttribute("x", node.width / 2);
+                    text.setAttribute("x", safe(node.width / 2));
                     text.setAttribute("y", 15);
                     text.setAttribute("text-anchor", "middle");
                     text.setAttribute("class", "fbs-text");
@@ -581,15 +612,16 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                         const sText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         sText.setAttribute("x", 4); sText.setAttribute("y", 18); sText.setAttribute("class", "fbs-pin-text"); sText.textContent = "S";
                         const rText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        rText.setAttribute("x", 4); rText.setAttribute("y", node.height - 10); rText.setAttribute("class", "fbs-pin-text"); rText.textContent = "R";
+                        rText.setAttribute("x", 4); rText.setAttribute("y", safe(node.height - 10)); rText.setAttribute("class", "fbs-pin-text"); rText.textContent = "R";
                         const qText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        qText.setAttribute("x", node.width - 12); qText.setAttribute("y", 18); qText.setAttribute("class", "fbs-pin-text"); qText.textContent = "Q";
+                        qText.setAttribute("x", safe(node.width - 12)); qText.setAttribute("y", 18); qText.setAttribute("class", "fbs-pin-text"); qText.textContent = "Q";
                         g.appendChild(sText); g.appendChild(rText); g.appendChild(qText);
                     }
                 } else {
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                    rect.setAttribute("width", node.width);
-                    rect.setAttribute("height", node.height);
+                    rect.setAttribute("id", `node-block-${node.id}`);
+                    rect.setAttribute("width", safe(node.width));
+                    rect.setAttribute("height", safe(node.height));
                     rect.setAttribute("class", "fbs-io-box");
                     rect.setAttribute("stroke", node.color);
                     
@@ -600,15 +632,15 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                     g.appendChild(rect);
 
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                    text.setAttribute("x", node.width / 2);
-                    text.setAttribute("y", node.height / 2 + 4);
+                    text.setAttribute("x", safe(node.width / 2));
+                    text.setAttribute("y", safe(node.height / 2 + 4));
                     text.setAttribute("text-anchor", "middle");
                     text.setAttribute("class", "fbs-text");
                     text.setAttribute("font-size", "11px");
                     
                     text.textContent = node.label;
                     
-                    // Native SVG Stauchung, falls Text zu lang ist (Erzwingt Passform in Box)
+                    // Native SVG Text-Stauchung
                     const maxTextWidth = node.width - 10;
                     if (node.label.length * 6.5 > maxTextWidth) {
                         text.setAttribute("textLength", maxTextWidth);
@@ -694,14 +726,48 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
             if (btn) { if (isPressed) btn.classList.add('pressed'); else btn.classList.remove('pressed'); }
             runSimulationTick();
         };
+        let isSimulationActive = false;
 
+        window.toggleSimulation = function() {
+            isSimulationActive = !isSimulationActive;
+            const btn = document.getElementById('btn-toggle-sim');
+            
+            if (isSimulationActive) {
+                customSvg.classList.add('sim-running');
+                btn.textContent = 'Simulation stoppen';
+                btn.style.backgroundColor = '#555'; // Grau, um zu signalisieren, dass es läuft
+            } else {
+                customSvg.classList.remove('sim-running');
+                btn.textContent = 'Simulation starten';
+                btn.style.backgroundColor = '#e6194B'; // Wieder rot für den Start
+            }
+        };
         function runSimulationTick() {
-            if (!simulationFunction) return;
+            if (!simulationFunction || !currentGraph) return;
             simulationFunction(spsState);
+            
+            // LEDs updaten
             for (const [key, value] of Object.entries(spsState)) {
                 const led = document.getElementById(`sim_out_${key}`);
                 if (led) { if (value) led.classList.add('on'); else led.classList.remove('on'); }
             }
+
+            // SVG Elemente updaten
+            currentGraph.nodes.forEach(node => {
+                const val = !!spsState[node.id];
+                
+                const block = document.getElementById(`node-block-${node.id}`);
+                if (block) {
+                    if (val) { block.classList.add('active'); block.classList.remove('inactive'); }
+                    else { block.classList.add('inactive'); block.classList.remove('active'); }
+                }
+
+                const nets = document.querySelectorAll(`.net-source-${node.id}`);
+                nets.forEach(el => {
+                    if (val) { el.classList.add('active'); el.classList.remove('inactive'); }
+                    else { el.classList.add('inactive'); el.classList.remove('active'); }
+                });
+            });
         }
 
         function updateEditor() {
@@ -715,6 +781,7 @@ PZ_V2_EIN := (DONE || RT || (ERR && S_V2_AUS)) && ¬NH && ¬S_V2_EIN`;
                 
                 calculateLayout(parsed.graph);
                 drawGraph(parsed.graph);
+                runSimulationTick();
                 
             } catch (e) {
                 console.warn("Warte auf korrekte Syntax...", e);
