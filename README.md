@@ -9,7 +9,7 @@ A powerful, browser-based logic circuit editor and live simulator. This tool aut
 <p align="center">
   <a href="/Logik Editor Preview.png" target="_blank">
     <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
-  </a>
+  </a> 
 </p>
 
 ## ✨ Features
