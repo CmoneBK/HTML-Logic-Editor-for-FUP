@@ -237,7 +237,12 @@
         .f2d-despawner { width: 50px; height: 50px; background: #212121; border: 2px dashed #ff5252; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #ff5252; font-size: 10px; font-weight: bold; z-index: 4; text-align: center; }
 		.item-metall { background: #cfd8dc; }
         .item-kunststoff { background: #ffcc80; }
-        .f2d-label { position: absolute; top: -15px; left: 0; font-size: 10px; font-family: monospace; background: rgba(255,255,255,0.8); padding: 1px 3px; border: 1px solid #ccc; pointer-events: none; white-space: nowrap; z-index: 15; color: #000; }
+        /* Die weißen Namensschilder an Zylindern, Bändern und Sensoren */
+        .f2d-label { position: absolute; top: -15px; left: 0; font-size: 10px; font-family: monospace; background: rgba(255,255,255,0.8); padding: 1px 3px; border: 1px solid #ccc; pointer-events: none; white-space: nowrap; z-index: 15; color: #000; transition: opacity 0.2s ease; opacity: 1; }
+        /* NEU: Labels im Simulationsmodus ausblenden, bei Hover oder Pin wieder einblenden */
+        #factory-wrapper.sim-active .f2d-obj .f2d-label { opacity: 0; }
+        #factory-wrapper.sim-active .f2d-obj:hover .f2d-label { opacity: 1; }
+        #factory-wrapper.sim-active .f2d-obj .f2d-label.f2d-label-pinned { opacity: 1; }
 		/* NEU: Wand / Kollisionsblock & UI Updates */
         /* --- Struktur & Wände --- */
         /* Gemauerte Klinker-Wand */
@@ -813,7 +818,6 @@
             // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
-																									   
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
                 // NEU: Erkennt S1, R1 (RS) und S1_RS, R1_RS (RS) sowie S1_SR (SR)
@@ -835,28 +839,24 @@
             }
             function evaluateFlat(expr) {
                 expr = String(expr).trim();
-																						  
                 let orParts = expr.split('||').map(s => s.trim());
                 if (orParts.length > 1) { 
                     let resultId = createGate('||', orParts.map(p => evaluateFlat(p))); 
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 } 
-															   
                 let andParts = expr.split('&&').map(s => s.trim());
                 if (andParts.length > 1) { 
                     let resultId = createGate('&', andParts.map(p => evaluateFlat(p))); 
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 }
-																							  
                 let inverted = false;
                 let cleanId = expr;
                 if (cleanId.startsWith('¬')) {
                     inverted = true;
                     cleanId = cleanId.substring(1).trim();
                 }
-																							 
                 if (/^(AND_|OR_)\d+$/.test(cleanId)) return { id: cleanId, inverted }; 
                 let canonicalKey = cleanId;
                 if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
@@ -879,7 +879,6 @@
                     resultId = cleanId;
                 }
                 exprCache.set(canonicalKey, resultId);
-																				
                 return { id: resultId, inverted };
             }
             function parseExpression(expr) {
@@ -897,27 +896,15 @@
             }
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
-																
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
                 const parts = cleanLine.split(':=');
                 const outputStr = parts[0].trim();
                 let expressionStr = parts[1].trim();
-														
-																				   
                 expressionStr = expressionStr
-										
-											   
                     .replace(/!/g, '¬').replace(/\bNOT\b/gi, '¬').replace(/\bNICHT\b/gi, '¬')
                     .replace(/\bAND\b/gi, '&&').replace(/\bUND\b/gi, '&&').replace(/\^/g, '&&').replace(/∧/g, '&&')
                     .replace(/\bOR\b/gi, '||').replace(/\bODER\b/gi, '||').replace(/\bv\b/gi, '||').replace(/∨/g, '||');
-										 
-										  
-											  
-												
-											 
-										   
-																  
                 expressionStr = expressionStr.replace(/&&/g, '##AND##').replace(/&/g, '&&').replace(/##AND##/g, '&&');
                 expressionStr = expressionStr.replace(/\|\|/g, '##OR##').replace(/\|/g, '||').replace(/##OR##/g, '||');
                 // Pins auf SR und RS prüfen
@@ -1490,7 +1477,6 @@
             } else {
                 panel.style.display = 'none';
                 // Aus Version 1: Zerstört die SVG-Instanzen, um NaN-Bugs beim Hintergrund-Skalieren zu vermeiden
-																							  
                 if (panelId === 'fbs-wrapper' && panZoomInstance) { 
                     panZoomInstance.destroy(); panZoomInstance = null; 
                 }
@@ -1498,24 +1484,7 @@
                     panZoomCircuitInstance.destroy(); panZoomCircuitInstance = null; 
                 }
             }
-																		
-																		
-			   
-																  
-		  
-														
-														   
-																																						
-																					 
-												 
-											 
-																															  
-																		
-					
-											 
-			 
             // Aus Version 2: Nach jedem Klick den Platz wieder GERECHT auf alle SICHTBAREN aufteilen
-																							
             document.querySelectorAll('.workspace-panel').forEach(p => {
                 if (p.style.display !== 'none') {
                     p.style.flex = '1 1 0%';
@@ -2041,13 +2010,9 @@
             if(!isLoadingFactory) saveFactoryState(); 
         };
         window.addFactoryDevice = function(type) {
-            if (type === 'despawner') { createFactoryObject('despawner', ''); return; }
-            if (type === 'wall') { createFactoryObject('wall', ''); return; }
-            if (type === 'frame') { createFactoryObject('frame', ''); return; } // NEU
-            if (type === 'zone_top') { createFactoryObject('zone_top', ''); return; }
-            if (type === 'zone_side') { createFactoryObject('zone_side', ''); return; }
-            // Logiklose Mechanik überspringt das Popup
-            if (type === 'window' || type === 'pusher' || type === 'press') { createFactoryObject(type, ''); return; }
+            // 1. Logiklose Objekte direkt erstellen & sofort abbrechen
+            const directTypes = ['despawner', 'wall', 'frame', 'zone_top', 'zone_side', 'window', 'pusher', 'press'];
+            if (directTypes.includes(type)) { createFactoryObject(type, ''); return; }
             pendingFactoryType = type;
             const modal = document.getElementById('factory-modal');
             const sel1 = document.getElementById('fm-select-1'); const sel2 = document.getElementById('fm-select-2');
@@ -2062,44 +2027,43 @@
                 let list = isOutput ? globalOutputs : globalInputs;
                 let groupMatch = document.createElement('optgroup'); groupMatch.label = "Passende Komponenten";
                 let groupOther = document.createElement('optgroup'); groupOther.label = "Andere Variablen";
+                const validMatches = {
+                    'led': ['led'], 'taster': ['taster', 'taster_nc'], 'schalter': ['schalter', 'schalter_nc'],
+                    'nothalt': ['nothalt'], 'zylinder_single': ['valve'], 'zylinder_double': ['valve'], 'conveyor': ['valve']
+                };
                 list.forEach(v => {
-                    if (isOutput && v.match(/^Q\d+$/)) return;
+                    // FIX: Die Regex hier wurde an deine neuen SR/RS Glieder angepasst, 
+                    // damit diese nicht fälschlicherweise in der Liste für Aktoren auftauchen!
+                    if (isOutput && v.match(/^Q\d+(_(?:SR|RS))?$/i)) return; 
                     let opt = document.createElement('option'); opt.value = v; opt.textContent = v;
                     let compType = componentTypes[v] || (isOutput ? 'led' : 'taster');
-                    let isMatch = false;
-                    if (targetType === 'led' && compType === 'led') isMatch = true;
-                    if ((targetType === 'zylinder_single' || targetType === 'zylinder_double' || targetType === 'conveyor') && compType === 'valve') isMatch = true;
-                    if (targetType === 'taster' && (compType === 'taster' || compType === 'taster_nc')) isMatch = true;
-                    if (targetType === 'schalter' && (compType === 'schalter' || compType === 'schalter_nc')) isMatch = true;
-                    if (targetType === 'nothalt' && compType === 'nothalt') isMatch = true;
-                    if (targetType === 'sensor_ind' && compType === 'sensor_ind') isMatch = true;
-                    if (targetType === 'sensor_kap' && compType === 'sensor_kap') isMatch = true;
-                    if (targetType === 'sensor_opt' && compType === 'sensor_opt') isMatch = true;
-                    if (targetType === 'sensor_mag' && compType === 'sensor_mag') isMatch = true;
+                    let isMatch = targetType.startsWith('sensor_') ? (compType === targetType) : (validMatches[targetType] && validMatches[targetType].includes(compType));
                     if (isMatch) groupMatch.appendChild(opt); else groupOther.appendChild(opt);
                 });
                 if (groupMatch.children.length > 0) selectElem.appendChild(groupMatch);
                 if (groupOther.children.length > 0) selectElem.appendChild(groupOther);
             };
-            if (type === 'taster' || type === 'schalter' || type === 'nothalt') {
-                title.textContent = 'Bedienelement (Eingang) zuweisen:'; lbl1.textContent = 'SPS Eingangsvariable'; fillOptions(sel1, false, type); colorGrp.style.display = 'block';
-                if(type === 'nothalt') document.getElementById('fm-select-color').value = 'red'; 
-            } else if (type === 'led') {
-                title.textContent = 'LED Leuchte (Ausgang) zuweisen:'; lbl1.textContent = 'SPS Ausgangsvariable'; fillOptions(sel1, true, type); colorGrp.style.display = 'block';
-            } else if (type.startsWith('sensor_')) {
-                title.textContent = 'Sensor (Eingang) zuweisen:'; lbl1.textContent = 'SPS Eingangsvariable'; fillOptions(sel1, false, type);
-            } else if (type === 'zylinder_single') {
-                title.textContent = 'Einfachwirkender Zylinder (Ausgang):'; lbl1.textContent = 'Magnetventil ansteuern (Ausfahren)'; fillOptions(sel1, true, type);
-            } else if (type === 'zylinder_double') {
-                title.textContent = 'Doppelwirkender Zylinder (Ausgänge):'; lbl1.textContent = 'Kolben AUSfahren (z.B. PZ_V1_AUS)'; lbl2.textContent = 'Kolben EINfahren (z.B. PZ_V1_EIN)';
-                fillOptions(sel1, true, type); fillOptions(sel2, true, type); grp2.style.display = 'block';
-            } else if (type === 'conveyor') {
-                title.textContent = 'Förderband (Ausgang) zuweisen:'; lbl1.textContent = 'Motor AN (z.B. MOTOR_1)'; fillOptions(sel1, true, type);
-            } else if (type.startsWith('spawner_')) {
-                title.textContent = 'Spawner konfigurieren:'; lbl1.textContent = 'Aktivieren durch (Optional)';
+            // Hier sind deine exakten Original-Texte 1:1 erhalten geblieben
+            const config = {
+                'taster': { t: 'Bedienelement (Eingang) zuweisen:', l1: 'SPS Eingangsvariable', out: false, col: true },
+                'schalter': { t: 'Bedienelement (Eingang) zuweisen:', l1: 'SPS Eingangsvariable', out: false, col: true },
+                'nothalt': { t: 'Bedienelement (Eingang) zuweisen:', l1: 'SPS Eingangsvariable', out: false, col: true },
+                'led': { t: 'LED Leuchte (Ausgang) zuweisen:', l1: 'SPS Ausgangsvariable', out: true, col: true },
+                'zylinder_single': { t: 'Einfachwirkender Zylinder (Ausgang):', l1: 'Magnetventil ansteuern (Ausfahren)', out: true },
+                'zylinder_double': { t: 'Doppelwirkender Zylinder (Ausgänge):', l1: 'Kolben AUSfahren (z.B. PZ_V1_AUS)', l2: 'Kolben EINfahren (z.B. PZ_V1_EIN)', out: true },
+                'conveyor': { t: 'Förderband (Ausgang) zuweisen:', l1: 'Motor AN (z.B. MOTOR_1)', out: true }
+            };
+            let c = config[type] || { t: 'Sensor (Eingang) zuweisen:', l1: 'SPS Eingangsvariable', out: false };
+            if (type.startsWith('spawner_')) c = { t: 'Spawner konfigurieren:', l1: 'Aktivieren durch (Optional)', out: true, spawner: true };
+            title.textContent = c.t; lbl1.textContent = c.l1;
+            if (c.spawner) {
                 let emptyOpt = document.createElement('option'); emptyOpt.value = ""; emptyOpt.textContent = "-- Dauerhaft aktiv --"; sel1.appendChild(emptyOpt);
-                fillOptions(sel1, true, type); intervalGrp.style.display = 'block';
             }
+            fillOptions(sel1, c.out, type);
+            if (c.col) colorGrp.style.display = 'block';
+            if (c.l2) { lbl2.textContent = c.l2; fillOptions(sel2, true, type); grp2.style.display = 'block'; }
+            if (c.spawner) intervalGrp.style.display = 'block';
+            if (type === 'nothalt') document.getElementById('fm-select-color').value = 'red';
             if (sel1.options.length === 0 && !type.startsWith('spawner_')) { alert("Keine passenden Variablen im Code gefunden!"); pendingFactoryType = null; return; }
             modal.style.display = 'block';
         };
@@ -2116,7 +2080,7 @@
             let obj = { 
                 id: forceId || Math.random().toString(36).substr(2, 9), 
                 el: el, type: type, x: 300, y: 150, width: 20, height: 40, rotation: 0, 
-                children: [], parent: null, color: color, interval: interval, useCollision: defaultCollision 
+                children: [], parent: null, color: color, interval: interval, useCollision: defaultCollision, labelPinned: false
             };
             let hexColor = colorMap[color] || '#4caf50';
             if (type === 'taster' || type === 'schalter' || type === 'nothalt') {
@@ -2194,6 +2158,9 @@
                 rotator.className = 'f2d-rotate-handle';
                 el.appendChild(rotator);
             }
+            // NEU: Das Namensschild im Objekt-Speicher verlinken, damit wir es später anpinnen können
+            let foundLabel = el.querySelector('.f2d-label');
+            if (foundLabel) obj.labelEl = foundLabel;
             updateObjTransform(obj);
             factoryObjects.push(obj); factoryCanvas.appendChild(el); makeDraggable(el, obj);
             if(!isLoadingFactory) saveFactoryState(); 
@@ -2348,6 +2315,19 @@
                     saveFactoryState(); 
                 }; 
                 ctxMenu.appendChild(btnRot);
+            }
+			// NEU: Button zum Anpinnen der Namensschilder
+            if (obj.labelEl) {
+                let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
+                let btnPin = document.createElement('div'); btnPin.className = 'ctx-item'; 
+                btnPin.textContent = obj.labelPinned ? '👁️ Namensschild verbergen' : '📌 Namensschild anpinnen';
+                btnPin.onclick = () => { 
+                    obj.labelPinned = !obj.labelPinned; 
+                    if (obj.labelPinned) obj.labelEl.classList.add('f2d-label-pinned');
+                    else obj.labelEl.classList.remove('f2d-label-pinned');
+                    saveFactoryState(); 
+                }; 
+                ctxMenu.appendChild(btnPin);
             }
             if (obj.material) { 
                 let btnGrav = document.createElement('div'); btnGrav.className = 'ctx-item'; btnGrav.textContent = obj.useGravity ? '🪶 Gravitation: AUS' : '🏋️ Gravitation: AN';
@@ -2764,7 +2744,7 @@
                             oldId: o.id, type: o.type, x: o.x, y: o.y, width: o.width, height: o.height, rotation: o.rotation,
                             linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet,
                             oldParentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType,
-                            color: o.color, interval: o.interval, useCollision: o.useCollision 
+                            color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned
                         }))
                     };
                     // Kurzes visuelles Feedback oben links
@@ -2800,6 +2780,11 @@
                         if (data.height) newObj.height = data.height; 
                         newObj.rotation = data.rotation;
                         if (data.useCollision !== undefined) newObj.useCollision = data.useCollision;
+						// NEU: Angepinntes Namensschild beim Einfügen (STRG+V) auf den Klon übertragen!
+                        if (data.labelPinned) {
+                            newObj.labelPinned = true;
+                            if (newObj.labelEl) newObj.labelEl.classList.add('f2d-label-pinned');
+                        }
                         if(newObj.resizerEl) newObj.el.style.width = newObj.width + 'px';
                         if(newObj.type.startsWith('zone_') || newObj.type === 'wall' || newObj.type === 'frame' || newObj.type === 'window' || newObj.type === 'pusher' || newObj.type === 'press') { 
                             newObj.el.style.height = newObj.height + 'px'; 
@@ -2846,7 +2831,7 @@
                     id: o.id, type: o.type, x: o.x, y: o.y, width: o.width, height: o.height, rotation: o.rotation,
                     linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet,
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType,
-                    color: o.color, interval: o.interval, useCollision: o.useCollision 
+                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned 
                 }))
             };
         }
@@ -2884,6 +2869,11 @@
                     newObj.x = o.x; newObj.y = o.y; newObj.width = o.width; newObj.rotation = o.rotation;
                     if (o.height) newObj.height = o.height; 
                     if (o.useCollision !== undefined) newObj.useCollision = o.useCollision;
+                    // NEU: Namensschild-Zustand wiederherstellen
+                    if (o.labelPinned) {
+                        newObj.labelPinned = true;
+                        if (newObj.labelEl) newObj.labelEl.classList.add('f2d-label-pinned');
+                    }
                     if(newObj.resizerEl) newObj.el.style.width = newObj.width + 'px';
                     if(newObj.type.startsWith('zone_') || newObj.type === 'wall' || newObj.type === 'frame' || newObj.type === 'window' || newObj.type === 'pusher' || newObj.type === 'press') { 
                         newObj.el.style.width = newObj.width + 'px'; 
