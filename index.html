@@ -810,13 +810,12 @@
             const allUsedInputs = new Set();
             const rsBlocks = new Map(); // NEU: Map statt Set für RS/SR Unterscheidung
             const exprCache = new Map();
-
             // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
+																									   
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
-                
                 // NEU: Erkennt S1, R1 (RS) und S1_RS, R1_RS (RS) sowie S1_SR (SR)
                 const match = cleanLine.split(':=')[0].trim().match(/^([SR])(\d+)(_(?:SR|RS))?$/i);
                 if (match) {
@@ -825,19 +824,15 @@
                     rsBlocks.set(match[2] + suffix, isSR ? 'SR' : 'RS');
                 }
             });
-
             function createGate(type, inputObjs) {
                 const gateId = (type === '&' ? 'AND_' : 'OR_') + graph.gateCounter++;
                 graph.addNode(gateId, 'GATE', type === '&' ? '&' : '>=1');
                 inputObjs.forEach(inp => graph.addEdge(inp.id, gateId, '', inp.inverted));
-
                 const operator = type === '&' ? '&&' : '||';
                 const jsInputs = inputObjs.map(inp => (inp.inverted ? '!' : '') + `state.${inp.id}`).join(` ${operator} `);
                 jsCompiledCode += `    state.${gateId} = ${jsInputs || 'false'};\n`;
-
                 return gateId;
             }
-
             function evaluateFlat(expr) {
                 expr = String(expr).trim();
 																						  
@@ -847,28 +842,25 @@
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 } 
-                
+															   
                 let andParts = expr.split('&&').map(s => s.trim());
                 if (andParts.length > 1) { 
                     let resultId = createGate('&', andParts.map(p => evaluateFlat(p))); 
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 }
-
+																							  
                 let inverted = false;
                 let cleanId = expr;
                 if (cleanId.startsWith('¬')) {
                     inverted = true;
                     cleanId = cleanId.substring(1).trim();
                 }
-
+																							 
                 if (/^(AND_|OR_)\d+$/.test(cleanId)) return { id: cleanId, inverted }; 
-                
                 let canonicalKey = cleanId;
                 if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
-
                 let resultId;
-                
                 // Unterscheidung zwischen Standard Q, Q_RS und Q_SR
                 const qMatch = cleanId.match(/^Q(\d+)(_(?:SR|RS))?$/i);
                 if (qMatch) {
@@ -886,12 +878,10 @@
                     allUsedInputs.add(cleanId);
                     resultId = cleanId;
                 }
-                
                 exprCache.set(canonicalKey, resultId);
 																				
                 return { id: resultId, inverted };
             }
-
             function parseExpression(expr) {
                 let parsed = expr;
                 let changed = true;
@@ -905,17 +895,15 @@
                 }
                 return evaluateFlat(parsed);
             }
-
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
 																
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
-
                 const parts = cleanLine.split(':=');
                 const outputStr = parts[0].trim();
                 let expressionStr = parts[1].trim();
-
+														
 																				   
                 expressionStr = expressionStr
 										
@@ -923,7 +911,7 @@
                     .replace(/!/g, '¬').replace(/\bNOT\b/gi, '¬').replace(/\bNICHT\b/gi, '¬')
                     .replace(/\bAND\b/gi, '&&').replace(/\bUND\b/gi, '&&').replace(/\^/g, '&&').replace(/∧/g, '&&')
                     .replace(/\bOR\b/gi, '||').replace(/\bODER\b/gi, '||').replace(/\bv\b/gi, '||').replace(/∨/g, '||');
-                
+										 
 										  
 											  
 												
@@ -932,19 +920,16 @@
 																  
                 expressionStr = expressionStr.replace(/&&/g, '##AND##').replace(/&/g, '&&').replace(/##AND##/g, '&&');
                 expressionStr = expressionStr.replace(/\|\|/g, '##OR##').replace(/\|/g, '||').replace(/##OR##/g, '||');
-
                 // Pins auf SR und RS prüfen
                 const rsMatch = outputStr.match(/^([SR])(\d+)(_(?:SR|RS))?$/i);
                 let targetId = outputStr;
                 let targetPin = '';
-
                 if (rsMatch) {
                     const pin = rsMatch[1].toUpperCase(); 
                     const num = rsMatch[2];
                     const suffix = rsMatch[3] ? rsMatch[3].toUpperCase() : '';
                     const isSR = suffix === '_SR';
                     const blockType = isSR ? 'SR' : 'RS';
-                    
                     targetId = `${blockType}_${num}`; 
                     targetPin = pin;
                     rsBlocks.set(`${num}${suffix}`, blockType);
@@ -954,23 +939,19 @@
                     graph.addNode(targetId, 'OUTPUT', outputStr);
                     definedOutputs.add(targetId);
                 }
-
                 const sourceObj = parseExpression(expressionStr);
                 graph.addEdge(sourceObj.id, targetId, targetPin, sourceObj.inverted);
-
                 if (rsMatch) {
                     jsCompiledCode += `    state.${targetId}_${targetPin} = ${sourceObj.inverted ? '!' : ''}state.${sourceObj.id};\n`;
                 } else {
                     jsCompiledCode += `    state.${targetId} = ${sourceObj.inverted ? '!' : ''}state.${sourceObj.id};\n`;
                 }
             });
-
             // Generiere SPS-Code für RS und SR Hardware-Logik
             rsBlocks.forEach((type, key) => {
                 // Schneidet _SR oder _RS ab, um die pure Nummer zu bekommen
                 const num = key.replace(/_(?:SR|RS)$/i, '');
                 const blockId = `${type}_${num}`;
-                
                 // FIX: Echte sequenzielle Dominanz-Logik (wie in einer echten SPS)
                 if (type === 'RS') {
                     // RS: Rücksetzdominant
@@ -983,11 +964,9 @@
                 }
                 jsCompiledCode += `    state.Q${key} = state.${blockId};\n`;
             });
-
             graph.nodes.forEach(node => {
                 if (!definedOutputs.has(node.id) && node.type === 'INPUT') node.type = 'PURE_INPUT';
             });
-
             return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_')), outputs: [...definedOutputs] };
         }
         function calculateLayout(graph) {
@@ -1092,6 +1071,12 @@
         }
         function drawGraph(graph) {
             currentGraph = graph;
+            // ABSOLUTER FIX: Die Bibliothek MUSS zerstört werden, bevor wir die HTML-Knoten leeren.
+            // Sonst überschreibt ihr internes Backup unsere neuen Zeichnungen!
+            if (panZoomInstance) { 
+                panZoomInstance.destroy(); 
+                panZoomInstance = null; 
+            }
             svgHalos.innerHTML = '';
             svgLines.innerHTML = '';
             svgNodes.innerHTML = '';
@@ -1236,10 +1221,13 @@
                 svgNodes.appendChild(g);
             });
             if (panZoomInstance) { panZoomInstance.destroy(); panZoomInstance = null; }
-            // FIX: Nur initialisieren, wenn das Fenster sichtbar ist!
-            if (document.getElementById('fbs-wrapper').offsetWidth > 0) {
-                panZoomInstance = svgPanZoom(customSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
-            }
+            // FIX: Timeout gibt dem Browser Zeit, die SVG-Kästen zu rendern, bevor die Größe abgefragt wird!
+            // NEU: Nicht zerstören! Wir aktualisieren stattdessen einfach die Bounding-Boxen der bestehenden Instanz.
+            setTimeout(() => {
+                if (document.getElementById('fbs-wrapper').offsetWidth > 0) {
+                    panZoomInstance = svgPanZoom(customSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
+                }
+            }, 15);
         }
         function loadFromStorage() {
             const saved = localStorage.getItem('logikEditorCode');
@@ -1369,9 +1357,7 @@
             outputs.forEach(name => {
                 if(!name.match(/^[SR]\d+(_(?:SR|RS))?$/i)) {
                     spsState[name] = oldState[name] || false;
-                    
                     let selectHTML = "";
-                    
                     if (name.match(/^Q\d+(_(?:SR|RS))?$/i)) {
                         componentTypes[name] = 'relais'; 
                         let lbl = name.includes('_SR') ? 'SR-Ausgang' : 'RS-Ausgang';
@@ -1490,9 +1476,11 @@
         window.toggleWorkspaceView = function(panelId) {
             const panel = document.getElementById(panelId);
             const visiblePanels = document.querySelectorAll('.workspace-panel[style*="display: flex"], .workspace-panel:not([style*="display: none"])');
+            // Verhindert, dass man das absolut letzte sichtbare Fenster schließt
             if (visiblePanels.length === 1 && panel.style.display !== 'none') return;
             if (panel.style.display === 'none') {
                 panel.style.display = 'flex';
+                // Aus Version 1: Zeichnet Graphen und Anlage sauber im nächsten Frame
                 requestAnimationFrame(() => {
                     if (panelId === 'fbs-wrapper' && currentGraph) drawGraph(currentGraph);
                     if (panelId === 'circuit-wrapper' && currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs);
@@ -1501,8 +1489,8 @@
                 });
             } else {
                 panel.style.display = 'none';
-                // ABSOLUTER BUGFIX: Zerstöre die SVG-Instanzen sofort, wenn das Fenster ausgeblendet wird!
-                // Verhindert das Teilen durch 0 (NaN-Bug), wenn im Hintergrund skaliert wird.
+                // Aus Version 1: Zerstört die SVG-Instanzen, um NaN-Bugs beim Hintergrund-Skalieren zu vermeiden
+																							  
                 if (panelId === 'fbs-wrapper' && panZoomInstance) { 
                     panZoomInstance.destroy(); panZoomInstance = null; 
                 }
@@ -1510,30 +1498,31 @@
                     panZoomCircuitInstance.destroy(); panZoomCircuitInstance = null; 
                 }
             }
-            document.querySelectorAll('.workspace-panel').forEach(p => {
-                if (p.style.display !== 'none') p.style.flex = '1 1 0%';
-            });
-            if (panel.style.display === 'none') updateWorkspace();
-        };
-        window.toggleWorkspaceView = function(panelId) {
-            const panel = document.getElementById(panelId);
-            const visiblePanels = document.querySelectorAll('.workspace-panel[style*="display: flex"], .workspace-panel:not([style*="display: none"])');
-            if (visiblePanels.length === 1 && panel.style.display !== 'none') return;
-            if (panel.style.display === 'none') {
-                panel.style.display = 'flex';
-                if (panelId === 'circuit-wrapper' && currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs);
-                if (panelId === 'factory-wrapper') startFactoryEngine();
-            } else {
-                panel.style.display = 'none';
-            }
-            // FIX: Nach jedem Klick den Platz wieder GERECHT auf alle SICHTBAREN aufteilen,
-            // um weiße "Löcher" von vorherigen manuellen Größenänderungen zu löschen!
+																		
+																		
+			   
+																  
+		  
+														
+														   
+																																						
+																					 
+												 
+											 
+																															  
+																		
+					
+											 
+			 
+            // Aus Version 2: Nach jedem Klick den Platz wieder GERECHT auf alle SICHTBAREN aufteilen
+																							
             document.querySelectorAll('.workspace-panel').forEach(p => {
                 if (p.style.display !== 'none') {
                     p.style.flex = '1 1 0%';
                 }
             });
-            updateWorkspace();
+            // UI Buttons (grau/orange) aktualisieren, wenn ein Panel geschlossen wird
+            if (panel.style.display === 'none') updateWorkspace();
         };
         window.toggleWorkspaceDirection = function() {
             const wc = document.getElementById('workspace-container');
@@ -1637,6 +1626,11 @@
             return el;
         }
         function drawCircuitPlan(graph, inputsList, outputsList) {
+            // FIX: Auch hier zuerst das Backup der Bibliothek vernichten!
+            if (panZoomCircuitInstance) { 
+                panZoomCircuitInstance.destroy(); 
+                panZoomCircuitInstance = null; 
+            }
             circuitContent.innerHTML = '';
             let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1;
             let symMap = {};
@@ -1851,42 +1845,33 @@
                     let rName = rEdge ? (symMap[rEdge.sourceId] || rEdge.sourceId) : 'N/A';
                     let sType = sEdge ? (contactTypeMap[sEdge.sourceId] || 'relais') : 'relais';
                     let rType = rEdge ? (contactTypeMap[rEdge.sourceId] || 'relais') : 'relais';
-                    
                     let sInverted = sEdge ? sEdge.inverted : false;
                     if (sEdge) {
                         let cTypeSrc = componentTypes[sEdge.sourceId];
                         if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') sInverted = !sInverted;
                     }
-                    
                     let rInverted = rEdge ? rEdge.inverted : false;
                     if (rEdge) {
                         let cTypeSrc = componentTypes[rEdge.sourceId];
                         if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') rInverted = !rInverted;
                     }
-
                     let startX = currX, parX = currX + 90;
                     drawLine(startX, yTop, startX, 90); drawLine(startX, 90, parX, 90);
-
                     if (node.type === 'RS') {
                         // RS-Glied (Rücksetz-dominant): Set und Haltekreis parallel, danach Reset in Reihe!
                         drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, sName, sInverted, sType); drawLine(startX, 165, startX, 230);
                         drawLine(parX, 90, parX, 150 - 15); drawContact(parX, 150, symMap[node.id], false, 'relais'); drawLine(parX, 165, parX, 230);
-                        
                         drawLine(startX, 230, parX, 230); // Zusammenführen
-                        
                         drawLine(startX, 230, startX, 300 - 15); drawContact(startX, 300, rName, !rInverted, rType); 
                         drawLine(startX, 315, startX, 430); 
                     } else {
                         // SR-Glied (Setz-dominant): Haltekreis und Reset in Reihe, dieses Paket komplett parallel zu Set!
                         drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, symMap[node.id], false, 'relais'); drawLine(startX, 165, startX, 230);
                         drawLine(startX, 230, startX, 300 - 15); drawContact(startX, 300, rName, !rInverted, rType); drawLine(startX, 315, startX, 380);
-                        
                         drawLine(parX, 90, parX, 225 - 15); drawContact(parX, 225, sName, sInverted, sType); drawLine(parX, 240, parX, 380);
-                        
                         drawLine(startX, 380, parX, 380); // Zusammenführen
                         drawLine(startX, 380, startX, 430); 
                     }
-
                     drawCoil(startX, 450, symMap[node.id], node.id); 
                     drawLine(startX, 470, startX, yBot); 
                     currX = parX + 130;
@@ -1915,10 +1900,13 @@
             drawLine(20, yTop, totalWidth - 20, yTop, 3); drawText(25, yTop - 10, 'L+ (24V AC)', true);
             drawLine(20, yBot, totalWidth - 20, yBot, 3); drawText(25, yBot + 20, 'N (0V AC)', true);
             if (panZoomCircuitInstance) { panZoomCircuitInstance.destroy(); panZoomCircuitInstance = null; }
-            // FIX: Nur initialisieren, wenn das Fenster sichtbar ist!
-            if (document.getElementById('circuit-wrapper').offsetWidth > 0) {
-                panZoomCircuitInstance = svgPanZoom(circuitSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
-            }
+            // FIX: Auch hier kurz auf die Layout-Berechnung des Browsers warten!
+            // NEU: Auch den Schaltplan weich aktualisieren!
+            setTimeout(() => {
+                if (document.getElementById('circuit-wrapper').offsetWidth > 0) {
+                    panZoomCircuitInstance = svgPanZoom(circuitSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
+                }
+            }, 15);
         }
         function updateEditor() {
             const code = textarea.value;
