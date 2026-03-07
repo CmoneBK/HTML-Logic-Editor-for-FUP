@@ -2,7 +2,7 @@
 
 ---
 
-# <a id="english-version"></a>Live Logic-Editor & 2D Factory Digital Twin ⚡
+# <a id="english-version"></a>Virtual Automation, Logic & Industrial Simulator (VALIS)⚡
 
 A powerful, browser-based logic circuit IDE, electrical schematic generator, and 2D physics factory simulator. This tool automatically converts text-based boolean expressions into fully interactive Function Block Diagrams (FBD/FBS), IEC Circuit Diagrams, and connects them to a live 2D Digital Twin sandbox.
 
@@ -89,7 +89,7 @@ SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
 ---
 ---
 
-# <a id="deutsche-version"></a>Live Logik-Editor & 2D Anlagen Digitaler Zwilling ⚡
+# <a id="deutsche-version"></a>Virtueller Automatisierungs-, Logik- & Industrie-Simulator (VALIS) ⚡
 
 Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Physik-Anlagensimulator. Dieses Tool wandelt textbasierte Boolesche Ausdrücke automatisch in interaktive Funktionsbausteinpläne (FBP/FBS) und IEC-Stromlaufpläne um und koppelt sie mit einer Live-2D-Simulations-Sandbox.
 
