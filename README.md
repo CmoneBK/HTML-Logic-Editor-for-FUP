@@ -19,7 +19,7 @@ A powerful, browser-based logic circuit IDE, electrical schematic generator, and
 * **Auto-Save & Project Files:** Never lose your work. The editor auto-saves to `localStorage`. You can also export/import your entire project (code, components, and 2D layout) as `.leasave` files or copy-paste raw JSON. The save system is fully backwards-compatible.
 
 ### 🧠 Logic Engine & Code Editor
-* **Flexible Syntax:** Write logic in a clean text editor. The engine understands various standard and programming aliases (e.g., `:=`, `=`, `<-`, `&&`, `AND`, `||`, `OR`, `!`, `NOT`).
+* **Native RS & SR Flip-Flop Support:** Variables starting with `S`, `R`, and `Q` followed by a number are automatically detected and wrapped into dedicated Flip-Flop logic blocks. You can explicitly create Reset-dominant (RS) or Set-dominant (SR) flip-flops by appending the respective suffixes (`_RS` or `_SR`).
 * **Syntax Highlighting:** Custom, non-blocking text highlighting for operators, assignments, and logic states.
 * **Native RS Flip-Flop Support:** Variables named `S1`, `R1`, and `Q1` are automatically detected and wrapped into dedicated RS-Glied (Reset-Set) flip-flop logic blocks.
 * **Pulse-Catch / Afterglow:** Extremely fast logical impulses trigger an atmospheric "afterglow" fade-out effect in the visual diagrams, ensuring you never miss a split-second signal.
@@ -57,18 +57,22 @@ The editor uses a straightforward, pseudo-code style syntax to define logic gate
 * **`¬`** : NOT / Inverter (Aliases: `!`, `NOT`)
 * **`()`** : Parentheses for execution order and grouping
 
-### Special Variables (RS Flip-Flops)
-If you name your variables using `S`, `R`, and `Q` followed by a number (e.g., `1`), the engine automatically groups them into an **RS Flip-Flop block**:
-* `S1 := ...` (Set condition for Flip-Flop 1)
-* `R1 := ...` (Reset condition for Flip-Flop 1)
-* `Q1` represents the output of Flip-Flop 1.
+### Special Variables (RS & SR Flip-Flops)
+If you name your variables using `S`, `R`, and `Q` followed by a number (e.g., `1`), the engine automatically groups them into a **Flip-Flop block**. You can define priority behavior by adding suffixes:
+* **RS (Reset-dominant, Default):** `S1` / `S1_RS` and `R1` / `R1_RS` create an RS block with the output `Q1` / `Q1_RS`. If both inputs are true simultaneously, Reset wins (Standard for machine safety).
+* **SR (Set-dominant):** `S1_SR` and `R1_SR` create an SR block with the output `Q1_SR`. If both inputs are true simultaneously, Set wins.
 
 ### Example Code
 ```text
+// Reset-dominant Flip-Flop (Standard)
 S1 := START_BTN
 R1 := STOP_BTN || EMERGENCY_STOP
 
-SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
+// Set-dominant Flip-Flop
+S2_SR := OVERRIDE_START
+R2_SR := TIMEOUT
+
+SYSTEM_ACTIVE := Q1 && Q2_SR
 ```
 
 ## 🎮 UI Configuration & Control
@@ -106,7 +110,7 @@ Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Phys
 * **Auto-Save & Projektdateien:** Der Editor speichert kontinuierlich im `localStorage`. Projekte (inkl. Code, Bauteilzuweisungen und der kompletten 2D-Matrix) können als `.leasave`-Datei exportiert/importiert oder als Raw-JSON kopiert werden. Alte Speicherstände sind aufwärtskompatibel.
 
 ### 🧠 Logik-Engine & Code-Editor
-* **Flexible Syntax:** Die Engine versteht verschiedenste Programmier-Standards (z.B. `:=`, `=`, `<-`, `&&`, `AND`, `||`, `OR`, `!`, `NOT`).
+* **Native RS- & SR-Flip-Flop Unterstützung:** Der Compiler erkennt Variablen mit `S`, `R` und `Q` (gefolgt von einer Zahl) automatisch und fasst sie in speziellen Speicherbausteinen zusammen. Über die Suffixe `_RS` und `_SR` können Sie explizit zwischen rücksetzdominanten und setzdominanten Gliedern wählen.
 * **Syntax-Hervorhebung:** Benutzerdefiniertes Highlighting für Operatoren, Zuweisungen und RS-Glieder.
 * **Native RS-Flip-Flop Unterstützung:** Der Compiler erkennt Variablen wie `S1`, `R1` und `Q1` automatisch und fasst sie in speziellen RS-Glied-Bausteinen zusammen.
 * **Pulse-Catch / Afterglow:** Extrem kurze Logik-Impulse (die für das menschliche Auge zu schnell wären) erzeugen in den Plänen einen atmosphärischen "Nachleucht"-Effekt (Fade-Out), sodass kein Signal unbemerkt bleibt.
@@ -144,18 +148,22 @@ Der Editor verwendet eine einfache Syntax im Pseudocode-Stil, um Logikgatter und
 * **`¬`** : NICHT / Invertierung (Aliase: `!`, `NOT`)
 * **`()`** : Klammern für Ausführungsreihenfolge
 
-### Spezielle Variablen (RS-Flip-Flops)
-Wenn Sie Ihre Variablen mit `S`, `R` und `Q` gefolgt von einer Zahl (z.B. `1`) benennen, gruppiert die Engine diese automatisch in einen **RS-Flip-Flop-Baustein**:
-* `S1 := ...` (Setz-Bedingung für Flip-Flop 1)
-* `R1 := ...` (Rücksetz-Bedingung für Flip-Flop 1)
-* `Q1` repräsentiert den Ausgang von Flip-Flop 1.
+### Spezielle Variablen (RS- & SR-Flip-Flops)
+Wenn Sie Ihre Variablen mit `S`, `R` und `Q` gefolgt von einer Zahl (z.B. `1`) benennen, gruppiert die Engine diese automatisch in einen **Flip-Flop-Baustein**. Über Suffixe bestimmen Sie das Dominanz-Verhalten:
+* **RS (Rücksetz-dominant, Standard):** `S1` / `S1_RS` und `R1` / `R1_RS` erzeugen ein RS-Glied mit dem Ausgang `Q1` / `Q1_RS`. Liegen beide Signale an, gewinnt das Rücksetzen (Industrieller Sicherheitsstandard).
+* **SR (Setz-dominant):** `S1_SR` und `R1_SR` erzeugen ein SR-Glied mit dem Ausgang `Q1_SR`. Liegen beide Signale an, gewinnt das Setzen.
 
 ### Beispielcode
 ```text
+// Rücksetz-dominantes Flip-Flop (Standard)
 S1 := START_BTN
 R1 := STOP_BTN || EMERGENCY_STOP
 
-SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
+// Setz-dominantes Flip-Flop
+S2_SR := ZWANGS_START
+R2_SR := ZEITABLAUF
+
+SYSTEM_AKTIV := Q1 && Q2_SR
 ```
 
 ## 🎮 UI-Konfiguration & Steuerung
