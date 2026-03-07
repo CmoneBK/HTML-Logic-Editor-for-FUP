@@ -7,8 +7,8 @@
 A powerful, browser-based logic circuit IDE, electrical schematic generator, and 2D physics factory simulator. This tool automatically converts text-based boolean expressions into fully interactive Function Block Diagrams (FBD/FBS), IEC Circuit Diagrams, and connects them to a live 2D Digital Twin sandbox.
 
 <p align="center">
-  <a href="/Logik Editor Preview.png" target="_blank">
-    <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
+  <a href="/Leas.png" target="_blank">
+    <img src="/Leas.pngg" alt="Startbildschirm" width="600">
   </a> 
 </p>
 
@@ -94,8 +94,8 @@ SYSTEM_ACTIVE := Q1 && ¬ERROR_STATE
 Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Physik-Anlagensimulator. Dieses Tool wandelt textbasierte Boolesche Ausdrücke automatisch in interaktive Funktionsbausteinpläne (FBP/FBS) und IEC-Stromlaufpläne um und koppelt sie mit einer Live-2D-Simulations-Sandbox.
 
 <p align="center">
-  <a href="/Logik Editor Preview.png" target="_blank">
-    <img src="/Logik Editor Preview.png" alt="Startbildschirm" width="600">
+  <a href="/Leas.png" target="_blank">
+    <img src="/Leas.png" alt="Startbildschirm" width="600">
   </a>
 </p>
 
