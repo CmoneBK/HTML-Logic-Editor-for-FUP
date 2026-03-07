@@ -123,6 +123,26 @@
         .circ-component.active {
             transition: stroke 0s, fill 0s, opacity 0s, stroke-width 0s, filter 0s !important;
         }
+		/* --- Schaltplan Animationen & Stromfluss --- */
+        .circ-moving-contact { 
+            /* Konstante 0.15s Animation für das Messer */
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), stroke 1s ease-out, filter 1s ease-out !important; 
+        }
+        .circ-moving-contact.is-no.open { transform: rotate(30deg); }
+        .circ-moving-contact.is-nc.open { transform: rotate(-30deg); }
+        .circ-static { transition: stroke 1s ease-out, fill 1s ease-out, filter 1s ease-out !important; }
+        /* Oranges Leuchten ohne Verzögerung */
+        svg.sim-running .circ-moving-contact.active,
+        svg.sim-running .circ-static.active {
+            stroke: #f58231 !important;
+            filter: drop-shadow(0 0 5px rgba(245,130,49,0.8));
+            /* HIER WAR DER FEHLER: Wir lassen 'transform' in Ruhe, damit es animieren kann! */
+            transition: stroke 0s, filter 0s !important;
+        }
+        svg.sim-running circle.circ-static.active {
+            fill: #f58231 !important;
+            transition: fill 0s, filter 0s !important;
+        }
         /* Glow-Effekte für aktive Zustände (heller Schein) */
         svg.sim-running .fbs-block.active { stroke-width: 3.5px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.7)); }
         svg.sim-running .fbs-io-box.active { stroke-width: 3px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.5)); }
@@ -1586,6 +1606,49 @@
                         }
                     }
                 }
+				// NEU: Schaltplan-Kontakte (Physische Animation & Stromfluss mit Pulse-Catch)
+                if (document.getElementById('circuit-wrapper').style.display !== 'none') {
+                    document.querySelectorAll('.circ-contact-group').forEach(g => {
+                        let classList = Array.from(g.classList);
+                        let varClass = classList.find(c => c.startsWith('circ-var-'));
+                        if (!varClass) return;
+                        let varName = varClass.replace('circ-var-', '');
+                        let val = !!spsState[varName]; 
+                        let blade = g.querySelector('.circ-moving-contact');
+                        if (!blade) return;
+                        let isNC = blade.classList.contains('is-nc');
+                        let isClosed = isNC ? !val : val; 
+                        if (isSimulationActive) {
+                            if (isClosed) {
+                                // Zeitstempel merken und eventuelle Timer stoppen
+                                blade.dataset.closeTime = Date.now();
+                                if (blade.openTimeout) { clearTimeout(blade.openTimeout); blade.openTimeout = null; }
+                                blade.classList.remove('open');
+                                blade.classList.add('active');
+                                g.querySelectorAll('.circ-static').forEach(el => el.classList.add('active'));
+                            } else {
+                                // Nur öffnen, wenn es nicht eh schon offen oder auf dem Weg dahin ist
+                                if (!blade.classList.contains('open') && !blade.openTimeout) {
+                                    // Wie lange war das Messer geschlossen? 
+                                    let elapsed = Date.now() - parseInt(blade.dataset.closeTime || 0);
+                                    let delay = Math.max(0, 300 - elapsed); // Garantiert mind. 300ms Sichtbarkeit!
+                                    blade.openTimeout = setTimeout(() => {
+                                        blade.classList.add('open');
+                                        blade.classList.remove('active');
+                                        g.querySelectorAll('.circ-static').forEach(el => el.classList.remove('active'));
+                                        blade.openTimeout = null;
+                                    }, delay);
+                                }
+                            }
+                        } else {
+                            // Reset bei gestoppter Simulation
+                            if (blade.openTimeout) { clearTimeout(blade.openTimeout); blade.openTimeout = null; }
+                            if (isNC) blade.classList.remove('open'); else blade.classList.add('open');
+                            blade.classList.remove('active');
+                            g.querySelectorAll('.circ-static').forEach(el => el.classList.remove('active'));
+                        }
+                    });
+                }
             });
         }
 		// --- SCHALTPLAN GENERATOR (IEC) ---
@@ -1639,7 +1702,10 @@
                     }
                 }
             });
-            const drawLine = (x1, y1, x2, y2, width = 2) => circuitContent.appendChild(createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width}));
+            const drawLine = (x1, y1, x2, y2, width = 2) => {
+                let l = createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width});
+                circuitContent.appendChild(l); return l;
+            };
             const drawText = (x, y, txt, bold = false) => {
                 let t = createSvgElement('text', {x, y, 'font-size': '13px', fill: '#000', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
                 if (bold) t.setAttribute('font-weight', 'bold'); t.textContent = txt; circuitContent.appendChild(t);
@@ -1663,19 +1729,31 @@
                     parentG.appendChild(t);
                 }
             };
-            const drawContact = (x, y, label, isNC, type) => {
-                let g = createSvgElement('g', {});
+            // NEU: varName Parameter hinzugefügt, um das Bauteil später in der Simulation zu finden!
+            const drawContact = (x, y, label, isNC, type, varName) => {
+                let g = createSvgElement('g', {class: `circ-contact-group circ-var-${varName}`});
                 addLabelText(g, x + 15, y, label, false);
-                g.appendChild(createSvgElement('circle', {cx: x, cy: y - 15, r: 2.5, fill: '#000'}));
-                g.appendChild(createSvgElement('circle', {cx: x, cy: y + 15, r: 2.5, fill: '#000'}));
-                g.appendChild(createSvgElement('line', {x1: x, y1: y - 15, x2: x, y2: y - 5, stroke: '#000', 'stroke-width': 2}));
-                g.appendChild(createSvgElement('line', {x1: x, y1: y + 15, x2: x, y2: y + 5, stroke: '#000', 'stroke-width': 2}));
+                // Statische Kontakte (Punkte) und Anschlussstücke (werden orange, wenn Strom fließt)
+                g.appendChild(createSvgElement('circle', {cx: x, cy: y - 15, r: 2.5, fill: '#000', class: 'circ-static'}));
+                g.appendChild(createSvgElement('circle', {cx: x, cy: y + 15, r: 2.5, fill: '#000', class: 'circ-static'}));
+                g.appendChild(createSvgElement('line', {x1: x, y1: y - 15, x2: x, y2: y - 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+                g.appendChild(createSvgElement('line', {x1: x, y1: y + 15, x2: x, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+                // Das bewegliche Schalt-Messer (Wird immer geschlossen gezeichnet und dann per CSS aufgeklappt!)
+                let movingLine = createSvgElement('line', {
+                    x1: x, y1: y - 5, x2: x, y2: y + 15, 
+                    stroke: '#000', 'stroke-width': 2, 
+                    class: `circ-moving-contact ${isNC ? 'is-nc' : 'is-no'}`
+                });
+                // Drehpunkt exakt auf das obere Gelenk setzen
+                movingLine.style.transformOrigin = `${x}px ${y - 5}px`;
+                // Standardmäßig im Konstruktor öffnen, falls es ein Schließer ist
+                if (!isNC) movingLine.classList.add('open');
+                g.appendChild(movingLine);
+                // Das kleine Häkchen unten beim Öffner (bleibt fest)
                 if (isNC) {
-                    g.appendChild(createSvgElement('line', {x1: x, y1: y + 5, x2: x + 10, y2: y + 5, stroke: '#000', 'stroke-width': 2}));
-                    g.appendChild(createSvgElement('line', {x1: x, y1: y - 5, x2: x + 12, y2: y + 10, stroke: '#000', 'stroke-width': 2}));
-                } else {
-                    g.appendChild(createSvgElement('line', {x1: x, y1: y - 5, x2: x - 12, y2: y + 10, stroke: '#000', 'stroke-width': 2}));
+                    g.appendChild(createSvgElement('line', {x1: x, y1: y + 5, x2: x + 10, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 }
+                // Mechanische Stößel (Die gestrichelten Linien bleiben fest und schwarz)
                 if (type === 'taster' || type === 'schalter' || type === 'nothalt') {
                     let dashEndX = isNC ? x + 6 : x - 6;
                     g.appendChild(createSvgElement('line', {x1: dashEndX, y1: y + 2.5, x2: x - 18, y2: y + 2.5, stroke: '#000', 'stroke-width': 1.5, 'stroke-dasharray': '2,2'}));
@@ -1721,7 +1799,7 @@
             preRungsToDraw.forEach(item => {
                 if (item.cType === 'nothalt') {
                     drawLine(currX, yTop, currX, 150 - 15);
-                    drawContact(currX, 150, `${item.deviceName} (${item.id})`, true, 'nothalt'); 
+					drawContact(currX, 150, `${item.deviceName} (${item.id})`, true, 'nothalt', item.id);
                     drawLine(currX, 165, currX, 430);
                     drawCoil(currX, 450, item.kfName, item.id, 'relais');
                     drawLine(currX, 470, currX, yBot);
@@ -1779,7 +1857,7 @@
                         let cTypeSrc = componentTypes[edge.sourceId];
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
-                        drawContact(currX, y, name, isNC, type);
+                        drawContact(currX, y, name, isNC, type, edge.sourceId);
                         if (idx < inEdges.length - 1) drawLine(currX, y + 15, currX, y + dy - 15);
                         y += dy;
                     });
@@ -1800,7 +1878,7 @@
                             let cTypeSrc = componentTypes[edge.sourceId];
                             let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                             let isNC = physNC ? !edge.inverted : edge.inverted;
-                            drawLine(bx, 90, bx, 220 - 15); drawContact(bx, 220, name, isNC, type); drawLine(bx, 235, bx, 350);
+                            drawLine(bx, 90, bx, 220 - 15); drawContact(bx, 220, name, isNC, type, edge.sourceId); drawLine(bx, 235, bx, 350);
                         });
                         drawLine(startX, 350, startX, 430); 
                         drawCoil(startX, 450, symMap[node.id], node.id);
@@ -1828,16 +1906,16 @@
                     drawLine(startX, yTop, startX, 90); drawLine(startX, 90, parX, 90);
                     if (node.type === 'RS') {
                         // RS-Glied (Rücksetz-dominant): Set und Haltekreis parallel, danach Reset in Reihe!
-                        drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, sName, sInverted, sType); drawLine(startX, 165, startX, 230);
-                        drawLine(parX, 90, parX, 150 - 15); drawContact(parX, 150, symMap[node.id], false, 'relais'); drawLine(parX, 165, parX, 230);
+                        drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE'); drawLine(startX, 165, startX, 230);
+                        drawLine(parX, 90, parX, 150 - 15); drawContact(parX, 150, symMap[node.id], false, 'relais', node.id); drawLine(parX, 165, parX, 230);
                         drawLine(startX, 230, parX, 230); // Zusammenführen
-                        drawLine(startX, 230, startX, 300 - 15); drawContact(startX, 300, rName, !rInverted, rType); 
+                        drawLine(startX, 230, startX, 300 - 15); drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE');
                         drawLine(startX, 315, startX, 430); 
                     } else {
                         // SR-Glied (Setz-dominant): Haltekreis und Reset in Reihe, dieses Paket komplett parallel zu Set!
-                        drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, symMap[node.id], false, 'relais'); drawLine(startX, 165, startX, 230);
-                        drawLine(startX, 230, startX, 300 - 15); drawContact(startX, 300, rName, !rInverted, rType); drawLine(startX, 315, startX, 380);
-                        drawLine(parX, 90, parX, 225 - 15); drawContact(parX, 225, sName, sInverted, sType); drawLine(parX, 240, parX, 380);
+                        drawLine(startX, 90, startX, 150 - 15); drawContact(startX, 150, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE'); drawLine(startX, 165, startX, 230);
+                        drawLine(startX, 230, startX, 300 - 15); drawContact(parX, 150, symMap[node.id], false, 'relais', node.id); drawLine(startX, 315, startX, 380);
+                        drawLine(parX, 90, parX, 225 - 15); drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE');
                         drawLine(startX, 380, parX, 380); // Zusammenführen
                         drawLine(startX, 380, startX, 430); 
                     }
@@ -1853,7 +1931,7 @@
                         let cTypeSrc = componentTypes[edge.sourceId];
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
-                        drawLine(currX, yTop, currX, 220 - 15); drawContact(currX, 220, name, isNC, type); 
+                        drawLine(currX, yTop, currX, 220 - 15); drawContact(currX, 220, name, isNC, type, edge.sourceId);
                         drawLine(currX, 235, currX, 430); 
                     } else { 
                         drawLine(currX, yTop, currX, 430); 
@@ -1866,8 +1944,10 @@
                 }
             });
             let totalWidth = Math.max(1000, currX + 50);
-            drawLine(20, yTop, totalWidth - 20, yTop, 3); drawText(25, yTop - 10, 'L+ (24V AC)', true);
-            drawLine(20, yBot, totalWidth - 20, yBot, 3); drawText(25, yBot + 20, 'N (0V AC)', true);
+            drawLine(20, yTop, totalWidth - 20, yTop, 3).setAttribute('stroke', '#f58231'); // L+ Leuchtet orange
+            drawText(25, yTop - 10, 'L+ (24V DC)', true);
+            drawLine(20, yBot, totalWidth - 20, yBot, 3).setAttribute('stroke', '#4363d8'); // Minus/Neutral Leuchtet blau
+            drawText(25, yBot + 20, 'M (0V DC)', true);
             if (panZoomCircuitInstance) { panZoomCircuitInstance.destroy(); panZoomCircuitInstance = null; }
             // FIX: Auch hier kurz auf die Layout-Berechnung des Browsers warten!
             // NEU: Auch den Schaltplan weich aktualisieren!
