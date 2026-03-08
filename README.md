@@ -2,26 +2,27 @@
 
 ---
 
-# <a id="english-version"></a>Virtual Automation, Logic & Industrial Simulator (VALIS)⚡
+# <a id="english-version"></a>Virtual Automation, Logic & Industrial Simulator (VALIS) ⚡
+
+🚀 **[Live Demo / Play in Browser](https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/)**
 
 A powerful, browser-based logic circuit IDE, electrical schematic generator, and 2D physics factory simulator. This tool automatically converts text-based boolean expressions into fully interactive Function Block Diagrams (FBD/FBS), IEC Circuit Diagrams, and connects them to a live 2D Digital Twin sandbox.
 
 <p align="center">
-  <a href="/VALIS3.png" target="_blank">
+  <a href="https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/" target="_blank">
     <img src="/VALIS3.png" alt="Startbildschirm" width="600">
-  </a> 
+  </a>  
 </p>
 
 ## ✨ Features
 
 ### 🖥️ Multi-Panel IDE Workspace
-* **Customizable Layout:** Open up to 3 views simultaneously (Logic, Circuit, Factory). Resize panels dynamically using draggable splitters, or toggle between vertical/horizontal layouts.
-* **Auto-Save & Project Files:** Never lose your work. The editor auto-saves to `localStorage`. You can also export/import your entire project (code, components, and 2D layout) as `.leasave` files or copy-paste raw JSON. The save system is fully backwards-compatible.
+* **Customizable Layout:** Open up to 3 views simultaneously (Logic, Circuit, Factory). Resize panels dynamically using draggable splitters, or toggle between vertical/horizontal and professional grid layouts.
+* **Auto-Save & Project Files:** Never lose your work. The editor auto-saves to `localStorage`. You can also export/import your entire project (code, components, and 2D layout) as `.valisave` files or copy-paste raw JSON. The save system is fully backwards-compatible.
 
 ### 🧠 Logic Engine & Code Editor
 * **Native RS & SR Flip-Flop Support:** Variables starting with `S`, `R`, and `Q` followed by a number are automatically detected and wrapped into dedicated Flip-Flop logic blocks. You can explicitly create Reset-dominant (RS) or Set-dominant (SR) flip-flops by appending the respective suffixes (`_RS` or `_SR`).
 * **Syntax Highlighting:** Custom, non-blocking text highlighting for operators, assignments, and logic states.
-* **Native RS Flip-Flop Support:** Variables named `S1`, `R1`, and `Q1` are automatically detected and wrapped into dedicated RS-Glied (Reset-Set) flip-flop logic blocks.
 * **Pulse-Catch / Afterglow:** Extremely fast logical impulses trigger an atmospheric "afterglow" fade-out effect in the visual diagrams, ensuring you never miss a split-second signal.
 
 ### 📐 Smart Auto-Routing (3 Views)
@@ -43,7 +44,7 @@ A powerful, browser-based logic circuit IDE, electrical schematic generator, and
 Since this is a vanilla HTML/JS/CSS application, no build steps or bundlers are required.
 
 1. Clone or download the repository.
-2. Open `index.html` in any modern web browser.
+2. Open `index.html` in any modern web browser or [play the Live Demo](https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/).
 3. Start typing your logic in the left panel, or click **"Beispiele..."** (Load Example) to load a fully configured sorting plant.
 
 ## 📖 Syntax & Logic Rules
@@ -63,6 +64,7 @@ If you name your variables using `S`, `R`, and `Q` followed by a number (e.g., `
 * **SR (Set-dominant):** `S1_SR` and `R1_SR` create an SR block with the output `Q1_SR`. If both inputs are true simultaneously, Set wins.
 
 ### Example Code
+
 ```text
 // Reset-dominant Flip-Flop (Standard)
 S1 := START_BTN
@@ -95,10 +97,12 @@ SYSTEM_ACTIVE := Q1 && Q2_SR
 
 # <a id="deutsche-version"></a>Virtueller Automatisierungs-, Logik- & Industrie-Simulator (VALIS) ⚡
 
+🚀 **[Live Demo / Im Browser testen](https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/)**
+
 Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Physik-Anlagensimulator. Dieses Tool wandelt textbasierte Boolesche Ausdrücke automatisch in interaktive Funktionsbausteinpläne (FBP/FBS) und IEC-Stromlaufpläne um und koppelt sie mit einer Live-2D-Simulations-Sandbox.
 
 <p align="center">
-  <a href="/VALIS3.png" target="_blank">
+  <a href="https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/" target="_blank">
     <img src="/VALIS3.png" alt="Startbildschirm" width="600">
   </a>
 </p>
@@ -106,13 +110,12 @@ Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Phys
 ## ✨ Funktionen
 
 ### 🖥️ Multi-Panel IDE Workspace
-* **Dynamisches Layout:** Öffnen Sie bis zu 3 Ansichten gleichzeitig (Logik, Schaltplan, 2D Anlage). Verschieben Sie die Zwischenräume (Splitter) stufenlos oder wechseln Sie zwischen vertikaler und horizontaler Anordnung.
-* **Auto-Save & Projektdateien:** Der Editor speichert kontinuierlich im `localStorage`. Projekte (inkl. Code, Bauteilzuweisungen und der kompletten 2D-Matrix) können als `.leasave`-Datei exportiert/importiert oder als Raw-JSON kopiert werden. Alte Speicherstände sind aufwärtskompatibel.
+* **Dynamisches Layout:** Öffnen Sie bis zu 3 Ansichten gleichzeitig (Logik, Schaltplan, 2D Anlage). Verschieben Sie die Zwischenräume (Splitter) stufenlos oder wechseln Sie zwischen flexibler Anordnung und festen Profi-Rastern.
+* **Auto-Save & Projektdateien:** Der Editor speichert kontinuierlich im `localStorage`. Projekte (inkl. Code, Bauteilzuweisungen und der kompletten 2D-Matrix) können als `.valisave`-Datei exportiert/importiert oder als Raw-JSON kopiert werden. Alte Speicherstände sind aufwärtskompatibel.
 
 ### 🧠 Logik-Engine & Code-Editor
 * **Native RS- & SR-Flip-Flop Unterstützung:** Der Compiler erkennt Variablen mit `S`, `R` und `Q` (gefolgt von einer Zahl) automatisch und fasst sie in speziellen Speicherbausteinen zusammen. Über die Suffixe `_RS` und `_SR` können Sie explizit zwischen rücksetzdominanten und setzdominanten Gliedern wählen.
 * **Syntax-Hervorhebung:** Benutzerdefiniertes Highlighting für Operatoren, Zuweisungen und RS-Glieder.
-* **Native RS-Flip-Flop Unterstützung:** Der Compiler erkennt Variablen wie `S1`, `R1` und `Q1` automatisch und fasst sie in speziellen RS-Glied-Bausteinen zusammen.
 * **Pulse-Catch / Afterglow:** Extrem kurze Logik-Impulse (die für das menschliche Auge zu schnell wären) erzeugen in den Plänen einen atmosphärischen "Nachleucht"-Effekt (Fade-Out), sodass kein Signal unbemerkt bleibt.
 
 ### 📐 Smart Auto-Routing (3 Ansichten)
@@ -134,7 +137,7 @@ Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Phys
 Da es sich um eine reine HTML/JS/CSS-Anwendung handelt, sind keine Build-Schritte erforderlich.
 
 1. Klonen oder laden Sie das Repository herunter.
-2. Öffnen Sie die Datei `index.html` in einem beliebigen modernen Webbrowser.
+2. Öffnen Sie die Datei `index.html` in einem beliebigen modernen Webbrowser oder [testen Sie die Live Demo](https://cmonebk.github.io/Virtual-Automation-Logic-and-Industrial-Simulator-VALIS/).
 3. Beginnen Sie, Ihre Logik einzutippen, oder klicken Sie auf **"Beispiele..."**, um eine voll funktionsfähige Sortieranlage zu laden.
 
 ## 📖 Syntax & Logik-Regeln
@@ -154,6 +157,7 @@ Wenn Sie Ihre Variablen mit `S`, `R` und `Q` gefolgt von einer Zahl (z.B. `1`) b
 * **SR (Setz-dominant):** `S1_SR` und `R1_SR` erzeugen ein SR-Glied mit dem Ausgang `Q1_SR`. Liegen beide Signale an, gewinnt das Setzen.
 
 ### Beispielcode
+
 ```text
 // Rücksetz-dominantes Flip-Flop (Standard)
 S1 := START_BTN
