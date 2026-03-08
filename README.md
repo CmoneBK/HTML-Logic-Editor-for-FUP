@@ -7,8 +7,8 @@
 A powerful, browser-based logic circuit IDE, electrical schematic generator, and 2D physics factory simulator. This tool automatically converts text-based boolean expressions into fully interactive Function Block Diagrams (FBD/FBS), IEC Circuit Diagrams, and connects them to a live 2D Digital Twin sandbox.
 
 <p align="center">
-  <a href="/VALIS2.png" target="_blank">
-    <img src="/VALIS2.png" alt="Startbildschirm" width="600">
+  <a href="/VALIS3.png" target="_blank">
+    <img src="/VALIS3.png" alt="Startbildschirm" width="600">
   </a> 
 </p>
 
@@ -98,8 +98,8 @@ SYSTEM_ACTIVE := Q1 && Q2_SR
 Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Physik-Anlagensimulator. Dieses Tool wandelt textbasierte Boolesche Ausdrücke automatisch in interaktive Funktionsbausteinpläne (FBP/FBS) und IEC-Stromlaufpläne um und koppelt sie mit einer Live-2D-Simulations-Sandbox.
 
 <p align="center">
-  <a href="/VALIS2.png" target="_blank">
-    <img src="/VALIS2.png" alt="Startbildschirm" width="600">
+  <a href="/VALIS3.png" target="_blank">
+    <img src="/VALIS3.png" alt="Startbildschirm" width="600">
   </a>
 </p>
 
