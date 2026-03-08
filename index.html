@@ -233,6 +233,7 @@
         .circ-moving-contact { transition: transform 0.1s ease-out, stroke 0.3s, filter 0.3s !important; }
         /* Schließer (NO): Geschlossen = 0deg (gerade), Offen = nach links geklappt */
         .circ-moving-contact.is-no.open { transform: rotate(-25deg); } 
+		
         /* Öffner (NC): Geschlossen = 15deg (schräg nach rechts am Haken), Offen = noch weiter rechts weggeklappt! */
         .circ-moving-contact.is-nc { transform: rotate(15deg); }
         .circ-moving-contact.is-nc.open { transform: rotate(40deg); }
@@ -730,6 +731,9 @@
 			</div>
 			<p style="color: #aaa; font-size: 11px; margin-bottom: 5px;">Oder als Raw-Code kopieren / hier einfügen:</p>
 			<textarea id="saveload-text" spellcheck="false" style="width: 100%; height: 180px; background: #1e1e1e; color: #9cdcfe; border: 1px solid #555; border-radius: 3px; font-family: monospace; font-size: 11px; padding: 8px; box-sizing: border-box; resize: vertical;"></textarea>
+			<div style="margin-top: 8px; text-align: left;">
+				<button onclick="openAIPromptModal()" class="btn-export" style="background-color: #673ab7; font-size: 11px; padding: 4px 10px; border: 1px solid #444;">🤖 KI-Prompt Generator öffnen</button>
+			</div>
 			<div style="display: flex; gap: 15px; margin-top: 15px; border-top: 1px solid #555; padding-top: 10px; align-items: center;">
 				<div style="flex: 1; display: flex; flex-direction: column;">
 					<p style="color: #aaa; font-size: 11px; margin-bottom: 5px;">🔗 Anlage als direkten Link teilen:</p>
@@ -751,6 +755,79 @@
 				<div id="qr-code-large-container" style="width: 400px; height: 400px; display: flex; justify-content: center; align-items: center;"></div>
 			</div>
 			<button onclick="closeLargeQR()" style="margin-top: 30px; background: #e6194B; color: white; border: 2px solid #fff; padding: 12px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">Schließen</button>
+		</div>
+		<div id="ai-prompt-modal" style="display: none; position: absolute; top: 5%; left: 50%; transform: translateX(-50%); background: #2d2d30; padding: 20px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.8); z-index: 2500; width: 600px; max-width: 90vw;">
+			<h3 style="margin-top:0; color:#fff; border-bottom: 1px solid #555; padding-bottom: 10px;">🤖 KI-Prompt Generator</h3>
+			<p style="color: #aaa; font-size: 11px; margin-bottom: 10px;">Kopiere diesen Text, füge ganz unten deine Aufgabe ein und gib ihn einer KI (ChatGPT, Claude, Gemini). Füge die JSON-Antwort dann in das VALIS Raw-Code Feld ein!</p>
+			
+			<textarea id="ai-prompt-text" readonly style="width: 100%; height: 350px; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; border-radius: 3px; font-family: monospace; font-size: 11px; padding: 10px; box-sizing: border-box; resize: vertical; white-space: pre;">Du bist ein hochpräziser Experte für SPS-Programmierung und Steuerungstechnik. 
+Deine Aufgabe ist es, eine textuelle Beschreibung einer Steuerung (Szenario) exakt in Boolesche Logikgleichungen und eine Hardware-Konfiguration für den Simulator "VALIS" zu übersetzen.
+
+### REGELN FÜR DIE ÜBERSETZUNG:
+1. STRICT COMPLIANCE: Übersetze exakt das, was im Szenario steht. Erfinde KEINE zusätzlichen Sicherheitsfunktionen, Verriegelungen oder Quittierungen, wenn diese nicht explizit im Text verlangt werden!
+2. VARIABLENNAMEN: Verwende kurze, treffende, großgeschriebene Namen ohne Leerzeichen (z. B. START_BTN, MOTOR_1).
+3. KEIN ZUSATZTEXT: Deine Antwort darf ausschließlich aus dem JSON-Codeblock bestehen. Keine Erklärungen davor oder danach.
+
+### SYNTAX-REGELN FÜR DEN LOGIK-CODE:
+- Zuweisung: :=
+- Logisches UND: &amp;&amp;
+- Logisches ODER: ||
+- Logisches NICHT: ¬
+- Klammern () für Vorrangregelungen sind erlaubt.
+- Jede Zuweisung steht in einer neuen Zeile.
+
+### FLIP-FLOPS (SPEICHERGLIEDER):
+Wenn ein Zustand gespeichert werden soll, verwende diese festen Variablen-Namen:
+- Rücksetz-dominant (Standard): Nutze S1 (Setzen) und R1 (Rücksetzen). Der Ausgang ist Q1. (Zahlen hochzählen für weitere Flip-Flops: S2, R2 -> Q2).
+- Setz-dominant: Nutze S1_SR und R1_SR. Der Ausgang ist Q1_SR.
+
+### ERLAUBTE HARDWARE-TYPEN (Für das "types" Mapping):
+Eingänge (Sensoren/Schalter):
+- "taster" (Schließer/NO Taster)
+- "taster_nc" (Öffner/NC Taster)
+- "schalter" (Schließer/NO rastend)
+- "schalter_nc" (Öffner/NC rastend)
+- "nothalt" (Not-Halt Pilztaster, NC)
+- "sensor_ind" (Induktiver Sensor)
+- "sensor_kap" (Kapazitiver Sensor)
+- "sensor_opt" (Lichtschranke/Optisch)
+
+Ausgänge (Aktoren):
+- "led" (Meldeleuchte)
+- "valve" (Magnetventil / Motor / Band / Zylinder)
+
+### OUTPUT FORMAT (JSON RAW CODE):
+Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner String mit \n für Zeilenumbrüche in das Feld "code". Die "factory" bleibt leer.
+
+&#96;&#96;&#96;json
+{
+  "version": "1.0",
+  "code": "S1 := START &amp;&amp; ¬STOP\nR1 := NOTHALT\nMOTOR := Q1\nLED_AN := Q1",
+  "types": {
+    "START": "taster",
+    "STOP": "taster_nc",
+    "NOTHALT": "nothalt",
+    "MOTOR": "valve",
+    "LED_AN": "led"
+  },
+  "factory": {
+    "globalViewMode": "side",
+    "items": [],
+    "objects": []
+  }
+}
+&#96;&#96;&#96;
+
+### HIER IST DAS SZENARIO:
+[FÜGE HIER DEIN STEUERUNGSTECHNISCHES SZENARIO EIN. Z.B.: Ein Motor soll über einen Start-Taster (Schließer) eingeschaltet und über einen Stopp-Taster (Öffner) ausgeschaltet werden. Das Ausschalten hat Vorrang. Eine grüne LED leuchtet, wenn der Motor läuft.]</textarea>
+			
+			<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+				<span id="ai-copy-indicator" style="color: #4caf50; font-size: 12px; font-weight: bold; opacity: 0; transition: opacity 0.3s;">📋 Prompt kopiert!</span>
+				<div style="display: flex; gap: 10px;">
+					<button onclick="closeAIPromptModal()" style="background: #555; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer;">Schließen</button>
+					<button onclick="copyAIPrompt()" style="background: #007acc; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-weight: bold;">Kopieren</button>
+				</div>
+			</div>
 		</div>
     <script>
         const textarea = document.getElementById('code');
@@ -847,6 +924,7 @@
                 let totalSize = wsStartSizePrev + wsStartSizeNext;
                 let newPrev = Math.max(50, wsStartSizePrev + delta);
                 let newNext = Math.max(50, wsStartSizeNext - delta);
+														   
                 if (newPrev <= 50) newNext = totalSize - 50;
                 if (newNext <= 50) newPrev = totalSize - 50;
                 if (isGridMode) {
@@ -859,6 +937,7 @@
                         wc.style.setProperty('--grid-row-2', newNext + 'px'); 
                     }
                 } else {
+																											
                     wsPrevPanel.style.flex = `0 0 ${newPrev}px`;
                     wsNextPanel.style.flex = `0 0 ${newNext}px`;
                 }
@@ -1965,8 +2044,10 @@
                     while(wsNextPanel && wsNextPanel.style.display === 'none') wsNextPanel = wsNextPanel.nextElementSibling;
                     let rectPrev = wsPrevPanel.getBoundingClientRect();
                     let rectNext = wsNextPanel.getBoundingClientRect();
+																	
                     wsStartSizePrev = isHorizontalMove ? rectPrev.width : rectPrev.height;
                     wsStartSizeNext = isHorizontalMove ? rectNext.width : rectNext.height;
+																			 
                     wsPrevPanel.style.flex = `0 0 ${wsStartSizePrev}px`;
                     wsNextPanel.style.flex = `0 0 ${wsStartSizeNext}px`;
                 }
@@ -2019,7 +2100,9 @@
                     // FIX: Prüft, ob das Element ein Kontakt-Öffner ODER eine Öffner-Linie ist
                     let isNC = blade ? blade.classList.contains('is-nc') : el.classList.contains('is-nc-wire');
                     // FIX: Einheitliche Logik für Kontakte UND Linien!
+																				   
                     let isVisuallyActive = val;
+								
                     let isInput = globalInputs.includes(varName); // Prüft, ob es ein Taster/Sensor ist
                     if (isNC) {
                         // Hardware-Öffner: val=true heißt UNBERÜHRT (geschlossen)
@@ -2029,6 +2112,8 @@
                         // Schließer sind immer geschlossen bei val=true
                         isVisuallyActive = val;
                     }
+					 
+					
                     if (isSimulationActive) {
                         if (isVisuallyActive) {
                             el.dataset.lastOn = Date.now();
@@ -2097,6 +2182,7 @@
                     let kfName = `-KF${kfCount++}` + (window.configDetails >= 1 ? ` (${deviceName})` : ''); 
                     symMap[i] = kfName; 
                     contactTypeMap[i] = 'relais';
+																								 
                     preRungsToDraw.push({ id: i, cType: cType, kfName: kfName, deviceName: deviceName });
                 } else {
                     // Details ab Stufe 1 (E/A) anzeigen
@@ -2216,6 +2302,7 @@
                     // Die offene NO-Klinge liegt bei ca. x-5, die geschlossene NC-Klinge bei ca. x+3.
                     let dashEndX = isNC ? x + 3 : x - 5; 
                     g.appendChild(createSvgElement('line', {x1: dashEndX, y1: y + 2.5, x2: x - 18, y2: y + 2.5, stroke: '#000', 'stroke-width': 1.5, 'stroke-dasharray': '2,2'}));
+					
                     if (type === 'nothalt') {
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
                         g.appendChild(createSvgElement('path', {d: `M ${x - 18} ${y - 2.5} A 5 5 0 0 0 ${x - 18} ${y + 7.5} Z`, fill: '#000'}));
@@ -2488,8 +2575,10 @@
                             // --- MINIATUR-SYMBOL: WECHSLER (Drehpunkt unten) ---
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 13, x2: rc.coilX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); // Root-Pin unten
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 13, x2: rightX - 1, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Klinge liegt nach oben rechts an (NC)
+							
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // NC Pin
                             g.appendChild(createSvgElement('line', {x1: rightX - 3, y1: top + 6, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // NC Haken (Kerbe)
+							
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // NO Pin
                         } else {
                             // --- MINIATUR-SYMBOL: S & Ö GETRENNT (Drehpunkt unten) ---
@@ -2497,6 +2586,7 @@
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Pin oben
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX - 4, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Klinge offen (nach oben links)
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); // Pin unten
+
                             // Ö (Öffner)
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Pin oben
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 6, x2: rightX + 3, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Haken oben rechts
@@ -3623,6 +3713,25 @@
         };
         window.closeHelpModal = function() {
             document.getElementById('help-modal').style.display = 'none';
+        };
+		// --- NEU: KI-PROMPT MODAL STEUERUNG ---
+        window.openAIPromptModal = function() {
+            document.getElementById('ai-prompt-modal').style.display = 'block';
+        };
+
+        window.closeAIPromptModal = function() {
+            document.getElementById('ai-prompt-modal').style.display = 'none';
+        };
+
+        window.copyAIPrompt = function() {
+            const promptInput = document.getElementById('ai-prompt-text');
+            promptInput.select();
+            document.execCommand("copy");
+            
+            // Visuelles Feedback
+            const ind = document.getElementById('ai-copy-indicator');
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 2000);
         };
         // Sichere Base64-Codierung (Unterstützt Umlaute und Sonderzeichen wie ¬ ∧ ∨)
         function utoa(data) { return btoa(unescape(encodeURIComponent(data))); }
