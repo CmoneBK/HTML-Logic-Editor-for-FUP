@@ -1195,6 +1195,7 @@
             graph.nodes.forEach(node => {
                 const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 g.setAttribute("transform", `translate(${safe(node.x)}, ${safe(node.y)})`);
+                
                 if (node.type === 'GATE' || node.type === 'RS' || node.type === 'SR') {
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     rect.setAttribute("id", `node-block-${node.id}`);
@@ -1203,22 +1204,53 @@
                     rect.setAttribute("class", "fbs-block");
                     rect.setAttribute("stroke", node.color);
                     g.appendChild(rect);
+                    
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", safe(node.width / 2));
-                    text.setAttribute("y", 15);
                     text.setAttribute("text-anchor", "middle");
                     text.setAttribute("class", "fbs-text");
-                    text.textContent = node.label;
-                    g.appendChild(text);
+
                     if (node.type === 'RS' || node.type === 'SR') {
+                        // IEC Norm: RS oder SR steht mittig oben im Baustein
+                        text.setAttribute("y", 14);
+                        text.textContent = node.type; 
+                        
+                        // Den Namen ("RS-Glied 1") setzen wir als kleines Label ÜBER den Baustein
+                        const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        titleText.setAttribute("x", safe(node.width / 2));
+                        titleText.setAttribute("y", -5); // Schwebt knapp über dem Kasten
+                        titleText.setAttribute("text-anchor", "middle");
+                        titleText.setAttribute("font-family", "'Segoe UI', Tahoma, sans-serif");
+                        titleText.setAttribute("font-size", "10px");
+                        titleText.setAttribute("fill", "#666");
+                        titleText.textContent = node.label;
+                        g.appendChild(titleText);
+
+                        const isRS = node.type === 'RS';
+                        
+                        // IEC Norm Dominanz: 
+                        // RS (Rücksetzdominant) -> S, R1
+                        // SR (Setzdominant) -> S1, R
                         const sText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        sText.setAttribute("x", 4); sText.setAttribute("y", 18); sText.setAttribute("class", "fbs-pin-text"); sText.textContent = "S";
+                        sText.setAttribute("x", 4); sText.setAttribute("y", 20); sText.setAttribute("class", "fbs-pin-text"); 
+                        sText.textContent = isRS ? "S" : "S1";
+
                         const rText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        rText.setAttribute("x", 4); rText.setAttribute("y", safe(node.height - 10)); rText.setAttribute("class", "fbs-pin-text"); rText.textContent = "R";
+                        rText.setAttribute("x", 4); rText.setAttribute("y", safe(node.height - 11)); rText.setAttribute("class", "fbs-pin-text"); 
+                        rText.textContent = isRS ? "R1" : "R";
+
                         const qText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        qText.setAttribute("x", safe(node.width - 12)); qText.setAttribute("y", 18); qText.setAttribute("class", "fbs-pin-text"); qText.textContent = "Q";
+                        qText.setAttribute("x", safe(node.width - 12)); qText.setAttribute("y", 20); qText.setAttribute("class", "fbs-pin-text"); 
+                        qText.textContent = "Q";
+                        
                         g.appendChild(sText); g.appendChild(rText); g.appendChild(qText);
+                    } else {
+                        // Standard Logik-Gatter (&, >=1)
+                        text.setAttribute("y", 15);
+                        text.textContent = node.label;
                     }
+                    g.appendChild(text);
+                    
                 } else {
                     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     rect.setAttribute("id", `node-block-${node.id}`);
@@ -1231,6 +1263,7 @@
                         rect.setAttribute("fill", "#ffffff");
                     }
                     g.appendChild(rect);
+                    
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", safe(node.width / 2));
                     text.setAttribute("y", safe(node.height / 2 + 4));
@@ -1238,11 +1271,13 @@
                     text.setAttribute("class", "fbs-text");
                     text.setAttribute("font-size", "11px");
                     text.textContent = node.label;
+                    
                     const maxTextWidth = node.width - 10;
                     if (node.label.length * 6.5 > maxTextWidth) {
                         text.setAttribute("textLength", maxTextWidth);
                         text.setAttribute("lengthAdjust", "spacingAndGlyphs");
                     }
+                    
                     const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
                     title.textContent = node.label;
                     text.appendChild(title);
@@ -1693,8 +1728,17 @@
             let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1;
             let symMap = {};
             let contactTypeMap = {};
-            let getNodeColor = (id) => { return graph.nodes.get(id) ? graph.nodes.get(id).color : '#f58231'; };            
+            
+            // NEU: Variablen für Pfade und den Kontaktspiegel
+            let pathCounter = 1; 
+            let relayContacts = {}; // Speichert, welches Relais wo seine Kontakte hat
+
+            let getNodeColor = (id) => {
+                if (!id || id === 'NONE') return '#000';
+                return graph.nodes.get(id) ? graph.nodes.get(id).color : '#f58231';            
+            };
             const usedAsSource = new Set(graph.edges.map(e => e.sourceId));
+
             let preRungsToDraw = [];
             inputsList.forEach(i => { 
                 let cType = componentTypes[i] || 'taster';
@@ -1709,6 +1753,7 @@
                     contactTypeMap[i] = cType.replace('_nc', ''); 
                 }
             });
+
             graph.nodes.forEach(n => {
                 if (n.type === 'GATE' || n.type === 'RS' || n.type === 'SR') { 
                     symMap[n.id] = `-KF${kfCount++}`;
@@ -1726,20 +1771,28 @@
                     }
                 }
             });
-            // NEU: Zieht Linien UND heftet sie an die passende SPS-Variable und Logik-Farbe an!
+
             const drawLine = (x1, y1, x2, y2, width = 2, varName = null, color = null) => {
                 let l = createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width});
-                if (varName) {
+                if (varName && varName !== 'NONE') {
                     l.classList.add('circ-wire', `circ-var-${varName}`);
                     if (color) l.style.setProperty('--logic-color', color);
                 }
                 circuitContent.appendChild(l); 
                 return l;
             };
+
             const drawText = (x, y, txt, bold = false) => {
                 let t = createSvgElement('text', {x, y, 'font-size': '13px', fill: '#000', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
                 if (bold) t.setAttribute('font-weight', 'bold'); t.textContent = txt; circuitContent.appendChild(t);
             };
+
+            // NEU: Hilfsfunktion für die kleinen Klemmenbezeichnungen
+            const drawSmallText = (parent, x, y, txt, anchor = 'end') => {
+                let t = createSvgElement('text', {x, y, 'font-size': '9px', fill: '#666', 'font-family': 'monospace', 'text-anchor': anchor});
+                t.textContent = txt; parent.appendChild(t);
+            };
+
             const addLabelText = (parentG, x, y, textContent, isBold = false) => {
                 let fontSize = isBold ? '13px' : '12px';
                 let fontWeight = isBold ? 'bold' : 'normal';
@@ -1756,19 +1809,35 @@
                     t.textContent = textContent; parentG.appendChild(t);
                 }
             };
-            const drawContact = (x, y, label, isNC, type, varName, color) => {
+
+            // NEU: PathNum hinzugefügt, um den Kontakt im Spiegel zu registrieren
+            const drawContact = (x, y, label, isNC, type, varName, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-contact-group circ-colored-group circ-var-${varName}`});
                 if (color) g.style.setProperty('--logic-color', color);
+                
+                // Im Kontaktspiegel eintragen
+                if (varName && varName !== 'NONE') {
+                    if (!relayContacts[varName]) relayContacts[varName] = { contacts: [] };
+                    relayContacts[varName].contacts.push({ isNC: isNC, path: pathNum });
+                }
+
                 addLabelText(g, x + 15, y, label, false);
                 g.appendChild(createSvgElement('circle', {cx: x, cy: y - 15, r: 2.5, fill: '#000', class: 'circ-static'}));
                 g.appendChild(createSvgElement('circle', {cx: x, cy: y + 15, r: 2.5, fill: '#000', class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 15, x2: x, y2: y - 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 15, x2: x, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+                
                 let movingLine = createSvgElement('line', { x1: x, y1: y - 5, x2: x, y2: y + 15, stroke: '#000', 'stroke-width': 2, class: `circ-moving-contact ${isNC ? 'is-nc' : 'is-no'}` });
                 movingLine.style.transformOrigin = `${x}px ${y - 5}px`;
                 if (!isNC) movingLine.classList.add('open');
                 g.appendChild(movingLine);
+                
                 if (isNC) g.appendChild(createSvgElement('line', {x1: x, y1: y + 5, x2: x + 10, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+                
+                // NEU: Klemmenbezeichnungen (13/14 für NO, 11/12 für NC)
+                drawSmallText(g, x - 5, y - 10, isNC ? '11' : '13', 'end');
+                drawSmallText(g, x - 5, y + 15, isNC ? '12' : '14', 'end');
+
                 if (type === 'taster' || type === 'schalter' || type === 'nothalt') {
                     let dashEndX = isNC ? x + 6 : x - 6;
                     g.appendChild(createSvgElement('line', {x1: dashEndX, y1: y + 2.5, x2: x - 18, y2: y + 2.5, stroke: '#000', 'stroke-width': 1.5, 'stroke-dasharray': '2,2'}));
@@ -1785,18 +1854,32 @@
                 }
                 circuitContent.appendChild(g);
             };
-            const drawCoil = (x, y, label, id, type='relais', color) => {
+
+            const drawCoil = (x, y, label, id, type='relais', color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
                 if (color) g.style.setProperty('--logic-color', color);
+                
+                // Registriere Spule für den Kontaktspiegel
+                if (type === 'relais' && id) {
+                    if (!relayContacts[id]) relayContacts[id] = { contacts: [] };
+                    relayContacts[id].coilX = x;
+                }
+
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 10, x2: x, y2: y + 20, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 let rect = createSvgElement('rect', {id: `circ-out-${id}`, class: 'circ-component', x: x - 20, y: y - 10, width: 40, height: 20, fill: '#fff', stroke: '#000', 'stroke-width': 2});
                 g.appendChild(rect);
                 if (type === 'valve') g.appendChild(createSvgElement('line', {x1: x - 20, y1: y + 10, x2: x + 20, y2: y - 10, stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 30, y, label, true);
+                
+                // NEU: Klemmen A1/A2 oder 1/2
+                drawSmallText(g, x - 5, y - 15, type === 'valve' ? '1' : 'A1', 'end');
+                drawSmallText(g, x - 5, y + 20, type === 'valve' ? '2' : 'A2', 'end');
+                
                 circuitContent.appendChild(g);
             };
-            const drawLED = (x, y, label, id, color) => {
+
+            const drawLED = (x, y, label, id, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
                 if (color) g.style.setProperty('--logic-color', color);
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 15, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
@@ -1806,26 +1889,43 @@
                 g.appendChild(createSvgElement('line', {x1: x - 10.6, y1: y - 10.6, x2: x + 10.6, y2: y + 10.6, stroke: '#000', 'stroke-width': 2}));
                 g.appendChild(createSvgElement('line', {x1: x - 10.6, y1: y + 10.6, x2: x + 10.6, y2: y - 10.6, stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 25, y, label, true);
+                
+                // NEU: Klemmen X1/X2 für Leuchten
+                drawSmallText(g, x - 5, y - 18, 'X1', 'end');
+                drawSmallText(g, x - 5, y + 24, 'X2', 'end');
+
                 circuitContent.appendChild(g);
             };
+
             let currX = 100;
             const yTop = 50, yBot = 500;
+
             preRungsToDraw.forEach(item => {
                 let col = getNodeColor(item.id);
                 if (item.cType === 'nothalt') {
+                    let p1 = pathCounter++;
+                    drawText(currX, yTop - 25, p1.toString(), true); // Pfadnummer oben
+
                     drawLine(currX, yTop, currX, 150 - 15, 2, item.id, col);
-                    drawContact(currX, 150, `${item.deviceName} (${item.id})`, true, 'nothalt', item.id, col);
+                    drawContact(currX, 150, `${item.deviceName} (${item.id})`, true, 'nothalt', item.id, col, p1);
                     drawLine(currX, 165, currX, 430, 2, item.id, col);
-                    drawCoil(currX, 450, item.kfName, item.id, 'relais', col);
+                    drawCoil(currX, 450, item.kfName, item.id, 'relais', col, p1);
                     drawLine(currX, 470, currX, yBot, 2, item.id, col);
                     currX += 100; 
                 } else {
+                    let p1 = pathCounter++; // Sensoren belegen 2 Pfade (Elektronik + Relaisausgang)
+                    let p2 = pathCounter++;
+                    drawText(currX, yTop - 25, p1.toString(), true); 
+                    drawText(currX + 60, yTop - 25, p2.toString(), true); 
+
                     let sBoxY = 150;
                     circuitContent.appendChild(createSvgElement('rect', {x: currX - 15, y: sBoxY, width: 30, height: 30, fill: '#fff', stroke: '#000', 'stroke-width': 2}));
                     let diamondPts = `${currX},${sBoxY+3} ${currX+7},${sBoxY+10} ${currX},${sBoxY+17} ${currX-7},${sBoxY+10}`;
                     circuitContent.appendChild(createSvgElement('polygon', {points: diamondPts, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
                     circuitContent.appendChild(createSvgElement('line', {x1: currX - 2.5, y1: sBoxY+5.5, x2: currX - 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
                     circuitContent.appendChild(createSvgElement('line', {x1: currX + 2.5, y1: sBoxY+5.5, x2: currX + 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
+                    
+                    // Zeichne das Sensoren-Innenleben
                     if (item.cType === 'sensor_ind') {
                         let indPath = `M ${currX-9} ${sBoxY+26} L ${currX-9} ${sBoxY+23} A 3 3 0 0 1 ${currX-3} ${sBoxY+23} A 3 3 0 0 1 ${currX+3} ${sBoxY+23} A 3 3 0 0 1 ${currX+9} ${sBoxY+23} L ${currX+9} ${sBoxY+26}`;
                         circuitContent.appendChild(createSvgElement('path', {d: indPath, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
@@ -1844,22 +1944,29 @@
                         circuitContent.appendChild(createSvgElement('rect', {x: currX-3, y: sBoxY+22, width: 6, height: 3.5, fill: '#fff'})); 
                     }
                     addLabelText(circuitContent, currX + 20, sBoxY - 5, `${item.deviceName} (${item.id})`, false);
+                    
                     drawLine(currX, yTop, currX, sBoxY, 2, item.id, col); 
                     drawLine(currX, sBoxY + 30, currX, yBot, 2, item.id, col); 
                     drawLine(currX + 15, sBoxY + 15, currX + 60, sBoxY + 15, 2, item.id, col); 
                     drawLine(currX + 60, sBoxY + 15, currX + 60, 430, 2, item.id, col); 
-                    drawCoil(currX + 60, 450, item.kfName, item.id, 'relais', col); 
+                    drawCoil(currX + 60, 450, item.kfName, item.id, 'relais', col, p2); 
                     drawLine(currX + 60, 470, currX + 60, yBot, 2, item.id, col);
                     currX += 140;
                 }
             });
+
             const nodesToDraw = Array.from(graph.nodes.values())
                 .filter(n => ['GATE', 'RS', 'SR', 'OUTPUT'].includes(n.type))
                 .sort((a,b) => a.level - b.level);
+
             nodesToDraw.forEach(node => {
                 let inEdges = graph.edges.filter(e => e.targetId === node.id);
                 let col = node.color;
+                
                 if (node.type === 'GATE' && node.label === '&') { 
+                    let p = pathCounter++;
+                    drawText(currX, yTop - 25, p.toString(), true);
+
                     let y = 110, dy = 260 / Math.max(1, inEdges.length);
                     drawLine(currX, yTop, currX, y - 15, 2, node.id, col);
                     inEdges.forEach((edge, idx) => {
@@ -1869,47 +1976,60 @@
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
                         let srcCol = getNodeColor(edge.sourceId);
-                        drawContact(currX, y, name, isNC, type, edge.sourceId, srcCol);
+                        
+                        drawContact(currX, y, name, isNC, type, edge.sourceId, srcCol, p);
                         if (idx < inEdges.length - 1) drawLine(currX, y + 15, currX, y + dy - 15, 2, node.id, col);
                         y += dy;
                     });
                     drawLine(currX, (y - dy) + 15, currX, 430, 2, node.id, col); 
-                    drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col);
+                    drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p);
                     drawLine(currX, 470, currX, yBot, 2, node.id, col); 
                     currX += 130;
                 }
                 else if (node.type === 'GATE' && node.label === '>=1') { 
                     let branches = inEdges.length;
                     if(branches > 0) {
+                        let startP = pathCounter++;
+                        drawText(currX, yTop - 25, startP.toString(), true);
+
                         let startX = currX, endX = currX + (branches - 1) * 90;
                         drawLine(startX, yTop, startX, 90, 2, node.id, col); 
                         drawLine(startX, 90, endX, 90, 2, node.id, col); 
                         drawLine(startX, 350, endX, 350, 2, node.id, col); 
+                        
                         inEdges.forEach((edge, idx) => {
                             let bx = currX + idx * 90;
+                            let bp = (idx === 0) ? startP : pathCounter++;
+                            if (idx > 0) drawText(bx, yTop - 25, bp.toString(), true);
+
                             let name = symMap[edge.sourceId] || edge.sourceId;
                             let type = contactTypeMap[edge.sourceId] || 'relais';
                             let cTypeSrc = componentTypes[edge.sourceId];
                             let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                             let isNC = physNC ? !edge.inverted : edge.inverted;
                             let srcCol = getNodeColor(edge.sourceId);
+                            
                             drawLine(bx, 90, bx, 220 - 15, 2, edge.sourceId, srcCol); 
-                            // FIX: Hier stand vorher currX, y -> Das hat den Crash verursacht!
-                            drawContact(bx, 220, name, isNC, type, edge.sourceId, srcCol);
+																							   
+                            drawContact(bx, 220, name, isNC, type, edge.sourceId, srcCol, bp);
                             drawLine(bx, 235, bx, 350, 2, edge.sourceId, srcCol);
                         });
                         drawLine(startX, 350, startX, 430, 2, node.id, col); 
-                        drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col);
+                        drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col, startP);
                         drawLine(startX, 470, startX, yBot, 2, node.id, col); 
                         currX = endX + 130;
                     }
                 }
                 else if (node.type === 'RS' || node.type === 'SR') { 
+                    let p1 = pathCounter++;
+                    let p2 = pathCounter++;
+
                     let sEdge = inEdges.find(e => e.targetPin === 'S'), rEdge = inEdges.find(e => e.targetPin === 'R');
                     let sName = sEdge ? (symMap[sEdge.sourceId] || sEdge.sourceId) : 'N/A';
                     let rName = rEdge ? (symMap[rEdge.sourceId] || rEdge.sourceId) : 'N/A';
                     let sType = sEdge ? (contactTypeMap[sEdge.sourceId] || 'relais') : 'relais';
                     let rType = rEdge ? (contactTypeMap[rEdge.sourceId] || 'relais') : 'relais';
+                    
                     let sInverted = sEdge ? sEdge.inverted : false;
                     if (sEdge) {
                         let cTypeSrc = componentTypes[sEdge.sourceId];
@@ -1920,40 +2040,55 @@
                         let cTypeSrc = componentTypes[rEdge.sourceId];
                         if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') rInverted = !rInverted;
                     }
+
                     let startX = currX, parX = currX + 90;
+                    drawText(startX, yTop - 25, p1.toString(), true);
+                    drawText(parX, yTop - 25, p2.toString(), true);
+
                     drawLine(startX, yTop, startX, 90, 2, node.id, col); 
                     drawLine(startX, 90, parX, 90, 2, node.id, col);
+                    
                     let sCol = sEdge ? getNodeColor(sEdge.sourceId) : col;
                     let rCol = rEdge ? getNodeColor(rEdge.sourceId) : col;
+
                     if (node.type === 'RS') {
                         drawLine(startX, 90, startX, 150 - 15, 2, sEdge ? sEdge.sourceId : node.id, sCol); 
-                        drawContact(startX, 150, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol); 
+                        drawContact(startX, 150, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol, p1); 
                         drawLine(startX, 165, startX, 230, 2, node.id, col);
+                        
                         drawLine(parX, 90, parX, 150 - 15, 2, node.id, col); 
-                        drawContact(parX, 150, symMap[node.id], false, 'relais', node.id, col); 
+                        drawContact(parX, 150, symMap[node.id], false, 'relais', node.id, col, p2); 
                         drawLine(parX, 165, parX, 230, 2, node.id, col);
+                        
                         drawLine(startX, 230, parX, 230, 2, node.id, col); 
+                        
                         drawLine(startX, 230, startX, 300 - 15, 2, node.id, col); 
-                        drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol); 
+                        drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol, p1); 
                         drawLine(startX, 315, startX, 430, 2, node.id, col); 
                     } else {
                         drawLine(startX, 90, startX, 150 - 15, 2, node.id, col); 
-                        drawContact(startX, 150, symMap[node.id], false, 'relais', node.id, col); 
+                        drawContact(startX, 150, symMap[node.id], false, 'relais', node.id, col, p1); 
                         drawLine(startX, 165, startX, 230, 2, node.id, col);
+                        
                         drawLine(startX, 230, startX, 300 - 15, 2, node.id, col); 
-                        drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol); 
+                        drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol, p1); 
                         drawLine(startX, 315, startX, 380, 2, node.id, col);
+                        
                         drawLine(parX, 90, parX, 225 - 15, 2, sEdge ? sEdge.sourceId : node.id, sCol); 
-                        drawContact(parX, 225, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol); 
+                        drawContact(parX, 225, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol, p2); 
                         drawLine(parX, 240, parX, 380, 2, node.id, col);
+                        
                         drawLine(startX, 380, parX, 380, 2, node.id, col); 
                         drawLine(startX, 380, startX, 430, 2, node.id, col); 
                     }
-                    drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col); 
+                    drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col, p1); 
                     drawLine(startX, 470, startX, yBot, 2, node.id, col); 
                     currX = parX + 130;
                 }
                 else if (node.type === 'OUTPUT') { 
+                    let p = pathCounter++;
+                    drawText(currX, yTop - 25, p.toString(), true);
+
                     let edge = inEdges[0];
                     if (edge) {
                         let name = symMap[edge.sourceId] || edge.sourceId;
@@ -1962,27 +2097,99 @@
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
                         let srcCol = getNodeColor(edge.sourceId);
+                        
                         drawLine(currX, yTop, currX, 220 - 15, 2, edge.sourceId, srcCol); 
-                        drawContact(currX, 220, name, isNC, type, edge.sourceId, srcCol);
+                        drawContact(currX, 220, name, isNC, type, edge.sourceId, srcCol, p);
                         drawLine(currX, 235, currX, 430, 2, node.id, col); 
                     } else { 
                         drawLine(currX, yTop, currX, 430, 2, node.id, col); 
                     }
-                    if (node.isRelay) drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col);
-                    else if (node.outType === 'valve') drawCoil(currX, 450, symMap[node.id], node.id, 'valve', col);
-                    else drawLED(currX, 450, symMap[node.id], node.id, col);
+                    
+                    if (node.isRelay) drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p);
+                    else if (node.outType === 'valve') drawCoil(currX, 450, symMap[node.id], node.id, 'valve', col, p);
+                    else drawLED(currX, 450, symMap[node.id], node.id, col, p);
+                    
                     drawLine(currX, 470, currX, yBot, 2, node.id, col); 
                     currX += 130;
                 }
             });
+
+            // Zeichne die Hauptschienen L+ und M
             let totalWidth = Math.max(1000, currX + 50);
-            // Die Haupt-Schienen (L+ und M) bekommen eine statische Farbe
+																		  
             let lPlus = drawLine(20, yTop, totalWidth - 20, yTop, 3);
             lPlus.setAttribute('stroke', '#f58231'); lPlus.classList.remove('circ-wire');
             drawText(25, yTop - 10, 'L+ (24V DC)', true);
+            
             let mMinus = drawLine(20, yBot, totalWidth - 20, yBot, 3);
             mMinus.setAttribute('stroke', '#4363d8'); mMinus.classList.remove('circ-wire');
             drawText(25, yBot + 20, 'M (0V DC)', true);
+
+            // ==============================================================
+            // NEU: GRAFISCHER KONTAKTSPIEGEL (Schützkreuz nach IEC Norm)
+            // ==============================================================
+            Object.keys(relayContacts).forEach(id => {
+                let rc = relayContacts[id];
+                // Wir zeichnen nur einen Spiegel, wenn es wirklich eine Schütz/Relais-Spule (coilX) gibt!
+                if (rc.coilX) {
+                    let mirrorY = yBot + 35; // Etwas Platz unter der 0V-Schiene
+                    
+                    let g = createSvgElement('g', {});
+                    
+                    // Name des Relais (z.B. -KF1)
+                    let tTitle = createSvgElement('text', {x: rc.coilX, y: mirrorY, 'font-size': '11px', 'font-weight': 'bold', fill: '#000', 'text-anchor': 'middle', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
+                    tTitle.textContent = symMap[id] || id;
+                    g.appendChild(tTitle);
+                    
+                    // Schließer und Öffner sammeln und aufsteigend nach Pfad sortieren
+                    let noPaths = rc.contacts.filter(c => !c.isNC).map(c => c.path).sort((a,b)=>a-b);
+                    let ncPaths = rc.contacts.filter(c => c.isNC).map(c => c.path).sort((a,b)=>a-b);
+
+                    // Nur zeichnen, wenn das Relais auch wirklich Kontakte hat!
+                    if (noPaths.length > 0 || ncPaths.length > 0) {
+                        let top = mirrorY + 5; // Start der Tabelle
+                        let maxRows = Math.max(1, Math.max(noPaths.length, ncPaths.length));
+                        let bottom = top + 20 + maxRows * 13;
+
+                        // --- TABELLEN-GITTER ZEICHNEN ---
+                        // Obere Querlinie
+                        g.appendChild(createSvgElement('line', {x1: rc.coilX - 16, y1: top, x2: rc.coilX + 16, y2: top, stroke: '#000', 'stroke-width': 1}));
+                        // Trennlinie unter den Mini-Symbolen
+                        g.appendChild(createSvgElement('line', {x1: rc.coilX - 16, y1: top + 18, x2: rc.coilX + 16, y2: top + 18, stroke: '#000', 'stroke-width': 1}));
+                        // Vertikale Trennlinie in der Mitte
+                        g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top, x2: rc.coilX, y2: bottom, stroke: '#000', 'stroke-width': 1}));
+
+                        // --- MINIATUR-SYMBOL: SCHLIESSER (NO) links ---
+                        let leftX = rc.coilX - 8;
+                        g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Pin oben
+                        g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 6, x2: leftX + 4, y2: top + 13, stroke: '#000', 'stroke-width': 1})); // Geöffnetes Messer
+                        g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); // Pin unten
+
+                        // --- MINIATUR-SYMBOL: ÖFFNER (NC) rechts ---
+                        let rightX = rc.coilX + 8;
+                        g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); // Pin oben
+                        g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 6, x2: rightX - 4, y2: top + 13, stroke: '#000', 'stroke-width': 1})); // Geschlossenes Messer
+                        g.appendChild(createSvgElement('line', {x1: rightX - 5, y1: top + 13, x2: rightX + 2, y2: top + 13, stroke: '#000', 'stroke-width': 1})); // NC-Winkel / Häkchen
+                        g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 13, x2: rightX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); // Pin unten
+
+                        // --- PFADNUMMERN EINSCHREIBEN ---
+                        noPaths.forEach((p, idx) => {
+                            let text = createSvgElement('text', {x: leftX, y: top + 30 + idx * 13, 'font-size': '10px', fill: '#333', 'text-anchor': 'middle', 'font-family': 'monospace'});
+                            text.textContent = p.toString();
+                            g.appendChild(text);
+                        });
+                        
+                        ncPaths.forEach((p, idx) => {
+                            let text = createSvgElement('text', {x: rightX, y: top + 30 + idx * 13, 'font-size': '10px', fill: '#333', 'text-anchor': 'middle', 'font-family': 'monospace'});
+                            text.textContent = p.toString();
+                            g.appendChild(text);
+                        });
+                    }
+
+                    circuitContent.appendChild(g);
+                }
+            });
+
             setTimeout(() => {
                 if (document.getElementById('circuit-wrapper').offsetWidth > 0) {
                     panZoomCircuitInstance = svgPanZoom(circuitSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
