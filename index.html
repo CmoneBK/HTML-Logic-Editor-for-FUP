@@ -17,10 +17,34 @@
         #save-indicator { font-size: 11px; color: #3cb44b; opacity: 0.3; transition: opacity 0.5s ease; font-weight: bold; }
         .btn-reset { background: none; border: none; color: #569CD6; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 0; }
         .btn-reset:hover { color: #9CDCFE; }
-        .graph-top-bar { display: flex; justify-content: space-between; align-items: center; gap: 15px; width: 100%; z-index: 10; padding: 10px 20px; box-sizing: border-box; background: #f8f9fa; border-bottom: 1px solid #ddd; }
-        .btn-export { background-color: #007acc; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Obere Leiste darf in der Höhe atmen, Buttons bleiben aber in einer Reihe */
+        .graph-top-bar { 
+            display: flex; justify-content: space-between; align-items: center; gap: 5px; 
+            width: 100%; z-index: 10; padding: 5px 10px; box-sizing: border-box; 
+            background: #f8f9fa; border-bottom: 1px solid #ddd; 
+            flex-wrap: nowrap !important; /* Kein Untereinanderspringen der Boxen! */
+            min-height: 50px; height: auto; /* NEU: Darf sich für zweizeilige Buttons dehnen */
+        }
+        /* Buttons dürfen ihren Text mehrzeilig machen, um Platz zu sparen */
+        .btn-export { 
+            background-color: #007acc; color: white; border: none; 
+            padding: clamp(3px, 0.6vw, 8px) clamp(5px, 0.8vw, 14px); 
+            border-radius: 4px; cursor: pointer; 
+            font-size: clamp(9px, 1vw, 13px); 
+            font-weight: bold; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            flex-shrink: 1; min-width: 0; 
+            white-space: normal; /* NEU: Text darf umbrechen! */
+            line-height: 1.2; text-align: center;
+        }
         .btn-export:hover { background-color: #0098ff; }
-        .info-box { background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 8px 12px; font-size: 12px; line-height: 1.4; color: #0d47a1; border-radius: 4px; flex-grow: 1; margin: 0; }
+        /* Infobox bricht jetzt auch sauber um, statt den Text abzuschneiden */
+        .info-box { 
+            background-color: #e3f2fd; border-left: 4px solid #2196f3; 
+            padding: 6px 10px; font-size: clamp(9px, 1vw, 12px); line-height: 1.4; 
+            color: #0d47a1; border-radius: 4px; flex-grow: 1; flex-shrink: 2; margin: 0; 
+            white-space: normal; /* NEU: Textumbruch erlaubt */
+        }
         .legend-box { background-color: #1e1e1e; border: 1px solid #444; padding: 10px; font-size: 12px; line-height: 1.4; color: #ccc; border-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
         .legend-grid { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 15px; align-items: center; }
         .legend-code { font-family: 'Courier New', Courier, monospace; background: #2d2d30; padding: 2px 6px; border-radius: 3px; font-weight: bold; color: #569CD6; user-select: all; cursor: pointer; border: 1px solid #555; }
@@ -28,7 +52,7 @@
         .legend-code.rs { color: #CE9178; border-color: transparent; background: transparent; padding: 0;}
         .legend-rs-note { padding-top: 8px; border-top: 1px dashed #444; font-size: 11.5px; }
         .editor-wrapper { position: relative; flex-grow: 1; min-height: 50px; background-color: #1e1e1e; border: 1px solid #444; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
-		/* NEU: Multi-Panel Workspace Styles */
+        /* --- Multi-Panel Workspace Styles --- */
         #workspace-container {
             display: flex;
             flex-direction: row; /* Standard: Nebeneinander */
@@ -45,6 +69,7 @@
             min-height: 0;
             position: relative;
             background: #fff;
+            overflow: hidden !important; /* NEU: Overflow-Schutz, damit nichts übersteht */
         }
         .workspace-resizer {
             flex: 0 0 6px;
@@ -55,6 +80,68 @@
         }
         .workspace-resizer:hover, .workspace-resizer.active {
             background: #007acc;
+        }
+        /* Die Schaltplan-Buttons dürfen nun auch zweizeilig werden */
+        .circuit-btn-container {
+            position: absolute; top: 10px; left: 10px; right: 10px; z-index: 50; 
+            display: flex; gap: 5px; 
+            flex-wrap: nowrap !important; /* Kein Springen! */
+            pointer-events: none; 
+        }
+        .circuit-btn-container button {
+            pointer-events: auto; 
+            font-size: clamp(8px, 0.9vw, 12px); 
+            padding: 3px 6px;
+            flex-shrink: 1; min-width: 0;
+            white-space: normal; /* NEU: Textumbruch erlaubt */
+            line-height: 1.1; text-align: center;
+        }
+        * 2D Toolbar: Strikte Höhe auf 50px festnageln */
+        #factory-toolbar { 
+            flex: 0 0 50px; height: 50px; min-height: 50px;
+            display: flex; flex-wrap: nowrap !important; align-items: center; 
+            background: #333; padding: 0 10px; gap: 5px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000;
+            overflow: visible !important; /* Wichtig, damit Menüs nach unten aufklappen können! */
+        }
+        #factory-canvas-area {
+            flex-grow: 1; position: relative; width: 100%; height: 100%; overflow: auto; /* Erlaubt das Pannen/Scrollen */
+        }
+        #factory-content {
+            width: 4000px; height: 3000px; position: absolute; top: 0; left: 0; transform-origin: 0 0;
+            /* FIX: Sanftes Punktraster statt Karomuster verhindert Moiré-Effekte beim Zoomen */
+            background-image: radial-gradient(#b0bec5 1.5px, transparent 1.5px); 
+            background-size: 20px 20px;
+        }
+        /* --- NEU: Feste CSS-Grid Layouts für Profi-Ansichten (inkl. Resizer-Support) --- */
+        #workspace-container.layout-grid {
+            display: grid !important; gap: 0; background: #333; 
+        }
+        #workspace-container.layout-grid .workspace-panel {
+            flex: none !important; display: flex !important; margin: 0 !important;
+        }
+        #workspace-container.layout-grid .workspace-resizer {
+            display: block !important; /* Sichtbar lassen für Anpassungen im Grid! */
+        }
+        .grid-sim-bottom {
+            grid-template-areas: "fbs r1 iec" "r2  r2 r2" "sim sim sim";
+            grid-template-columns: var(--grid-col-1, 1fr) 6px var(--grid-col-2, 1fr);
+            grid-template-rows: var(--grid-row-1, 1fr) 6px var(--grid-row-2, 1fr);
+        }
+        .grid-sim-top {
+            grid-template-areas: "sim sim sim" "r2  r2  r2" "fbs r1 iec";
+            grid-template-columns: var(--grid-col-1, 1fr) 6px var(--grid-col-2, 1fr);
+            grid-template-rows: var(--grid-row-1, 1fr) 6px var(--grid-row-2, 1fr);
+        }
+        .grid-sim-right {
+            grid-template-areas: "fbs r2 sim" "r1  r2 sim" "iec r2 sim";
+            grid-template-columns: var(--grid-col-1, 1fr) 6px var(--grid-col-2, 1fr);
+            grid-template-rows: var(--grid-row-1, 1fr) 6px var(--grid-row-2, 1fr);
+        }
+        .grid-sim-left {
+            grid-template-areas: "sim r2 fbs" "sim r2 r1" "sim r2 iec";
+            grid-template-columns: var(--grid-col-1, 1fr) 6px var(--grid-col-2, 1fr);
+            grid-template-rows: var(--grid-row-1, 1fr) 6px var(--grid-row-2, 1fr);
         }
         .view-btn { background-color: #555; transition: background 0.2s; }
         .view-btn.active { background-color: #f58231; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
@@ -180,11 +267,36 @@
         svg.sim-running .fbs-bubble.inactive { stroke: #333 !important; }
 		/* Schaltplan-spezifische Transitionen */
         .circ-component { transition: fill 0.2s ease; }
-		/* --- 2D FACTORY SIMULATOR STYLES --- */
-        #factory-toolbar { height: 50px; background: #333; display: flex; align-items: center; padding: 0 15px; gap: 10px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000; position: relative; }
-        .tool-btn { background: #555; color: #fff; border: 1px solid #777; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .tool-btn:hover { background: #007acc; border-color: #007acc; }
-		/* NEU: Toolbar Dropdowns (Repariert für sauberes Hover) */
+		/* 2D Toolbar: Strikte Höhe auf 50px festnageln */
+        #factory-toolbar { 
+            flex: 0 0 50px; height: 50px; min-height: 50px;
+            display: flex; flex-wrap: nowrap !important; align-items: center; 
+            background: #333; padding: 0 10px; gap: 5px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000;
+            overflow: visible !important; /* Wichtig, damit Menüs nach unten aufklappen können! */
+        }
+        /* Buttons bleiben strikt IN der Leiste, Emojis bekommen mehr Luft! */
+        .tool-btn, .tb-drop-btn { 
+            background: #555; color: #fff; border: 1px solid #777; 
+            padding: 2px clamp(4px, 0.6vw, 10px); 
+            border-radius: 3px; cursor: pointer; 
+            font-size: clamp(8.5px, 0.8vw, 12px); 
+            font-weight: bold; 
+            flex-shrink: 1; min-width: 0; 
+            height: 38px; 
+            box-sizing: border-box; 
+            /* FIX 1: Grid zentriert wilde Emoji-Text-Mixe viel zuverlässiger als Flexbox */
+            display: grid; 
+            place-content: center; 
+            transition: background 0.1s;
+            white-space: normal; 
+            /* FIX 2: Line-Height erhöht! Emojis brauchen mindestens 1.3, um nicht an die Decke zu stoßen */
+            line-height: 0.9; 
+            text-align: center;
+            overflow: hidden; 
+        }
+        .tool-btn:hover, .tb-drop-btn:hover { background: #007acc; border-color: #007acc; }
+        /* NEU: Toolbar Dropdowns (Repariert für sauberes Hover) */
         .tb-dropdown { position: relative; display: inline-block; }
         .tb-dropdown-content { display: none; position: absolute; background-color: #2d2d30; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.6); z-index: 1000; border-radius: 4px; border: 1px solid #555; top: 100%; left: 0; }
         /* FIX: Wir sprechen nur noch direkte Listeneinträge an, damit Untermenüs nicht komplett blau aufleuchten! */
@@ -192,8 +304,8 @@
         .tb-dropdown-content > div:not(.tb-submenu):hover, .tb-submenu > div:first-child:hover, .tb-submenu-content > div:hover { background-color: #007acc; }
         .tb-dropdown-content > div:last-child, .tb-submenu-content > div:last-child { border-bottom: none; }
         .tb-dropdown:hover .tb-dropdown-content { display: block; }
-        .tb-drop-btn { background: #444; color: #fff; border: 1px solid #666; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.1s; }
-        .tb-drop-btn:hover { background: #555; border-color: #888; }
+		.tb-drop-btn { background: #444; color: #fff; border: 1px solid #666; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.1s; }
+        .tb-drop-btn:hover { background: #555; border-color: #888; }																																																																  														
         #factory-canvas-area { flex-grow: 1; position: relative; width: 100%; height: 100%; background-image: linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%, #ddd), linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%, #ddd); background-size: 20px 20px; background-position: 0 0, 10px 10px; }
         /* 2D Objekte */
         .f2d-obj { position: absolute; box-sizing: border-box; cursor: move; user-select: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
@@ -375,6 +487,19 @@
         #factory-context-menu { display: none; position: absolute; background: #2d2d30; border: 1px solid #555; padding: 5px 0; border-radius: 3px; z-index: 200; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); font-family: sans-serif; }
         .ctx-item { padding: 6px 15px; cursor: pointer; font-size: 12px; color: #fff; white-space: nowrap; }
         .ctx-item:hover { background: #007acc; }
+		/* --- NEU: 2D-Anlage Zoom Controls --- */
+        .factory-zoom-controls {
+            position: absolute; bottom: 20px; right: 20px; 
+            display: flex; flex-direction: column; gap: 5px; z-index: 1000;
+        }
+        .factory-zoom-controls button {
+            background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; 
+            width: 28px; height: 28px; font-size: 16px; font-weight: bold; 
+            cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            display: flex; justify-content: center; align-items: center; padding: 0; line-height: 1;
+        }
+        .factory-zoom-controls button:hover { background: #eee; }
+        .factory-zoom-controls button:active { background: #ddd; transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -438,32 +563,43 @@
                 <button id="btn-view-fbs" class="btn-export view-btn active" onclick="toggleWorkspaceView('fbs-wrapper')">Logikplan</button>
                 <button id="btn-view-iec" class="btn-export view-btn" onclick="toggleWorkspaceView('circuit-wrapper')">Schaltplan</button>
                 <button id="btn-view-fac" class="btn-export view-btn" onclick="toggleWorkspaceView('factory-wrapper')">2D Anlage</button>
-                <button class="btn-export" onclick="toggleWorkspaceDirection()" style="background:#444;" title="Layout drehen">↔️/↕️</button>
+                <select id="layout-selector" class="btn-export" style="background:#444; border:none; color:white; outline:none; cursor:pointer; padding: 4px 8px;" onchange="changeWorkspaceLayout(this.value)">
+                    <optgroup label="2er-Layouts">
+                        <option value="flex-row">◫ Nebeneinander</option>
+                        <option value="flex-col">⬒ Untereinander</option>
+                    </optgroup>
+                    <optgroup label="3er-Raster (Flexibel)">
+                        <option value="grid-sim-bottom">🗗 2D-Anlage unten</option>
+                        <option value="grid-sim-top">🗒 2D-Anlage oben</option>
+                        <option value="grid-sim-right">◧ 2D-Anlage rechts</option>
+                        <option value="grid-sim-left">◨ 2D-Anlage links</option>
+                    </optgroup>
+                </select>
             </div>
             <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B; margin-left: 10px;" onclick="toggleSimulation()">Simulation starten</button>
             <button class="btn-export" style="margin-left: 10px;" onclick="exportSVG()">Als SVG speichern</button>
         </div>
         <div id="workspace-container">
-            <div id="fbs-wrapper" class="workspace-panel" style="display: flex; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
+            <div id="fbs-wrapper" class="workspace-panel" style="display: flex; grid-area: fbs; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
                 <svg id="custom-svg" xmlns="http://www.w3.org/2000/svg">
                     <g id="svg-halos"></g>
                     <g id="svg-lines"></g>
                     <g id="svg-nodes"></g>
                 </svg>
             </div>
-            <div class="workspace-resizer" id="ws-resizer-1"></div>
-            <div id="circuit-wrapper" class="workspace-panel" style="display: none; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
-                <div style="position: absolute; top: 10px; left: 20px; z-index: 50; display: flex; gap: 10px;">
-                    <button id="btn-toggle-colors" class="btn-export" style="background-color: #555; border: 1px solid #333; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);" onclick="toggleCircuitColors()">🌈 Bunte Pfade: AUS</button>
-                    <button id="btn-toggle-wech" class="btn-export" style="background-color: #555; border: 1px solid #333; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);" onclick="toggleWechsler()">🔀 Wechslernummerierung: AUS</button>
-                    <button id="btn-toggle-seq" class="btn-export" style="background-color: #555; border: 1px solid #333; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);" onclick="toggleSeqNum()">🔢 Fortlaufende Nrn: AUS</button>
-                </div>              
+            <div class="workspace-resizer" id="ws-resizer-1" style="grid-area: r1;"></div>
+            <div id="circuit-wrapper" class="workspace-panel" style="display: none; grid-area: iec; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
+                <div class="circuit-btn-container">
+                    <button id="btn-toggle-colors" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="toggleCircuitColors()">🌈 Bunte Pfade: AUS</button>
+                    <button id="btn-toggle-wech" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="toggleWechsler()">🔀 Wechslernummerierung: AUS</button>
+                    <button id="btn-toggle-seq" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="toggleSeqNum()">🔢 Fortlaufende Nrn: AUS</button>
+                </div>
                 <svg id="circuit-svg" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
                     <g id="circuit-content"></g>
                 </svg>
             </div>
-            <div class="workspace-resizer" id="ws-resizer-2"></div>
-            <div id="factory-wrapper" class="workspace-panel" style="display: none; background-color: #e8ecef;">
+            <div class="workspace-resizer" id="ws-resizer-2" style="grid-area: r2;"></div>
+            <div id="factory-wrapper" class="workspace-panel" style="display: none; grid-area: sim; background-color: #e8ecef;">
                 <div id="factory-toolbar">
                     <div class="tb-dropdown">
                         <button class="tb-drop-btn">🎛️ Bedienpult ▼</button>
@@ -558,19 +694,25 @@
                     </div>
                 </div>
                 <div id="factory-context-menu"></div>
-                <div id="factory-canvas-area"></div>
+                <div id="factory-canvas-area">
+                    <div id="factory-content"></div>
+                    <div class="factory-zoom-controls">
+                        <button onclick="factoryZoomIn()" title="Vergrößern">+</button>
+                        <button onclick="factoryZoomOut()" title="Verkleinern">−</button>
+                        <button onclick="factoryZoomReset()" title="Ansicht zurücksetzen" style="font-size: 12px;">🏠</button>
+                    </div>
+                </div>
             </div>
         </div>
 		<div id="help-modal" style="display: none; position: absolute; top: 10%; left: 50%; transform: translateX(-50%); background: #2d2d30; padding: 20px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.8); z-index: 2000; width: 450px; color: #ccc; font-size: 12px; line-height: 1.6;">
 			<h3 style="margin-top:0; color:#fff; border-bottom: 1px solid #555; padding-bottom: 10px;">ℹ️ Wichtige Bedienungshinweise</h3>
-			
 			<ul style="padding-left: 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
 				<li><strong style="color: #9CDCFE;">Hardware-Kopplung:</strong> Sobald ein Signal (Taster, Sensor etc.) einem echten Bauteil in der 2D-Anlage zugewiesen wird, übernimmt die 2D-Mechanik die Kontrolle. Die manuelle Eingabe im linken Simulationsfenster wird für diese Variable dann gesperrt – klicke stattdessen direkt auf die Bauteile in der Anlage!</li>
 				<li><strong style="color: #9CDCFE;">Taster einrasten:</strong> Halte <kbd>STRG</kbd> oder <kbd>CMD</kbd> gedrückt, während du einen Taster anklickst, um ihn dauerhaft einrasten zu lassen (Dauerfeuer).</li>
 				<li><strong style="color: #9CDCFE;">Profi-Steuerung (2D):</strong> Ziehe bei gestoppter Simulation mit der Maus einen Rahmen in den Hintergrund, um mehrere Objekte gleichzeitig auszuwählen. Nutze <kbd>STRG+C</kbd> und <kbd>STRG+V</kbd> zum Kopieren ganzer Anlagenteile und <kbd>ENTF</kbd> zum Löschen.</li>
-				<li><strong style="color: #9CDCFE;">Pläne navigieren:</strong> Du kannst dich im Logik- und Schaltplan völlig frei bewegen, indem du das Mausrad zum Zoomen und die gedrückte linke Maustaste zum Verschieben nutzt.</li>
+				<li><strong style="color: #9CDCFE;">Kamera 2D-Anlage:</strong> Halte <kbd>STRG</kbd> (bzw. <kbd>CMD</kbd>) + Mausrad, um stufenlos zu <b>zoomen</b>. Nutze die <b>mittlere Maustaste</b> (Mausrad-Klick) oder <kbd>ALT</kbd> + Linksklick, um die Anlage zu <b>verschieben</b>.</li>
+				<li><strong style="color: #9CDCFE;">Kamera Schaltpläne:</strong> Hier reicht das normale Mausrad zum Zoomen und die gedrückte linke Maustaste zum Verschieben aus.</li>
 			</ul>
-
 			<div style="display: flex; justify-content: flex-end;">
 				<button onclick="closeHelpModal()" style="background: #007acc; color: white; border: none; padding: 6px 16px; border-radius: 3px; cursor: pointer; font-weight: bold;">Verstanden</button>
 			</div>
@@ -676,31 +818,42 @@
             e.preventDefault(); 
         });
         document.addEventListener('mousemove', (e) => {
-            // 0. Linker Splitter (Code-Editor vs. Simulation)
             if (isResizing) {
                 let containerRect = document.getElementById('left-panel').getBoundingClientRect();
-                // Wir berechnen die Höhe von unten nach oben (minus 20px Padding des Panels)
                 let newHeight = containerRect.bottom - e.clientY - 20;
-                // Begrenzungen, damit keines der Fenster komplett zerquetscht wird
                 if (newHeight < 50) newHeight = 50;
                 if (newHeight > containerRect.height - 150) newHeight = containerRect.height - 150;
                 bottomPanel.style.height = newHeight + 'px';
                 bottomPanel.style.flexGrow = '0';
-                lastSimHeight = newHeight + 'px'; // Wichtig für die Aufklapp-Pfeile
+                lastSimHeight = newHeight + 'px';
                 return;
             }
             // 1. Workspace Splitter ziehen
             if (wsResizing) {
-                let isCol = document.getElementById('workspace-container').style.flexDirection === 'column';
-                let currentMouse = isCol ? e.clientY : e.clientX;
-                let delta = currentMouse - wsMouseStart;
+                let wc = document.getElementById('workspace-container');
+                let isGridMode = wc.classList.contains('layout-grid');
+                let isHorizontalMove = wsCurrentResizer.style.cursor === 'col-resize';
+                // Exakte Delta-Berechnung für sauberes Schieben
+                let delta = isHorizontalMove ? (e.clientX - wsMouseStart) : (e.clientY - wsMouseStart);
                 let totalSize = wsStartSizePrev + wsStartSizeNext;
-                let newPrevSize = Math.max(50, wsStartSizePrev + delta);
-                let newNextSize = Math.max(50, wsStartSizeNext - delta);
-                if (newPrevSize <= 50) newNextSize = totalSize - 50;
-                if (newNextSize <= 50) newPrevSize = totalSize - 50;
-                wsPrevPanel.style.flex = `${newPrevSize} 1 0px`;
-                wsNextPanel.style.flex = `${newNextSize} 1 0px`;
+                let newPrev = Math.max(50, wsStartSizePrev + delta);
+                let newNext = Math.max(50, wsStartSizeNext - delta);
+                // Verhindert das Zerquetschen eines Panels
+                if (newPrev <= 50) newNext = totalSize - 50;
+                if (newNext <= 50) newPrev = totalSize - 50;
+                if (isGridMode) {
+                    if (isHorizontalMove) {
+                        wc.style.setProperty('--grid-col-1', newPrev + 'fr');
+                        wc.style.setProperty('--grid-col-2', newNext + 'fr');
+                    } else {
+                        wc.style.setProperty('--grid-row-1', newPrev + 'fr');
+                        wc.style.setProperty('--grid-row-2', newNext + 'fr');
+                    }
+                } else {
+                    // FIX: Wir nutzen absolute flex-basis statt flex-grow, um Pixel-Sprünge zu verhindern!
+                    wsPrevPanel.style.flex = `0 0 ${newPrev}px`;
+                    wsNextPanel.style.flex = `0 0 ${newNext}px`;
+                }
                 if(panZoomInstance && document.getElementById('fbs-wrapper').style.display !== 'none') panZoomInstance.resize();
                 if(panZoomCircuitInstance && document.getElementById('circuit-wrapper').style.display !== 'none') panZoomCircuitInstance.resize();
                 return;
@@ -708,8 +861,9 @@
             // 2. Auswahl-Box aufziehen (Multi-Select)
             if (isSelecting && selectionBoxEl) {
                 let rect = factoryCanvas.getBoundingClientRect();
-                let currentX = e.clientX - rect.left;
-                let currentY = e.clientY - rect.top;
+                // FIX: Skalierung einrechnen
+                let currentX = (e.clientX - rect.left) / factoryScale;
+                let currentY = (e.clientY - rect.top) / factoryScale;
                 let x = Math.min(selectionStartX, currentX);
                 let y = Math.min(selectionStartY, currentY);
                 let w = Math.abs(currentX - selectionStartX);
@@ -723,8 +877,9 @@
             // 3. Freies Rotieren
             if (rotatingElement) {
                 let canvasRect = factoryCanvas.getBoundingClientRect();
-                let screenCx = canvasRect.left + rotatingElement.cx; 
-                let screenCy = canvasRect.top + rotatingElement.cy;
+                // FIX: Skalierung einrechnen
+                let screenCx = canvasRect.left + rotatingElement.cx * factoryScale; 
+                let screenCy = canvasRect.top + rotatingElement.cy * factoryScale;
                 let currentMouseAngle = Math.atan2(e.clientY - screenCy, e.clientX - screenCx) * 180 / Math.PI;
                 let deltaAngle = currentMouseAngle - rotatingElement.startAngle;
                 let newRotation = (rotatingElement.startObjRotation + deltaAngle) % 360;
@@ -738,7 +893,9 @@
             // 4. 1D Skalierung (Zylinder, Förderbänder)
             if (resizingElement) { 
                 let pRad = (resizingElement.data.rotation || 0) * Math.PI / 180;
-                let dxScreen = e.clientX - offsetX; let dyScreen = e.clientY - offsetY; 
+                // FIX: Skalierung einrechnen
+                let dxScreen = (e.clientX - offsetX) / factoryScale; 
+                let dyScreen = (e.clientY - offsetY) / factoryScale; 
                 let dw = dxScreen * Math.cos(pRad) + dyScreen * Math.sin(pRad);
                 let minWidth = resizingElement.data.type.startsWith('zylinder') ? 60 : 30;
                 let newWidth = Math.max(minWidth, startWidth + dw); 
@@ -757,7 +914,6 @@
                         let childCx = child.x + child.width/2; let childCy = child.y + (child.height||child.width)/2;
                         let dxLocal = childCx - oldCx; let dyLocal = childCy - oldCy;
                         let localX = dxLocal * Math.cos(-pRad) - dyLocal * Math.sin(-pRad);
-                        // NEU: Wenn das Bauteil am Kolben befestigt ist, reist es beim Skalieren automatisch mit dem Kolbenende mit!
                         if (localX > 0 || child.attachmentType === 'rod') { 
                             let diff = newWidth - oldWidth;
                             child.x += diff * Math.cos(pRad); 
@@ -771,7 +927,9 @@
             // 5. 2D Skalierung (Wände, Zonen)
             if (resizingElementXY) {
                 let pRad = (resizingElementXY.data.rotation || 0) * Math.PI / 180;
-                let dxScreen = e.clientX - offsetX; let dyScreen = e.clientY - offsetY; 
+                // FIX: Skalierung einrechnen
+                let dxScreen = (e.clientX - offsetX) / factoryScale; 
+                let dyScreen = (e.clientY - offsetY) / factoryScale; 
                 let dw = dxScreen * Math.cos(pRad) + dyScreen * Math.sin(pRad);
                 let dh = -dxScreen * Math.sin(pRad) + dyScreen * Math.cos(pRad);
                 let newWidth = Math.max(20, startWidth + dw); let newHeight = Math.max(20, startHeight + dh); 
@@ -786,12 +944,12 @@
             // 6. Drag & Drop (Einzelnes Element oder ganze Gruppe)
             if (draggedElement) {
                 let canvasRect = factoryCanvas.getBoundingClientRect();
-                let newX = e.clientX - canvasRect.left - offsetX; 
-                let newY = e.clientY - canvasRect.top - offsetY;
+                // FIX: Skalierung einrechnen
+                let newX = (e.clientX - canvasRect.left) / factoryScale - offsetX; 
+                let newY = (e.clientY - canvasRect.top) / factoryScale - offsetY;
                 let dx = newX - draggedElement.data.dragStartX; 
                 let dy = newY - draggedElement.data.dragStartY;
                 if (selectedElements.length > 0) {
-                    // Gruppen-Verschiebung
                     let topLevelSelected = selectedElements.filter(sel => !sel.parent || !selectedElements.includes(sel.parent));
                     topLevelSelected.forEach(sel => {
                         let moveDx = (sel.dragStartX + dx) - sel.x;
@@ -799,13 +957,12 @@
                         moveObjRecursive(sel, moveDx, moveDy);
                     });
                 } else {
-                    // Einzel-Verschiebung (Fallback)
                     let moveDx = newX - draggedElement.data.x;
                     let moveDy = newY - draggedElement.data.y;
                     moveObjRecursive(draggedElement.data, moveDx, moveDy);
                 }
             }
-        });
+        }); // Ende des Mousemove-Blocks
         document.addEventListener('mouseup', () => { 
             if(draggedElement || resizingElement) saveFactoryState(); 
             draggedElement = null; 
@@ -1568,26 +1725,22 @@
 		// --- NEU: SCHALTPLAN DARSTELLUNGS-OPTIONEN ---
         window.configWechsler = false;
         window.configSeqNum = false;
-
         window.toggleWechsler = function() {
             window.configWechsler = !window.configWechsler;
             const btn = document.getElementById('btn-toggle-wech');
             btn.style.backgroundColor = window.configWechsler ? '#911eb4' : '#555';
             btn.textContent = window.configWechsler ? '🔀 Wechslernummerierung: AN' : '🔀 Wechslernummerierung: AUS';
-            
             if (currentGraph) {
                 // Das 'true' am Ende ist das magische Signal zum Beibehalten der Ansicht!
                 drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true);
                 runSimulationTick(); 
             }
         };
-
         window.toggleSeqNum = function() {
             window.configSeqNum = !window.configSeqNum;
             const btn = document.getElementById('btn-toggle-seq');
             btn.style.backgroundColor = window.configSeqNum ? '#911eb4' : '#555';
             btn.textContent = window.configSeqNum ? '🔢 Fortlaufende Nrn: AN' : '🔢 Fortlaufende Nrn: AUS';
-            
             if (currentGraph) {
                 // Das 'true' am Ende ist das magische Signal zum Beibehalten der Ansicht!
                 drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true);
@@ -1649,14 +1802,108 @@
             // UI Buttons (grau/orange) aktualisieren, wenn ein Panel geschlossen wird
             if (panel.style.display === 'none') updateWorkspace();
         };
-        window.toggleWorkspaceDirection = function() {
+        // --- NEU: WORKSPACE PANEL MANAGEMENT ---
+        let currentLayout = 'flex-row'; // Speichert das aktive Layout
+        window.changeWorkspaceLayout = function(val) {
+            currentLayout = val;
             const wc = document.getElementById('workspace-container');
-            let isCol = wc.style.flexDirection === 'column';
-            wc.style.flexDirection = isCol ? 'row' : 'column';
-            document.querySelectorAll('.workspace-resizer').forEach(r => { r.style.cursor = isCol ? 'col-resize' : 'row-resize'; });
+            // Vorherige Raster-Klassen immer erst aufräumen
+            wc.classList.remove('layout-grid', 'grid-sim-bottom', 'grid-sim-top', 'grid-sim-right', 'grid-sim-left');
+            if (val.startsWith('grid-')) {
+                // Ein 3er-Raster anwenden
+                wc.classList.add('layout-grid', val);
+                // Wir erzwingen, dass alle 3 Panels sichtbar sind, da sonst das 3er-Raster Löcher hat
+                const pFbs = document.getElementById('fbs-wrapper');
+                const pIec = document.getElementById('circuit-wrapper');
+                const pFac = document.getElementById('factory-wrapper');
+                let needsDraw = false;
+                if(pFbs.style.display === 'none') { pFbs.style.display = 'flex'; needsDraw = true; }
+                if(pIec.style.display === 'none') { pIec.style.display = 'flex'; needsDraw = true; }
+                if(pFac.style.display === 'none') { pFac.style.display = 'flex'; startFactoryEngine(); }
+                if (needsDraw && currentGraph) {
+                    drawGraph(currentGraph);
+                    drawCircuitPlan(currentGraph, globalInputs, globalOutputs);
+                }
+				// NEU: Setzt die Schiebe-Pfeile im Grid-Modus korrekt (vertikal vs. horizontal)
+                const isVerticalSplit = val === 'grid-sim-bottom' || val === 'grid-sim-top';
+                document.getElementById('ws-resizer-1').style.cursor = isVerticalSplit ? 'col-resize' : 'row-resize';
+                document.getElementById('ws-resizer-2').style.cursor = isVerticalSplit ? 'row-resize' : 'col-resize';
+            } else {
+                // Zurück in den flexiblen Modus (Nebeneinander/Untereinander)
+                let isCol = val === 'flex-col';
+                wc.style.flexDirection = isCol ? 'column' : 'row';
+                document.querySelectorAll('.workspace-resizer').forEach(r => { r.style.cursor = isCol ? 'row-resize' : 'col-resize'; });
+                // FIX: Allen Panels ihre Freiheit (flex: 1 1 0) zurückgeben!
+                document.querySelectorAll('.workspace-panel').forEach(p => {
+                    if (p.style.display !== 'none') {
+                        p.style.flex = '1 1 0'; 
+                        p.style.width = 'auto'; // Bereinigt eventuelle Grid-Artefakte
+                        p.style.height = 'auto';
+                    }
+                });
+            }
             updateWorkspace();
         };
-        // --- SPLITTER DRAG & DROP LOGIK ---
+        function updateWorkspace() {
+            const panels = [
+                document.getElementById('fbs-wrapper'),
+                document.getElementById('circuit-wrapper'),
+                document.getElementById('factory-wrapper')
+            ];
+            const resizer1 = document.getElementById('ws-resizer-1');
+            const resizer2 = document.getElementById('ws-resizer-2');
+            let p0 = panels[0].style.display !== 'none' || currentLayout.startsWith('grid-');
+            let p1 = panels[1].style.display !== 'none' || currentLayout.startsWith('grid-');
+            let p2 = panels[2].style.display !== 'none' || currentLayout.startsWith('grid-');
+            if (currentLayout.startsWith('grid-')) {
+                resizer1.style.display = 'none';
+                resizer2.style.display = 'none';
+            } else {
+                resizer1.style.display = (p0 && (p1 || p2)) ? 'block' : 'none';
+                resizer2.style.display = (p1 && p2) ? 'block' : 'none';
+            }
+            document.getElementById('btn-view-fbs').classList.toggle('active', p0);
+            document.getElementById('btn-view-iec').classList.toggle('active', p1);
+            document.getElementById('btn-view-fac').classList.toggle('active', p2);
+            requestAnimationFrame(() => {
+                if(p0 && panZoomInstance && panels[0].offsetWidth > 0) { panZoomInstance.resize(); panZoomInstance.fit(); panZoomInstance.center(); }
+                if(p1 && panZoomCircuitInstance && panels[1].offsetWidth > 0) { panZoomCircuitInstance.resize(); panZoomCircuitInstance.fit(); panZoomCircuitInstance.center(); }
+            });
+        }
+        window.toggleWorkspaceView = function(panelId) {
+            const panel = document.getElementById(panelId);
+            const visiblePanels = document.querySelectorAll('.workspace-panel[style*="display: flex"], .workspace-panel:not([style*="display: none"])');
+            if (visiblePanels.length === 1 && panel.style.display !== 'none') return;
+            // INTELLIGENTER FALLBACK: Wenn ein festes Grid aktiv ist und der Nutzer ein Panel schließt, 
+            // ergibt das 3er-Grid keinen Sinn mehr. Wir werfen ihn automatisch ins Flexible-Layout zurück!
+            if (currentLayout.startsWith('grid-') && panel.style.display !== 'none') {
+                document.getElementById('layout-selector').value = 'flex-row';
+                currentLayout = 'flex-row';
+                const wc = document.getElementById('workspace-container');
+                wc.classList.remove('layout-grid', 'grid-sim-bottom', 'grid-sim-top', 'grid-sim-right', 'grid-sim-left');
+                wc.style.flexDirection = 'row';
+            }
+            if (panel.style.display === 'none') {
+                panel.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    if (panelId === 'fbs-wrapper' && currentGraph) drawGraph(currentGraph);
+                    if (panelId === 'circuit-wrapper' && currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs);
+                    if (panelId === 'factory-wrapper') startFactoryEngine();
+                    updateWorkspace();
+                });
+            } else {
+                panel.style.display = 'none';
+                if (panelId === 'fbs-wrapper' && panZoomInstance) { panZoomInstance.destroy(); panZoomInstance = null; }
+                if (panelId === 'circuit-wrapper' && panZoomCircuitInstance) { panZoomCircuitInstance.destroy(); panZoomCircuitInstance = null; }
+            }
+            if (!currentLayout.startsWith('grid-')) {
+                document.querySelectorAll('.workspace-panel').forEach(p => {
+                    if (p.style.display !== 'none') p.style.flex = '1 1 0%';
+                });
+            }
+            updateWorkspace();
+        };
+        // --- SPLITTER DRAG & DROP LOGIK (Jetzt mit Grid-Support!) ---
         let wsResizing = false;
         let wsCurrentResizer = null;
         let wsPrevPanel = null;
@@ -1669,28 +1916,30 @@
                 wsResizing = true;
                 wsCurrentResizer = resizer;
                 resizer.classList.add('active');
-                // Finde das vorherige SICHTBARE Panel
-                wsPrevPanel = resizer.previousElementSibling;
-                while(wsPrevPanel && wsPrevPanel.style.display === 'none') wsPrevPanel = wsPrevPanel.previousElementSibling;
-                // Finde das nächste SICHTBARE Panel
-                wsNextPanel = resizer.nextElementSibling;
-                while(wsNextPanel && wsNextPanel.style.display === 'none') wsNextPanel = wsNextPanel.nextElementSibling;
-                let isCol = document.getElementById('workspace-container').style.flexDirection === 'column';
-                wsMouseStart = isCol ? e.clientY : e.clientX;
-                let rectPrev = wsPrevPanel.getBoundingClientRect();
-                let rectNext = wsNextPanel.getBoundingClientRect();
-                wsStartSizePrev = isCol ? rectPrev.height : rectPrev.width;
-                wsStartSizeNext = isCol ? rectNext.height : rectNext.width;
-                // FIX: Verhindert, dass ein drittes Panel kollabiert!
-                // Wir frieren die Flex-Ratio ALLER sichtbaren Fenster auf ihre aktuelle Pixelgröße ein.
-                document.querySelectorAll('.workspace-panel').forEach(p => {
-                    if (p.style.display !== 'none') {
-                        let rect = p.getBoundingClientRect();
-                        let size = isCol ? rect.height : rect.width;
-                        p.style.flex = `${size} 1 0px`;
-                    }
-                });
-                document.body.style.cursor = isCol ? 'row-resize' : 'col-resize';
+                let wc = document.getElementById('workspace-container');
+                let isGridMode = wc.classList.contains('layout-grid');
+                let isHorizontalMove = resizer.style.cursor === 'col-resize';
+                if (isGridMode) {
+                    let style = window.getComputedStyle(wc);
+                    let tracks = isHorizontalMove ? style.gridTemplateColumns.split(' ') : style.gridTemplateRows.split(' ');
+                    wsStartSizePrev = parseFloat(tracks[0]);
+                    wsStartSizeNext = parseFloat(tracks[2]);
+                } else {
+                    wsPrevPanel = resizer.previousElementSibling;
+                    while(wsPrevPanel && wsPrevPanel.style.display === 'none') wsPrevPanel = wsPrevPanel.previousElementSibling;
+                    wsNextPanel = resizer.nextElementSibling;
+                    while(wsNextPanel && wsNextPanel.style.display === 'none') wsNextPanel = wsNextPanel.nextElementSibling;
+                    let rectPrev = wsPrevPanel.getBoundingClientRect();
+                    let rectNext = wsNextPanel.getBoundingClientRect();
+                    // FIX: Echte Pixel auslesen für Sprungfreiheit
+                    wsStartSizePrev = isHorizontalMove ? rectPrev.width : rectPrev.height;
+                    wsStartSizeNext = isHorizontalMove ? rectNext.width : rectNext.height;
+                    // Sofortiges Einfrieren der aktuellen Größe beim Klick
+                    wsPrevPanel.style.flex = `0 0 ${wsStartSizePrev}px`;
+                    wsNextPanel.style.flex = `0 0 ${wsStartSizeNext}px`;
+                }
+                wsMouseStart = isHorizontalMove ? e.clientX : e.clientY;
+                document.body.style.cursor = resizer.style.cursor;
                 e.preventDefault();
             });
         });
@@ -1776,7 +2025,6 @@
         function drawCircuitPlan(graph, inputsList, outputsList, keepView = false) {
             let oldZoom = null;
             let oldPan = null;
-
             if (panZoomCircuitInstance) { 
                 // Wenn wir die Ansicht behalten sollen, lesen wir vor dem Löschen die aktuellen X/Y und Zoom-Werte aus!
                 if (keepView) {
@@ -1790,17 +2038,14 @@
             let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1;
             let symMap = {};
             let contactTypeMap = {};
-            
             let pathCounter = 1; 
             let relayContacts = {}; 
             let relayContactCount = {}; // NEU: Merkt sich, der wievielte Kontakt es für dieses Bauteil ist!
-
             let getNodeColor = (id) => {
                 if (!id || id === 'NONE') return '#000';
                 return graph.nodes.get(id) ? graph.nodes.get(id).color : '#f58231';            
             };
             const usedAsSource = new Set(graph.edges.map(e => e.sourceId));
-
             let preRungsToDraw = [];
             inputsList.forEach(i => { 
                 let cType = componentTypes[i] || 'taster';
@@ -1815,7 +2060,6 @@
                     contactTypeMap[i] = cType.replace('_nc', ''); 
                 }
             });
-
             graph.nodes.forEach(n => {
                 if (n.type === 'GATE' || n.type === 'RS' || n.type === 'SR') { 
                     symMap[n.id] = `-KF${kfCount++}`;
@@ -1833,7 +2077,6 @@
                     }
                 }
             });
-
             const drawLine = (x1, y1, x2, y2, width = 2, varName = null, color = null) => {
                 let l = createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width});
                 if (varName && varName !== 'NONE') {
@@ -1843,17 +2086,14 @@
                 circuitContent.appendChild(l); 
                 return l;
             };
-
             const drawText = (x, y, txt, bold = false) => {
                 let t = createSvgElement('text', {x, y, 'font-size': '13px', fill: '#000', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
                 if (bold) t.setAttribute('font-weight', 'bold'); t.textContent = txt; circuitContent.appendChild(t);
             };
-
             const drawSmallText = (parent, x, y, txt, anchor = 'end') => {
                 let t = createSvgElement('text', {x, y, 'font-size': '9px', fill: '#666', 'font-family': 'monospace', 'text-anchor': anchor});
                 t.textContent = txt; parent.appendChild(t);
             };
-
             const addLabelText = (parentG, x, y, textContent, isBold = false) => {
                 let fontSize = isBold ? '13px' : '12px';
                 let fontWeight = isBold ? 'bold' : 'normal';
@@ -1870,35 +2110,27 @@
                     t.textContent = textContent; parentG.appendChild(t);
                 }
             };
-
             const drawContact = (x, y, label, isNC, type, varName, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-contact-group circ-colored-group circ-var-${varName}`});
                 if (color) g.style.setProperty('--logic-color', color);
-                
                 // NEU: Zählen der Kontakte für die durchlaufende Nummerierung
                 if (varName && varName !== 'NONE') {
                     if (!relayContacts[varName]) relayContacts[varName] = { contacts: [] };
                     relayContacts[varName].contacts.push({ isNC: isNC, path: pathNum });
-                    
                     if (!relayContactCount[varName]) relayContactCount[varName] = 0;
                     relayContactCount[varName]++;
                 }
-                
                 let prefix = (window.configSeqNum && varName && varName !== 'NONE') ? relayContactCount[varName] : 1;
-
                 addLabelText(g, x + 15, y, label, false);
                 g.appendChild(createSvgElement('circle', {cx: x, cy: y - 15, r: 2.5, fill: '#000', class: 'circ-static'}));
                 g.appendChild(createSvgElement('circle', {cx: x, cy: y + 15, r: 2.5, fill: '#000', class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 15, x2: x, y2: y - 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 15, x2: x, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
-                
                 let movingLine = createSvgElement('line', { x1: x, y1: y - 5, x2: x, y2: y + 15, stroke: '#000', 'stroke-width': 2, class: `circ-moving-contact ${isNC ? 'is-nc' : 'is-no'}` });
                 movingLine.style.transformOrigin = `${x}px ${y - 5}px`;
                 if (!isNC) movingLine.classList.add('open');
                 g.appendChild(movingLine);
-                
                 if (isNC) g.appendChild(createSvgElement('line', {x1: x, y1: y + 5, x2: x + 10, y2: y + 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
-                
                 // NEU: Intelligente Klemmenbezeichnungen (DIN EN 60947-5-1)
                 let pinTop, pinBot;
                 if (window.configWechsler) {
@@ -1910,7 +2142,6 @@
                 }
                 drawSmallText(g, x - 5, y - 10, pinTop, 'end');
                 drawSmallText(g, x - 5, y + 15, pinBot, 'end');
-
                 if (type === 'taster' || type === 'schalter' || type === 'nothalt') {
                     let dashEndX = isNC ? x + 6 : x - 6;
                     g.appendChild(createSvgElement('line', {x1: dashEndX, y1: y + 2.5, x2: x - 18, y2: y + 2.5, stroke: '#000', 'stroke-width': 1.5, 'stroke-dasharray': '2,2'}));
@@ -1927,29 +2158,23 @@
                 }
                 circuitContent.appendChild(g);
             };
-
             const drawCoil = (x, y, label, id, type='relais', color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
                 if (color) g.style.setProperty('--logic-color', color);
-                
                 if (type === 'relais' && id) {
                     if (!relayContacts[id]) relayContacts[id] = { contacts: [] };
                     relayContacts[id].coilX = x;
                 }
-
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 10, x2: x, y2: y + 20, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 let rect = createSvgElement('rect', {id: `circ-out-${id}`, class: 'circ-component', x: x - 20, y: y - 10, width: 40, height: 20, fill: '#fff', stroke: '#000', 'stroke-width': 2});
                 g.appendChild(rect);
                 if (type === 'valve') g.appendChild(createSvgElement('line', {x1: x - 20, y1: y + 10, x2: x + 20, y2: y - 10, stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 30, y, label, true);
-                
                 drawSmallText(g, x - 5, y - 15, type === 'valve' ? '1' : 'A1', 'end');
                 drawSmallText(g, x - 5, y + 20, type === 'valve' ? '2' : 'A2', 'end');
-                
                 circuitContent.appendChild(g);
             };
-
             const drawLED = (x, y, label, id, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
                 if (color) g.style.setProperty('--logic-color', color);
@@ -1960,22 +2185,17 @@
                 g.appendChild(createSvgElement('line', {x1: x - 10.6, y1: y - 10.6, x2: x + 10.6, y2: y + 10.6, stroke: '#000', 'stroke-width': 2}));
                 g.appendChild(createSvgElement('line', {x1: x - 10.6, y1: y + 10.6, x2: x + 10.6, y2: y - 10.6, stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 25, y, label, true);
-                
                 drawSmallText(g, x - 5, y - 18, 'X1', 'end');
                 drawSmallText(g, x - 5, y + 24, 'X2', 'end');
-
                 circuitContent.appendChild(g);
             };
-
             let currX = 100;
             const yTop = 50, yBot = 500;
-
             preRungsToDraw.forEach(item => {
                 let col = getNodeColor(item.id);
                 if (item.cType === 'nothalt') {
                     let p1 = pathCounter++;
                     drawText(currX, yTop - 25, p1.toString(), true); 
-
                     drawLine(currX, yTop, currX, 150 - 15, 2, item.id, col);
                     drawContact(currX, 150, `${item.deviceName} (${item.id})`, true, 'nothalt', item.id, col, p1);
                     drawLine(currX, 165, currX, 430, 2, item.id, col);
@@ -1987,14 +2207,12 @@
                     let p2 = pathCounter++;
                     drawText(currX, yTop - 25, p1.toString(), true); 
                     drawText(currX + 60, yTop - 25, p2.toString(), true); 
-
                     let sBoxY = 150;
                     circuitContent.appendChild(createSvgElement('rect', {x: currX - 15, y: sBoxY, width: 30, height: 30, fill: '#fff', stroke: '#000', 'stroke-width': 2}));
                     let diamondPts = `${currX},${sBoxY+3} ${currX+7},${sBoxY+10} ${currX},${sBoxY+17} ${currX-7},${sBoxY+10}`;
                     circuitContent.appendChild(createSvgElement('polygon', {points: diamondPts, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
                     circuitContent.appendChild(createSvgElement('line', {x1: currX - 2.5, y1: sBoxY+5.5, x2: currX - 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
                     circuitContent.appendChild(createSvgElement('line', {x1: currX + 2.5, y1: sBoxY+5.5, x2: currX + 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
-                    
                     if (item.cType === 'sensor_ind') {
                         let indPath = `M ${currX-9} ${sBoxY+26} L ${currX-9} ${sBoxY+23} A 3 3 0 0 1 ${currX-3} ${sBoxY+23} A 3 3 0 0 1 ${currX+3} ${sBoxY+23} A 3 3 0 0 1 ${currX+9} ${sBoxY+23} L ${currX+9} ${sBoxY+26}`;
                         circuitContent.appendChild(createSvgElement('path', {d: indPath, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
@@ -2013,7 +2231,6 @@
                         circuitContent.appendChild(createSvgElement('rect', {x: currX-3, y: sBoxY+22, width: 6, height: 3.5, fill: '#fff'})); 
                     }
                     addLabelText(circuitContent, currX + 20, sBoxY - 5, `${item.deviceName} (${item.id})`, false);
-                    
                     drawLine(currX, yTop, currX, sBoxY, 2, item.id, col); 
                     drawLine(currX, sBoxY + 30, currX, yBot, 2, item.id, col); 
                     drawLine(currX + 15, sBoxY + 15, currX + 60, sBoxY + 15, 2, item.id, col); 
@@ -2023,19 +2240,15 @@
                     currX += 140;
                 }
             });
-
             const nodesToDraw = Array.from(graph.nodes.values())
                 .filter(n => ['GATE', 'RS', 'SR', 'OUTPUT'].includes(n.type))
                 .sort((a,b) => a.level - b.level);
-
             nodesToDraw.forEach(node => {
                 let inEdges = graph.edges.filter(e => e.targetId === node.id);
                 let col = node.color;
-                
                 if (node.type === 'GATE' && node.label === '&') { 
                     let p = pathCounter++;
                     drawText(currX, yTop - 25, p.toString(), true);
-
                     let y = 110, dy = 260 / Math.max(1, inEdges.length);
                     drawLine(currX, yTop, currX, y - 15, 2, node.id, col);
                     inEdges.forEach((edge, idx) => {
@@ -2045,7 +2258,6 @@
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
                         let srcCol = getNodeColor(edge.sourceId);
-                        
                         drawContact(currX, y, name, isNC, type, edge.sourceId, srcCol, p);
                         if (idx < inEdges.length - 1) drawLine(currX, y + 15, currX, y + dy - 15, 2, node.id, col);
                         y += dy;
@@ -2060,24 +2272,20 @@
                     if(branches > 0) {
                         let startP = pathCounter++;
                         drawText(currX, yTop - 25, startP.toString(), true);
-
                         let startX = currX, endX = currX + (branches - 1) * 90;
                         drawLine(startX, yTop, startX, 90, 2, node.id, col); 
                         drawLine(startX, 90, endX, 90, 2, node.id, col); 
                         drawLine(startX, 350, endX, 350, 2, node.id, col); 
-                        
                         inEdges.forEach((edge, idx) => {
                             let bx = currX + idx * 90;
                             let bp = (idx === 0) ? startP : pathCounter++;
                             if (idx > 0) drawText(bx, yTop - 25, bp.toString(), true);
-
                             let name = symMap[edge.sourceId] || edge.sourceId;
                             let type = contactTypeMap[edge.sourceId] || 'relais';
                             let cTypeSrc = componentTypes[edge.sourceId];
                             let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                             let isNC = physNC ? !edge.inverted : edge.inverted;
                             let srcCol = getNodeColor(edge.sourceId);
-                            
                             drawLine(bx, 90, bx, 220 - 15, 2, edge.sourceId, srcCol); 
                             drawContact(bx, 220, name, isNC, type, edge.sourceId, srcCol, bp);
                             drawLine(bx, 235, bx, 350, 2, edge.sourceId, srcCol);
@@ -2091,13 +2299,11 @@
                 else if (node.type === 'RS' || node.type === 'SR') { 
                     let p1 = pathCounter++;
                     let p2 = pathCounter++;
-
                     let sEdge = inEdges.find(e => e.targetPin === 'S'), rEdge = inEdges.find(e => e.targetPin === 'R');
                     let sName = sEdge ? (symMap[sEdge.sourceId] || sEdge.sourceId) : 'N/A';
                     let rName = rEdge ? (symMap[rEdge.sourceId] || rEdge.sourceId) : 'N/A';
                     let sType = sEdge ? (contactTypeMap[sEdge.sourceId] || 'relais') : 'relais';
                     let rType = rEdge ? (contactTypeMap[rEdge.sourceId] || 'relais') : 'relais';
-                    
                     let sInverted = sEdge ? sEdge.inverted : false;
                     if (sEdge) {
                         let cTypeSrc = componentTypes[sEdge.sourceId];
@@ -2108,28 +2314,21 @@
                         let cTypeSrc = componentTypes[rEdge.sourceId];
                         if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') rInverted = !rInverted;
                     }
-
                     let startX = currX, parX = currX + 90;
                     drawText(startX, yTop - 25, p1.toString(), true);
                     drawText(parX, yTop - 25, p2.toString(), true);
-
                     drawLine(startX, yTop, startX, 90, 2, node.id, col); 
                     drawLine(startX, 90, parX, 90, 2, node.id, col);
-                    
                     let sCol = sEdge ? getNodeColor(sEdge.sourceId) : col;
                     let rCol = rEdge ? getNodeColor(rEdge.sourceId) : col;
-
                     if (node.type === 'RS') {
                         drawLine(startX, 90, startX, 150 - 15, 2, sEdge ? sEdge.sourceId : node.id, sCol); 
                         drawContact(startX, 150, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol, p1); 
                         drawLine(startX, 165, startX, 230, 2, node.id, col);
-                        
                         drawLine(parX, 90, parX, 150 - 15, 2, node.id, col); 
                         drawContact(parX, 150, symMap[node.id], false, 'relais', node.id, col, p2); 
                         drawLine(parX, 165, parX, 230, 2, node.id, col);
-                        
                         drawLine(startX, 230, parX, 230, 2, node.id, col); 
-                        
                         drawLine(startX, 230, startX, 300 - 15, 2, node.id, col); 
                         drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol, p1); 
                         drawLine(startX, 315, startX, 430, 2, node.id, col); 
@@ -2137,15 +2336,12 @@
                         drawLine(startX, 90, startX, 150 - 15, 2, node.id, col); 
                         drawContact(startX, 150, symMap[node.id], false, 'relais', node.id, col, p1); 
                         drawLine(startX, 165, startX, 230, 2, node.id, col);
-                        
                         drawLine(startX, 230, startX, 300 - 15, 2, node.id, col); 
                         drawContact(startX, 300, rName, !rInverted, rType, rEdge ? rEdge.sourceId : 'NONE', rCol, p1); 
                         drawLine(startX, 315, startX, 380, 2, node.id, col);
-                        
                         drawLine(parX, 90, parX, 225 - 15, 2, sEdge ? sEdge.sourceId : node.id, sCol); 
                         drawContact(parX, 225, sName, sInverted, sType, sEdge ? sEdge.sourceId : 'NONE', sCol, p2); 
                         drawLine(parX, 240, parX, 380, 2, node.id, col);
-                        
                         drawLine(startX, 380, parX, 380, 2, node.id, col); 
                         drawLine(startX, 380, startX, 430, 2, node.id, col); 
                     }
@@ -2156,7 +2352,6 @@
                 else if (node.type === 'OUTPUT') { 
                     let p = pathCounter++;
                     drawText(currX, yTop - 25, p.toString(), true);
-
                     let edge = inEdges[0];
                     if (edge) {
                         let name = symMap[edge.sourceId] || edge.sourceId;
@@ -2165,71 +2360,54 @@
                         let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
                         let isNC = physNC ? !edge.inverted : edge.inverted;
                         let srcCol = getNodeColor(edge.sourceId);
-                        
                         drawLine(currX, yTop, currX, 220 - 15, 2, edge.sourceId, srcCol); 
                         drawContact(currX, 220, name, isNC, type, edge.sourceId, srcCol, p);
                         drawLine(currX, 235, currX, 430, 2, node.id, col); 
                     } else { 
                         drawLine(currX, yTop, currX, 430, 2, node.id, col); 
                     }
-                    
                     if (node.isRelay) drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p);
                     else if (node.outType === 'valve') drawCoil(currX, 450, symMap[node.id], node.id, 'valve', col, p);
                     else drawLED(currX, 450, symMap[node.id], node.id, col, p);
-                    
                     drawLine(currX, 470, currX, yBot, 2, node.id, col); 
                     currX += 130;
                 }
             });
-
             // Zeichne die Hauptschienen L+ und M
             let totalWidth = Math.max(1000, currX + 50);
             let lPlus = drawLine(20, yTop, totalWidth - 20, yTop, 3);
             lPlus.setAttribute('stroke', '#f58231'); lPlus.classList.remove('circ-wire');
             drawText(25, yTop - 10, 'L+ (24V DC)', true);
-            
             let mMinus = drawLine(20, yBot, totalWidth - 20, yBot, 3);
             mMinus.setAttribute('stroke', '#4363d8'); mMinus.classList.remove('circ-wire');
             drawText(25, yBot + 20, 'M (0V DC)', true);
-
             // ==============================================================
             // NEU: GRAFISCHER KONTAKTSPIEGEL (Schützkreuz nach IEC Norm)
             // ==============================================================
             Object.keys(relayContacts).forEach(id => {
                 let rc = relayContacts[id];
-																										   
                 if (rc.coilX) {
                     let mirrorY = yBot + 35;
                     let g = createSvgElement('g', {});
-                    
                     let tTitle = createSvgElement('text', {x: rc.coilX, y: mirrorY, 'font-size': '11px', 'font-weight': 'bold', fill: '#000', 'text-anchor': 'middle', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
                     tTitle.textContent = symMap[id] || id;
                     g.appendChild(tTitle);
-                    
                     let noPaths = rc.contacts.filter(c => !c.isNC).map(c => c.path).sort((a,b)=>a-b);
                     let ncPaths = rc.contacts.filter(c => c.isNC).map(c => c.path).sort((a,b)=>a-b);
-
                     if (noPaths.length > 0 || ncPaths.length > 0) {
                         let top = mirrorY + 5; 
                         let maxRows = Math.max(1, Math.max(noPaths.length, ncPaths.length));
                         let bottom = top + 20 + maxRows * 13;
-
                         let leftX = rc.coilX - 8;
                         let rightX = rc.coilX + 8;
-
                         g.appendChild(createSvgElement('line', {x1: rc.coilX - 16, y1: top, x2: rc.coilX + 16, y2: top, stroke: '#000', 'stroke-width': 1}));
-															 
                         g.appendChild(createSvgElement('line', {x1: rc.coilX - 16, y1: top + 18, x2: rc.coilX + 16, y2: top + 18, stroke: '#000', 'stroke-width': 1}));
-															
                         g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top, x2: rc.coilX, y2: bottom, stroke: '#000', 'stroke-width': 1}));
-
                         if (window.configWechsler) {
                             // --- MINIATUR-SYMBOL: WECHSLER ---
-												 
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 3, x2: rc.coilX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 6, x2: leftX + 4, y2: top + 13, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
-                            
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 6, x2: rightX, y2: top + 13, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX - 5, y1: top + 13, x2: rightX + 2, y2: top + 13, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 13, x2: rightX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
@@ -2238,13 +2416,11 @@
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1}));
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 6, x2: leftX + 4, y2: top + 13, stroke: '#000', 'stroke-width': 1}));
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
-
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1}));
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 6, x2: rightX - 4, y2: top + 13, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX - 5, y1: top + 13, x2: rightX + 2, y2: top + 13, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 13, x2: rightX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
                         }
-
                         noPaths.forEach((p, idx) => {
                             let text = createSvgElement('text', {x: leftX, y: top + 30 + idx * 13, 'font-size': '10px', fill: '#333', 'text-anchor': 'middle', 'font-family': 'monospace'});
                             text.textContent = p.toString();
@@ -2259,11 +2435,9 @@
                     circuitContent.appendChild(g);
                 }
             });
-
             setTimeout(() => {
                 if (document.getElementById('circuit-wrapper').offsetWidth > 0) {
                     panZoomCircuitInstance = svgPanZoom(circuitSvg, { zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true });
-                    
                     // Wenn der Befehl kam, setzen wir nach dem Generieren die Kamera wieder exakt auf die alten Werte!
                     if (keepView && oldZoom !== null && oldPan !== null) {
                         panZoomCircuitInstance.zoom(oldZoom);
@@ -2326,7 +2500,60 @@
 		// ==========================================
         // 2D FACTORY ENGINE (PHYSIK & LOGIK-BINDING)
         // ==========================================
-        const factoryCanvas = document.getElementById('factory-canvas-area');
+        // Ersetze diese beiden Zeilen...
+        const factoryScrollArea = document.getElementById('factory-canvas-area'); // NEU: Das äußere Fenster
+        const factoryCanvas = document.getElementById('factory-content'); // NEU: Die gigantische innere Leinwand
+		// --- 2D KAMERA PANNING ---
+        let isPanActive = false;
+        let panStartX = 0, panStartY = 0, panScrollLeft = 0, panScrollTop = 0;
+        factoryScrollArea.addEventListener('mousedown', (e) => {
+            // Mittlere Maustaste (Mausrad-Klick) ODER Alt + Linksklick
+            if (e.button === 1 || (e.button === 0 && e.altKey)) {
+                isPanActive = true;
+                panStartX = e.clientX; panStartY = e.clientY;
+                panScrollLeft = factoryScrollArea.scrollLeft; panScrollTop = factoryScrollArea.scrollTop;
+                factoryScrollArea.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isPanActive) {
+                factoryScrollArea.scrollLeft = panScrollLeft - (e.clientX - panStartX);
+                factoryScrollArea.scrollTop = panScrollTop - (e.clientY - panStartY);
+            }
+        });
+        window.addEventListener('mouseup', () => {
+            if (isPanActive) { isPanActive = false; factoryScrollArea.style.cursor = ''; }
+        });
+		// --- 2D KAMERA ZOOM ---
+        let factoryScale = 1.0;
+        // --- NEU: Manuelle Zoom-Buttons ---
+        window.factoryZoomIn = function() {
+            factoryScale = Math.min(3.0, factoryScale * 1.2); // 20% reinzoomen
+            document.getElementById('factory-content').style.transform = `scale(${factoryScale})`;
+        };
+        window.factoryZoomOut = function() {
+            factoryScale = Math.max(0.2, factoryScale / 1.2); // 20% rauszoomen
+            document.getElementById('factory-content').style.transform = `scale(${factoryScale})`;
+        };
+        window.factoryZoomReset = function() {
+            factoryScale = 1.0; // Zoom auf 100%
+            document.getElementById('factory-content').style.transform = `scale(${factoryScale})`;
+            // Kamera optional wieder ganz nach oben links schieben
+            const scrollArea = document.getElementById('factory-canvas-area');
+            scrollArea.scrollLeft = 0;
+            scrollArea.scrollTop = 0;
+        };
+        factoryScrollArea.addEventListener('wheel', (e) => {
+            // Mit STRG zoomen, sonst scrollt man ganz normal
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault(); // Verhindert den Browser-Zoom
+                let zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // 10% Schritte
+                factoryScale *= zoomFactor;
+                factoryScale = Math.max(0.2, Math.min(factoryScale, 3.0)); // Begrenzen zwischen 20% und 300%
+                factoryCanvas.style.transform = `scale(${factoryScale})`;
+            }
+        }, { passive: false });
         const ctxMenu = document.getElementById('factory-context-menu');
         let factoryObjects = []; 
         let factoryItems = [];   
@@ -2373,14 +2600,14 @@
         // NEU: Event-Listener für das Aufziehen der Auswahl-Box auf dem Hintergrund
         factoryCanvas.addEventListener('mousedown', (e) => {
             if (e.button !== 0 || isSimulationActive) return;
-            // Wenn der Klick nicht auf einem Bauteil gelandet ist, starte die Auswahl
             let targetObj = e.target.closest('.f2d-obj');
             if (!targetObj) {
                 if (!e.shiftKey) clearSelection();
                 isSelecting = true;
                 let rect = factoryCanvas.getBoundingClientRect();
-                selectionStartX = e.clientX - rect.left;
-                selectionStartY = e.clientY - rect.top;
+                // FIX: Koordinaten an den Zoom anpassen!
+                selectionStartX = (e.clientX - rect.left) / factoryScale;
+                selectionStartY = (e.clientY - rect.top) / factoryScale;
                 selectionBoxEl = document.createElement('div');
                 selectionBoxEl.className = 'f2d-selection-box';
                 selectionBoxEl.style.left = selectionStartX + 'px';
@@ -2574,30 +2801,55 @@
         function makeDraggable(el, dataObj) {
             el.addEventListener('mousedown', (e) => {
                 if (e.button !== 0) return; 
+                // 1. Klicks im Simulationsmodus (Taster/Schalter)
                 if (isSimulationActive && (dataObj.type === 'taster' || dataObj.type === 'schalter' || dataObj.type === 'nothalt')) {
-                    e.stopPropagation(); let varName = dataObj.linkedVar; let domBox = document.getElementById(`sim_in_${varName}`);
-                    if (dataObj.type === 'taster') { setTaster(varName, true, e); let release = (ev) => { setTaster(varName, false, ev); document.removeEventListener('mouseup', release); }; document.addEventListener('mouseup', release); }
-                    else { if (domBox) { domBox.checked = !domBox.checked; toggleInput(varName); } } return;
+                    e.stopPropagation(); 
+                    let varName = dataObj.linkedVar; 
+                    let domBox = document.getElementById(`sim_in_${varName}`);
+                    if (dataObj.type === 'taster') { 
+                        setTaster(varName, true, e); 
+                        let release = (ev) => { setTaster(varName, false, ev); document.removeEventListener('mouseup', release); }; 
+                        document.addEventListener('mouseup', release); 
+                    } else { 
+                        if (domBox) { domBox.checked = !domBox.checked; toggleInput(varName); } 
+                    } 
+                    return;
                 }
+                // 2. 1D-Skalierungs-Anfasser (Zylinder, Förderband)
                 if (e.target.classList.contains('f2d-resize-handle')) { 
-                    resizingElement = { el: el, data: dataObj }; startWidth = dataObj.width; startX = dataObj.x; startY = dataObj.y;
-                    offsetX = e.clientX; offsetY = e.clientY; e.stopPropagation(); return; 
+                    resizingElement = { el: el, data: dataObj }; 
+                    startWidth = dataObj.width; startX = dataObj.x; startY = dataObj.y;
+                    // FIX: Maus-Offset an Zoom anpassen
+                    offsetX = e.clientX / factoryScale; 
+                    offsetY = e.clientY / factoryScale; 
+                    e.stopPropagation(); return; 
                 }
+                // 3. 2D-Skalierungs-Anfasser (Mauer, Zonen)
                 if (e.target.classList.contains('f2d-resize-handle-xy')) { 
-                    resizingElementXY = { el: el, data: dataObj }; startWidth = dataObj.width; startHeight = dataObj.height; startX = dataObj.x; startY = dataObj.y;
-                    offsetX = e.clientX; offsetY = e.clientY; e.stopPropagation(); return; 
+                    resizingElementXY = { el: el, data: dataObj }; 
+                    startWidth = dataObj.width; startHeight = dataObj.height; 
+                    startX = dataObj.x; startY = dataObj.y;
+                    // FIX: Maus-Offset an Zoom anpassen
+                    offsetX = e.clientX / factoryScale; 
+                    offsetY = e.clientY / factoryScale; 
+                    e.stopPropagation(); return; 
                 }
+                // 4. Rotations-Anfasser
                 if (e.target.classList.contains('f2d-rotate-handle')) {
                     rotatingElement = { el: el, data: dataObj };
-                    rotatingElement.cx = dataObj.x + dataObj.width / 2; rotatingElement.cy = dataObj.y + dataObj.height / 2;
+                    rotatingElement.cx = dataObj.x + dataObj.width / 2; 
+                    rotatingElement.cy = dataObj.y + (dataObj.height || dataObj.width) / 2;
                     let canvasRect = factoryCanvas.getBoundingClientRect();
-                    let screenCx = canvasRect.left + rotatingElement.cx; let screenCy = canvasRect.top + rotatingElement.cy;
+                    // FIX: Rotations-Zentrum exakt an den aktuellen Zoom anpassen
+                    let screenCx = canvasRect.left + rotatingElement.cx * factoryScale; 
+                    let screenCy = canvasRect.top + rotatingElement.cy * factoryScale;
                     rotatingElement.startAngle = Math.atan2(e.clientY - screenCy, e.clientX - screenCx) * 180 / Math.PI;
                     rotatingElement.startObjRotation = dataObj.rotation || 0;
                     e.stopPropagation(); return;
                 }
+                // 5. Drag & Drop (Normales Verschieben)
                 let dragTarget = dataObj.parent ? dataObj.parent : dataObj; 
-                // NEU: Multi-Select Klick-Logik
+                // Multi-Select Klick-Logik
                 if (!selectedElements.includes(dragTarget) && !e.shiftKey && !e.ctrlKey) {
                     clearSelection();
                     selectedElements = [dragTarget];
@@ -2608,9 +2860,10 @@
                 }
                 draggedElement = { el: dragTarget.el, data: dragTarget };
                 let canvasRect = factoryCanvas.getBoundingClientRect(); 
-                offsetX = e.clientX - canvasRect.left - dragTarget.x; 
-                offsetY = e.clientY - canvasRect.top - dragTarget.y;
-                // Start-Koordinaten aller selektierten Objekte für das Group-Dragging merken!
+                // FIX: Verschiebe-Maus-Offset an den Zoom anpassen!
+                offsetX = (e.clientX - canvasRect.left) / factoryScale - dragTarget.x; 
+                offsetY = (e.clientY - canvasRect.top) / factoryScale - dragTarget.y;
+                // Start-Koordinaten aller selektierten Objekte für das Group-Dragging merken
                 selectedElements.forEach(sel => {
                     sel.dragStartX = sel.x;
                     sel.dragStartY = sel.y;
@@ -3297,25 +3550,20 @@
             const textArea = document.getElementById('saveload-text');
             const linkInput = document.getElementById('share-link-input');
             const qrContainer = document.getElementById('qr-code-container');
-
             const saveData = {
                 version: "1.0",
                 code: textarea.value,
                 types: componentTypes,
                 factory: getFactoryStateObj()
             };
-            
             let jsonString = JSON.stringify(saveData);
             textArea.value = JSON.stringify(saveData, null, 2);
-            
             qrContainer.innerHTML = ''; 
-
             try {
                 // NEU: High-End Komprimierung des JSONs zu einem absolut URL-sicheren, kurzen String!
                 let compressed = LZString.compressToEncodedURIComponent(jsonString);
                 let url = window.location.href.split('#')[0] + '#state=' + compressed;
                 linkInput.value = url;
-
                 // Da der Link jetzt extrem kurz ist, erzeugt er auch bei großen Anlagen blitzschnell saubere QR-Codes
                 if (compressed.length < 3500) {
                     new QRCode(qrContainer, {
@@ -3332,7 +3580,6 @@
             } catch(e) {
                 linkInput.value = "Fehler beim Generieren des Links";
             }
-
             modal.style.display = 'block';
         };
         window.copyShareLink = function() {
