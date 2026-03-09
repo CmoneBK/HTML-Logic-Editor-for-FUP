@@ -391,6 +391,7 @@
         /* FIX: 'transition' bei den fallenden Items entfernt! */
         .f2d-item { width: 40px; height: 40px; border: 2px solid #000; display: flex; justify-content: center; align-items: center; font-size: 10px; font-weight: bold; z-index: 5; }
         .f2d-item { width: 40px; height: 40px; border: 2px solid #000; display: flex; justify-content: center; align-items: center; font-size: 10px; font-weight: bold; transition: transform 0.1s linear; z-index: 5; }
+		.f2d-item.is-solid { border-width: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); border-color: #333; font-size: 11px; }
         /* NEU: Spawner & Despawner */
         .f2d-spawner { width: 50px; height: 50px; background: #5d4037; border: 2px solid #3e2723; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 10px; font-weight: bold; z-index: 4; text-align: center; }
         .f2d-despawner { width: 50px; height: 50px; background: #212121; border: 2px dashed #ff5252; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #ff5252; font-size: 10px; font-weight: bold; z-index: 4; text-align: center; }
@@ -568,6 +569,7 @@
             </div>
             <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B; margin-left: 10px;" onclick="toggleSimulation()">Simulation starten</button>
 			<button class="btn-export" style="background-color: #9c27b0; margin-left: 10px;" onclick="openAnalyzerModal()">📊 Oszilloskop</button>
+			<button id="btn-toggle-sound" class="btn-export" style="background-color: #555; margin-left: 10px;" onclick="toggleSound()">🔇 Ton: AUS</button>
             <button class="btn-export" style="margin-left: 10px;" onclick="exportSVG()">Als SVG speichern</button>
         </div>
         <div id="workspace-container">
@@ -596,11 +598,16 @@
                 <div id="factory-toolbar">
                     <div class="tb-dropdown">
                         <button class="tb-drop-btn">🎛️ Bedienpult ▼</button>
-                        <div class="tb-dropdown-content" id="menu-bedienpult">
-                            <div onclick="addFactoryDevice('taster')">🟢 Taster</div>
-                            <div onclick="addFactoryDevice('schalter')">🔵 Schalter</div>
-                            <div onclick="addFactoryDevice('nothalt')">🔴 Not-Halt</div>
-                            <div onclick="addFactoryDevice('led')">💡 LED Leuchte</div>
+                        <div class="tb-dropdown-content" id="menu-werkstuecke">
+                            <div onclick="spawnFactoryItem('metall', 0, 200, false)">⬜ Block Normal (Metall)</div>
+                            <div onclick="spawnFactoryItem('kunststoff', 0, 200, false)">🟨 Block Normal (Kunststoff)</div>
+                            <div style="border-top: 1px solid #555; margin: 2px 0;"></div>
+                            <div onclick="spawnFactoryItem('metall', 0, 200, true)">🧱 Block Massiv (Metall)</div>
+                            <div onclick="spawnFactoryItem('kunststoff', 0, 200, true)">🧱 Block Massiv (Kunststoff)</div>
+                            <div style="border-top: 1px solid #555; margin: 2px 0;"></div>
+                            <div onclick="addFactoryDevice('spawner_metall')">⏳ Spawner (Metall)</div>
+                            <div onclick="addFactoryDevice('spawner_kunststoff')">⏳ Spawner (Kunststoff)</div>
+                            <div onclick="addFactoryDevice('despawner')">🗑️ Despawner (Entferner)</div>
                         </div>
                     </div>
                     <div class="tb-dropdown">
@@ -854,6 +861,76 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         let simulationFunction = null;
         let saveTimeout = null;
         let currentGraph = null;
+		// ==========================================
+        // NEU: WEB AUDIO API SYNTHESIZER (0 Bytes Audio-Dateien!)
+        // ==========================================
+        window.soundMode = 0; // 0=Aus, 1=Logik(Schaltplan), 2=Anlage(2D), 3=Beides
+        const SoundEngine = {
+            ctx: null,
+            init: function() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            // 1. Helles Klicken (Bedienelemente) -> Feedback ist immer nützlich, wenn Ton generell an ist (Modus > 0)
+            click: function() {
+                if (window.soundMode === 0 || !this.ctx) return;
+                let osc = this.ctx.createOscillator(); let gain = this.ctx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.02);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.02);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.02);
+            },
+            // 2. Sattes Klackern (Relais & Schütze) -> Nur in Modus 1 (Logik) oder 3 (Alle)
+            clack: function() {
+                if ((window.soundMode !== 1 && window.soundMode !== 3) || !this.ctx) return;
+                let osc = this.ctx.createOscillator(); let gain = this.ctx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.04);
+            },
+            // 3. Rauschen (Pneumatik-Zylinder & Ventile) -> Nur in Modus 2 (Anlage) oder 3 (Alle)
+            pneumatic: function() {
+                if ((window.soundMode !== 2 && window.soundMode !== 3) || !this.ctx) return;
+                let bufferSize = this.ctx.sampleRate * 0.2; // 0.2 Sekunden Rauschen
+                let buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                let data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1; // Weißes Rauschen
+                let noise = this.ctx.createBufferSource(); noise.buffer = buffer;
+                let filter = this.ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 4000;
+                let gain = this.ctx.createGain(); gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            }
+        };
+        window.toggleSound = function() {
+            window.soundMode = (window.soundMode + 1) % 4; // Springt von 0 -> 1 -> 2 -> 3 -> 0
+            const btn = document.getElementById('btn-toggle-sound');
+            if (window.soundMode === 0) {
+                btn.style.backgroundColor = '#555'; // Grau
+                btn.textContent = '🔇 Ton: AUS';
+            } else if (window.soundMode === 1) {
+                SoundEngine.init();
+                btn.style.backgroundColor = '#911eb4'; // Lila (passend zu den Schaltplan-Details)
+                btn.textContent = '⚡ Ton: Logik';
+                SoundEngine.click(); // Kurzes Feedback
+            } else if (window.soundMode === 2) {
+                SoundEngine.init();
+                btn.style.backgroundColor = '#4caf50'; // Grün (passend zur Anlage)
+                btn.textContent = '🏭 Ton: Anlage';
+                SoundEngine.pneumatic(); // Test-Puff!
+            } else if (window.soundMode === 3) {
+                SoundEngine.init();
+                btn.style.backgroundColor = '#00bcd4'; // Cyan (Alles an)
+                btn.textContent = '🔊 Ton: Alle';
+                SoundEngine.clack(); // Test-Klack!
+            }
+        };
 		// NEU: Perfekt getimte Wurf-Sortieranlage (Ohne redundanten hinteren Reed-Kontakt)
         const EXAMPLES = {
             code: `S1 := START && STOP\nR1 := ¬STOP\n\nLED_BETRIEB := Q1\n\nBAND := Q1\n\nZYL_AUS := Q1 && S_METALL\nZYL_EIN := ¬Q1 || S_ZYL_VORN`,
@@ -1806,7 +1883,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             });
             runSimulationTick();
         }
-        window.toggleInput = function(varName) { 
+        window.toggleInput = function(varName) {
+			SoundEngine.click();		
             let cType = componentTypes[varName] || 'taster';
             let isNC = cType === 'nothalt' || cType === 'schalter_nc';
             let isActuated = document.getElementById(`sim_in_${varName}`).checked; 
@@ -1817,6 +1895,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         // --- NEU: STRG-Logik für Taster ---
         let latchedTasters = new Set(); 
         window.setTaster = function(varName, isActionDown, event) {
+			if (isActionDown) SoundEngine.click();
             if (event && typeof event.preventDefault === 'function') event.preventDefault(); 
             let cType = componentTypes[varName] || 'taster';
             let isNCContact = cType === 'nothalt' || cType === 'taster_nc' || cType === 'schalter_nc';
@@ -2181,6 +2260,43 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 }
             }
             for (const [key, value] of Object.entries(spsState)) {
+				// --- NEU: SOUND TRIGGER (Flankenauswertung 0 -> 1) ---
+                if (value && !lastSoundState[key]) {
+                    let cType = componentTypes[key];
+                    // 1. Schaltplan-Relais (Nur in Modus 1 und 3)
+                    if (cType === 'relais' || !cType) SoundEngine.clack();
+                    // 2. Anlagen-Bauteile (Nur in Modus 2 und 3)
+                    if (window.soundMode === 2 || window.soundMode === 3) {
+                        // Finde alle Haupt-Objekte, die an diese Variable gekoppelt sind
+                        let linkedObjs = factoryObjects.filter(o => o.linkedVar === key || o.linkedVarExt === key || o.linkedVarRet === key || o.linkedVar3 === key);
+                        // Fallback: Wenn noch kein Bauteil platziert ist
+                        if (cType === 'valve' && linkedObjs.length === 0) SoundEngine.pneumatic();
+                        linkedObjs.forEach(obj => {
+                            if (obj.muteSound) return; 
+                            let playedCustom = false;
+                            // A) Hat das Haupt-Objekt (z.B. ein spezieller Spawner) einen eigenen Sound?
+                            if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].playSound) {
+                                ComponentRegistry[obj.type].playSound(obj, SoundEngine);
+                                playedCustom = true;
+                            } 
+                            // B) NEU: Haben montierte Anbauteile (Kinder) einen Sound? (z.B. der Pressstempel am Zylinder)
+                            if (obj.children) {
+                                obj.children.forEach(child => {
+                                    if (child.muteSound) return;
+                                    if (ComponentRegistry[child.type] && ComponentRegistry[child.type].playSound) {
+                                        ComponentRegistry[child.type].playSound(child, SoundEngine);
+                                        playedCustom = true; // Das Anbauteil übertönt das Standard-Zischen des Elternteils!
+                                    }
+                                });
+                            }
+                            // C) Standard-Sound für Aktoren (Pneumatik), falls weder Bauteil noch Anbauteil einen eigenen Ton hatten
+                            if (!playedCustom && cType === 'valve') {
+                                SoundEngine.pneumatic();
+                            }
+                        });
+                    }
+                }
+                lastSoundState[key] = value;
                 // 1. Ausgänge (LEDs) aktualisieren
                 const led = document.getElementById(`sim_out_${key}`);
                 if (led) { if (value) led.classList.add('on'); else led.classList.remove('on'); }
@@ -2573,7 +2689,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 return pNC ? !edge.inverted : edge.inverted;
             };			
             const nodesToDraw = Array.from(graph.nodes.values()).filter(n => ['GATE', 'RS', 'SR', 'TON', 'TOF', 'TP', 'CTU', 'OUTPUT'].includes(n.type)).sort((a,b) => a.level - b.level);
-
             // --- NEU: DIE REKURSIVEN BAUM-GENERATOREN ---
             function getTreeW(nodeId) {
                 let node = graph.nodes.get(nodeId);
@@ -2583,7 +2698,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 if (node.label === '&') return Math.max(90, ...inEdges.map(e => getTreeW(e.sourceId))); // Serie
                 else return Math.max(90, inEdges.reduce((sum, e) => sum + getTreeW(e.sourceId), 0));    // Parallel
             }
-
             function drawTree(nodeId, cx, y, w, isTargetInverted, basePathNum, baseCond) {
                 let node = graph.nodes.get(nodeId);
                 // Basis-Fall: Ein echter Kontakt (oder ein erzwungenes Relais wie Timer/RS)
@@ -2596,17 +2710,14 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let col = getNodeColor(nodeId);
                     let myCond = (isTargetInverted ? "!" : "") + `state['${nodeId}']`;
                     let totalCond = baseCond === "true" ? myCond : `(${baseCond}) && ${myCond}`;
-
                     setPower(drawLine(cx, y, cx, y + 15, 2, nodeId, col, isNC), baseCond);
                     let g = drawContact(cx, y + 30, name, isNC, type, nodeId, col, basePathNum);
                     setPower(g, "true"); 
                     setPower(drawLine(cx, y + 45, cx, y + 60, 2, nodeId, col, isNC), totalCond);
                     return { bottomY: y + 60, cond: totalCond };
                 }
-
                 let inEdges = graph.edges.filter(e => e.targetId === nodeId);
                 let col = node.color;
-
                 if (node.label === '&') { // REIHENSCHALTUNG
                     let currY = y;
                     let currCond = baseCond;
@@ -2622,21 +2733,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let totalW = getTreeW(nodeId);
                     let startX = cx - totalW/2;
                     let currX = startX;
-                    
                     inEdges.forEach(edge => {
                         let bw = getTreeW(edge.sourceId);
                         startXArray.push(currX + bw/2);
                         currX += bw;
                     });
-                    
                     let firstX = startXArray[0]; let lastX = startXArray[branches - 1];
                     setPower(drawLine(cx, y, cx, y + 10, 2, nodeId, col), baseCond);
                     setPower(drawLine(firstX, y + 10, lastX, y + 10, 2, nodeId, col), baseCond);
-
                     let maxBottomY = y + 10;
                     let outConds = [];
                     let branchResults = [];
-
                     inEdges.forEach((edge, idx) => {
                         let bx = startXArray[idx]; let bw = getTreeW(edge.sourceId);
                         setPower(drawLine(bx, y + 10, bx, y + 20, 2, edge.sourceId, getNodeColor(edge.sourceId)), baseCond);
@@ -2645,29 +2752,23 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         if (res.bottomY > maxBottomY) maxBottomY = res.bottomY;
                         outConds.push(res.cond);
                     });
-
                     let totalCond = outConds.join(' || ') || 'false';
                     if (baseCond !== "true") totalCond = `(${baseCond}) && (${totalCond})`;
-
                     branchResults.forEach(res => setPower(drawLine(res.x, res.bottomY, res.x, maxBottomY + 10, 2, nodeId, col), res.cond));
                     setPower(drawLine(firstX, maxBottomY + 10, lastX, maxBottomY + 10, 2, nodeId, col), totalCond);
                     setPower(drawLine(cx, maxBottomY + 10, cx, maxBottomY + 20, 2, nodeId, col), totalCond);
-
                     return { bottomY: maxBottomY + 20, cond: totalCond };
                 }
             }
-
             function calcPinW(edge) {
                 if (window.configEconMode && edge && graph.nodes.get(edge.sourceId) && graph.nodes.get(edge.sourceId).type === 'GATE') return getTreeW(edge.sourceId);
                 return 90;
             }
-
             // Universal-Helfer für alle Bauteil-Eingänge (Entscheidet live zwischen Einzelkontakt oder Baum)
             function drawInputPin(edge, cx, yStart, yEnd, pNum, baseCond = "true", forceInvertNC = false) {
                 if (!edge) { setPower(drawLine(cx, yStart, cx, yEnd, 2, 'NONE', '#000'), baseCond); return baseCond; }
                 let sourceNode = graph.nodes.get(edge.sourceId);
                 let col = getNodeColor(edge.sourceId);
-
                 // Im Wirtschaftlichen Modus lösen wir reine Logikgatter in Kontaktbäume auf
                 if (window.configEconMode && sourceNode && sourceNode.type === 'GATE') {
                     let totalW = getTreeW(edge.sourceId);
@@ -2680,7 +2781,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let type = contactTypeMap[edge.sourceId] || 'relais';
                     let isNC = getContactNC(edge);
                     if (forceInvertNC) isNC = !isNC; // Speziell für Latch-Resets
-
                     let cy = (yStart + yEnd) / 2;
                     setPower(drawLine(cx, yStart, cx, cy - 15, 2, edge.sourceId, col, isNC), baseCond);
                     setPower(drawContact(cx, cy, name, isNC, type, edge.sourceId, col, pNum), "true");
@@ -2690,17 +2790,13 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     return totalCond;
                 }
             }
-
             nodesToDraw.forEach(node => {
                 let inEdges = graph.edges.filter(e => e.targetId === node.id);
                 let col = node.color;
-
                 if (node.type === 'GATE') {
                     if (window.configEconMode) return; // Im wirtschaftlichen Modus zeichnen wir Gatter NICHT mehr einzeln!
-                    
                     let p = pathCounter++;
                     drawText(currX, yTop - 25, p.toString(), true);
-                    
                     if (node.label === '&') { 
                         let y = 110, dy = 260 / Math.max(1, inEdges.length);
                         let pCond = "true";
@@ -2724,8 +2820,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     else if (node.label === '>=1') { 
                         let branches = inEdges.length;
                         if(branches > 0) {
-												   
-																			
                             let startX = currX, endX = currX + (branches - 1) * 90;
                             setPower(drawLine(startX, yTop, startX, 90, 2, node.id, col), "true"); 
                             setPower(drawLine(startX, 90, endX, 90, 2, node.id, col), "true"); 
@@ -2736,8 +2830,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 let name = symMap[edge.sourceId] || edge.sourceId;
                                 let type = contactTypeMap[edge.sourceId] || 'relais';
                                 let isNC = getContactNC(edge);
-																														  
-																			   
                                 let srcCol = getNodeColor(edge.sourceId);
                                 setPower(drawLine(bx, 90, bx, 220 - 15, 2, edge.sourceId, srcCol, isNC), "true");
                                 setPower(drawContact(bx, 220, name, isNC, type, edge.sourceId, srcCol, bp), "true");
@@ -2756,45 +2848,30 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 else if (node.type === 'RS' || node.type === 'SR') { 
                     let p1 = pathCounter++; let p2 = pathCounter++;
                     let sEdge = inEdges.find(e => e.targetPin === 'S'); let rEdge = inEdges.find(e => e.targetPin === 'R');
-
                     let w1 = calcPinW(sEdge); let w2 = calcPinW(rEdge);
                     let startX = currX + (w1 > 90 ? (w1-90)/2 : 0);
                     let gap = Math.max(90, w1/2 + w2/2 + 20);
-														
-																														   
                     let parX = startX + gap;
-
                     drawText(startX, yTop - 25, p1.toString(), true); drawText(parX, yTop - 25, p2.toString(), true);
                     setPower(drawLine(startX, yTop, startX, 90, 2, node.id, col), "true"); 
                     setPower(drawLine(startX, 90, parX, 90, 2, node.id, col), "true");
-
-																		  
                     let qCond = `state['${node.id}']`;
-
                     if (node.type === 'RS') {
-																																		
                         let sCond = drawInputPin(sEdge, startX, 90, 230, p1, "true");
-																							  
                         setPower(drawLine(parX, 90, parX, 150 - 15, 2, node.id, col), "true"); 
                         setPower(drawContact(parX, 150, symMap[node.id], false, 'relais', node.id, col, p2), "true"); 
                         setPower(drawLine(parX, 165, parX, 230, 2, node.id, col), qCond); 
                         let joinCond = `(${sCond} || ${qCond})`;
                         setPower(drawLine(startX, 230, parX, 230, 2, node.id, col), joinCond); 
-                        
                         let rCond = drawInputPin(rEdge, startX, 230, 430, p1, joinCond, true); 
-																							  
                         setPower(drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col, p1), rCond); 
                         setPower(drawLine(startX, 470, startX, yBot, 2, node.id, col), rCond);
                     } else { // SR
                         setPower(drawLine(startX, 90, startX, 150 - 15, 2, node.id, col), "true"); 
                         setPower(drawContact(startX, 150, symMap[node.id], false, 'relais', node.id, col, p1), "true"); 
                         setPower(drawLine(startX, 165, startX, 230, 2, node.id, col), qCond); 
-                        
                         let rCond = drawInputPin(rEdge, startX, 230, 380, p1, qCond, true); 
-																														  
                         let sCond = drawInputPin(sEdge, parX, 90, 380, p2, "true");
-                        
-																						  
                         setPower(drawLine(startX, 380, parX, 380, 2, node.id, col), qCond); 
                         setPower(drawLine(startX, 380, startX, 430, 2, node.id, col), qCond); 
                         setPower(drawCoil(startX, 450, symMap[node.id], node.id, 'relais', col, p1), qCond); 
@@ -2805,28 +2882,15 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 else if (node.type === 'CTU') {
                     let p1 = pathCounter++; let p2 = pathCounter++;
                     let cuEdge = inEdges.find(e => e.targetPin === 'CU'); let rEdge = inEdges.find(e => e.targetPin === 'R');
-
                     let w1 = calcPinW(cuEdge); let w2 = calcPinW(rEdge);
                     let startX = currX + (w1 > 90 ? (w1-90)/2 : 0);
                     let gap = Math.max(90, w1/2 + w2/2 + 20);
-														  
-																																																																	
-														
-																																																															  
                     let parX = startX + gap;
-
                     drawText(startX, yTop - 25, p1.toString(), true); drawText(parX, yTop - 25, p2.toString(), true);
                     setPower(drawLine(startX, yTop, startX, 90, 2, node.id, col), "true"); 
                     setPower(drawLine(startX, 90, parX, 90, 2, node.id, col), "true");
-
-																		  
-																			 
                     let cuCond = drawInputPin(cuEdge, startX, 90, 430, p1, "true");
                     let rCond = drawInputPin(rEdge, parX, 90, 430, p2, "true", true); 
-
-																																
-																																  
-																					  
                     setPower(drawCoil(startX, 450, symMap[node.id], node.id, 'ctu', col, p1), cuCond); 
                     setPower(drawCoil(parX, 450, symMap[node.id] + ' (R)', node.id, 'relais', col, p2), rCond); 
                     setPower(drawLine(startX, 470, startX, yBot, 2, node.id, col), cuCond); 
@@ -2836,48 +2900,30 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 else if (node.type === 'OUTPUT') { 
                     let p = pathCounter++;
                     let edge = inEdges[0]; // Kann undefined sein, wenn noch nichts zugewiesen wurde!
-                    
                     let w1 = calcPinW(edge);
                     currX += (w1 > 90 ? (w1-90)/2 : 0);
-
                     drawText(currX, yTop - 25, p.toString(), true);
-                    
                     let pCond = "false"; // Standardmäßig ist der Stromfluss FALSE
                     if (edge) {
                         // Es gibt eine Verbindung, also zeichnen wir den Ast (oder Kontakt) ganz normal
-																			 
-																	 
-																													  
-																		   
-																 
                         pCond = drawInputPin(edge, currX, yTop, 430, p, "true");
-																											  
-																							
                     } else {
                         // Keine Verbindung! Wir zeichnen einfach eine tote Linie (ohne Variablen-Verknüpfung)
                         setPower(drawLine(currX, yTop, currX, 430, 2, node.id, col), "false"); 
                     }
-
                     if (node.isRelay) setPower(drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p), pCond);
                     else if (node.outType === 'valve') setPower(drawCoil(currX, 450, symMap[node.id], node.id, 'valve', col, p), pCond);
                     else setPower(drawLED(currX, 450, symMap[node.id], node.id, col, p), pCond);
-                    
                     setPower(drawLine(currX, 470, currX, yBot, 2, node.id, col), pCond); 
                     currX += (w1 > 90 ? (w1-90)/2 : 0) + 130;
                 }
                 else if (['TON', 'TOF', 'TP'].includes(node.type)) { 
                     let p1 = pathCounter++;
                     let inEdge = inEdges.find(e => e.targetPin === 'IN');
-
                     let w1 = calcPinW(inEdge);
                     currX += (w1 > 90 ? (w1-90)/2 : 0);
-
                     drawText(currX, yTop - 25, p1.toString(), true);
                     let pCond = drawInputPin(inEdge, currX, yTop, 430, p1, "true");
-
-																																	  
-																																	 
-																						
                     setPower(drawCoil(currX, 450, symMap[node.id], node.id, node.type.toLowerCase(), col, p1), pCond); 
                     setPower(drawLine(currX, 470, currX, yBot, 2, node.id, col), pCond); 
                     currX += (w1 > 90 ? (w1-90)/2 : 0) + 130;
@@ -2961,6 +3007,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         }
         window.simTimers = {}; // Globaler Speicher für Zeiten/Zähler
         let lastSimulationTime = performance.now(); // Hochpräzise Zeiterfassung
+		let lastSoundState = {}; // Merkt sich den Zustand für die Flankenauswertung
         function updateEditor() {
             const code = textarea.value;
             window.simTimers = {}; // Zurücksetzen beim Tippen
@@ -3249,12 +3296,24 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 menuTarget: '#menu-anbauteile',
                 menuHtml: `<div onclick="addFactoryDevice('pusher')">🧲 Schieber (L-Form)</div>`,
                 css: `
-                    .f2d-pusher { position: absolute; background: linear-gradient(135deg, #eceff1 0%, #b0bec5 50%, #90a4ae 100%); box-sizing: border-box; z-index: 3; clip-path: polygon(0 0, 20px 0, 20px calc(100% - 20px), 100% calc(100% - 20px), 100% 100%, 0 100%); filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); }
-                    .f2d-pusher::after { content: "SCHIEBER"; position: absolute; bottom: 4px; left: 25px; color: rgba(0,0,0,0.6); font-size: 10px; font-weight: bold; pointer-events: none; }
+                    .f2d-pusher { 
+                        --tk: 20px; /* Standard-Dicke */
+                        position: absolute; background: linear-gradient(135deg, #eceff1 0%, #b0bec5 50%, #90a4ae 100%); 
+                        box-sizing: border-box; z-index: 3; 
+                        clip-path: polygon(0 0, var(--tk) 0, var(--tk) calc(100% - var(--tk)), 100% calc(100% - var(--tk)), 100% 100%, 0 100%); 
+                        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); 
+                    }
+                    .f2d-pusher::after { 
+                        content: "SCHIEBER"; position: absolute; bottom: 4px; 
+                        left: calc(var(--tk) + 5px); /* Text schiebt sich automatisch mit! */
+                        color: rgba(0,0,0,0.6); font-size: 10px; font-weight: bold; pointer-events: none; 
+                    }
                 `,
                 build: function(obj, el) {
-                    obj.width = 20; obj.height = 80; el.className = 'f2d-obj f2d-pusher'; 
+                    obj.width = 60; obj.height = 80; obj.thickness = 20; 
+                    el.className = 'f2d-obj f2d-pusher'; 
                     el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
+                    el.style.setProperty('--tk', obj.thickness + 'px');
                     let resizer = document.createElement('div'); resizer.className = 'f2d-resize-handle-xy'; obj.resizerEl = resizer; el.appendChild(resizer);
                     obj.isMetallic = true;
                 },
@@ -3262,15 +3321,38 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let rad = (obj.rotation || 0) * Math.PI / 180;
                     let cos = Math.cos(rad), sin = Math.sin(rad);
                     let originX = obj.x + obj.width / 2; let originY = obj.y + obj.height / 2;
-                    // Hitbox 1: Vertikaler Arm (links, 20px dick)
-                    let hh1 = Math.max(0.1, (obj.height - 20) / 2);
-                    let dx1 = 10 - obj.width / 2; let dy1 = -10; 
+                    let tk = obj.thickness || 20;
+                    let halfTk = tk / 2;
+                    // Hitbox 1: Vertikaler Arm (links)
+                    let hh1 = Math.max(0.1, (obj.height - tk) / 2);
+                    let dx1 = halfTk - obj.width / 2; let dy1 = -halfTk; 
                     let ocx1 = originX + dx1 * cos - dy1 * sin; let ocy1 = originY + dx1 * sin + dy1 * cos;
-                    resolveOBBCollision(item, ocx1, ocy1, 10, hh1, obj.rotation, 'wall', false);
-                    // Hitbox 2: Horizontaler Arm (unten, 20px dick, über gesamte Breite)
-                    let dx2 = 0; let dy2 = (obj.height / 2) - 10;
+                    resolveOBBCollision(item, ocx1, ocy1, halfTk, hh1, obj.rotation, 'wall', false);
+                    // Hitbox 2: Horizontaler Arm (unten, über gesamte Breite)
+                    let dx2 = 0; let dy2 = (obj.height / 2) - halfTk;
                     let ocx2 = originX + dx2 * cos - dy2 * sin; let ocy2 = originY + dx2 * sin + dy2 * cos;
-                    resolveOBBCollision(item, ocx2, ocy2, obj.width / 2, 10, obj.rotation, 'wall', false);
+                    resolveOBBCollision(item, ocx2, ocy2, obj.width / 2, halfTk, obj.rotation, 'wall', false);
+                },
+                // NEU: Das Plugin baut sein eigenes Rechtsklick-UI!
+                contextMenu: function(obj, ctxMenu, saveCallback) {
+                    let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
+                    let tkWrapper = document.createElement('div'); tkWrapper.style.padding = '5px 15px';
+                    tkWrapper.onclick = (e) => e.stopPropagation(); 
+                    tkWrapper.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">📏 Blechdicke (px)</div>`;
+                    let tkInput = document.createElement('input');
+                    tkInput.type = 'number'; tkInput.min = '5'; tkInput.max = '200'; tkInput.step = '1'; 
+                    tkInput.value = obj.thickness || 20;
+                    tkInput.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; box-sizing: border-box;";
+                    tkInput.oninput = (e) => { 
+                        let newVal = parseFloat(e.target.value);
+                        if (newVal >= 5) {
+                            obj.thickness = newVal;
+                            obj.el.style.setProperty('--tk', newVal + 'px');
+                            saveCallback(); // Nutzt die durchgereichte Speicher-Funktion!
+                        }
+                    };
+                    tkWrapper.appendChild(tkInput);
+                    ctxMenu.appendChild(tkWrapper);
                 }
             },
             'press': {
@@ -3291,8 +3373,22 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 physics: function(obj, item) {
                     let ocx = obj.x + obj.width / 2, ocy = obj.y + obj.height / 2;
                     resolveOBBCollision(item, ocx, ocy, obj.width / 2, obj.height / 2, obj.rotation, 'wall', false);
+                },
+                // 🌟 NEU: Das Plugin bringt seinen eigenen, mathematisch erzeugten Sound mit!
+                playSound: function(obj, engine) {
+                    if (!engine.ctx) return;
+                    // Ein satter, tiefer "BÄM"-Einschlag mit abfallender Frequenz (Sawtooth)
+                    let osc = engine.ctx.createOscillator(); 
+                    let gain = engine.ctx.createGain();
+                    osc.type = 'sawtooth'; 
+                    osc.frequency.setValueAtTime(80, engine.ctx.currentTime); // Tiefer Start
+                    osc.frequency.exponentialRampToValueAtTime(10, engine.ctx.currentTime + 0.15); // Fällt dumpf ab
+                    gain.gain.setValueAtTime(0.5, engine.ctx.currentTime); // Laut
+                    gain.gain.exponentialRampToValueAtTime(0.01, engine.ctx.currentTime + 0.15); // Fade out
+                    osc.connect(gain); gain.connect(engine.ctx.destination);
+                    osc.start(); osc.stop(engine.ctx.currentTime + 0.15);
                 }
-            }
+            } // Ende von 'press'
         };
         window.toggleGlobalViewMode = function() {
             const btn = document.getElementById('btn-viewmode');
@@ -3336,10 +3432,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 factoryCanvas.appendChild(selectionBoxEl);
             }
         });
-        window.spawnFactoryItem = function(material, x = 0, y = 200) {
+        window.spawnFactoryItem = function(material, x = 0, y = 200, isSolid = false) {
             let el = document.createElement('div');
-            el.className = `f2d-obj f2d-item item-${material}`; el.textContent = material === 'metall' ? 'FE' : 'KU';
-            let item = { el: el, x: x, y: y, vx: 0, vy: 0, useGravity: true, useCollision: true, material: material, width: 40, height: 40 };
+            el.className = `f2d-obj f2d-item item-${material}`; 
+            if (isSolid) el.classList.add('is-solid');
+            el.textContent = material === 'metall' ? 'FE' : 'KU';
+            let item = { el: el, x: x, y: y, vx: 0, vy: 0, useGravity: true, useCollision: true, material: material, width: 40, height: 40, isSolid: isSolid };
             factoryItems.push(item); updateObjTransform(item); factoryCanvas.appendChild(el); makeDraggable(el, item);
             if(!isLoadingFactory) saveFactoryState(); 
         };
@@ -3396,6 +3494,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             title.textContent = c.t; lbl1.textContent = c.l1;
             if (c.spawner) {
                 let emptyOpt = document.createElement('option'); emptyOpt.value = ""; emptyOpt.textContent = "-- Dauerhaft aktiv --"; sel1.appendChild(emptyOpt);
+                // NEU: Zweites Dropdown für massives Verhalten einblenden
+                lbl2.textContent = "Block-Eigenschaft";
+                sel2.innerHTML = '<option value="normal">Normal (Überlappen)</option><option value="solid">Massiv (Kollision untereinander)</option>';
+                grp2.style.display = 'block';
+                intervalGrp.style.display = 'block'; // <--- NEU: Blendet das Intervall-Feld ein!
             }
             // NEU: Filter für die Live-Timer/Zähler
             if (c.customList === 'timers') {
@@ -3483,9 +3586,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let resizer = document.createElement('div'); resizer.className = 'f2d-resize-handle-xy'; obj.resizerEl = resizer; el.appendChild(resizer);
                 obj.isMetallic = true; // Induktiv-Sensoren schlagen hier an!
             } else if (type.startsWith('spawner_')) {
-                obj.linkedVar = var1; obj.lastSpawnTime = 0; obj.width = 50; obj.height = 50; el.className = 'f2d-obj f2d-spawner';
-                let matName = type.includes('metall') ? 'FE' : 'KU'; el.innerHTML = `<span>SPAWN<br>${matName}</span><div style="font-size:16px;">⬇️</div>`;
-                let label = document.createElement('div'); label.className = 'f2d-label'; label.textContent = var1 ? `${var1} (${interval}s)` : `Immer an (${interval}s)`; el.appendChild(label);
+                obj.linkedVar = var1; obj.spawnSolid = (var2 === 'solid' || var2 === true); 
+                obj.lastSpawnTime = 0; obj.width = 50; obj.height = 50; el.className = 'f2d-obj f2d-spawner';
+                let matName = type.includes('metall') ? 'FE' : 'KU'; 
+                el.innerHTML = `<span>SPAWN<br>${matName}</span><div style="font-size:16px;">⬇️</div>`;
+                let label = document.createElement('div'); label.className = 'f2d-label'; 
+                label.textContent = var1 ? `${var1} (${interval}s)` : `Immer an (${interval}s)`; el.appendChild(label);
             } else if (type === 'despawner') {
                 obj.width = 50; obj.height = 50; el.className = 'f2d-obj f2d-despawner'; el.innerHTML = `<span>DESPAWN</span><div style="font-size:16px;">❌</div>`;
             } else if (type.startsWith('zone_')) {
@@ -3730,6 +3836,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                 }
                 if (obj.type === 'display') addVarSelect('Timer/Zähler', obj.linkedVar, 'timers', 'linkedVar');
+				// --- NEU: PLUGIN-SPEZIFISCHE KONTEXTMENÜS ---
+            	// Die Engine fragt das Plugin, ob es eigene UI-Elemente für dieses Menü beisteuern will!
+            	if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenu) {
+                ComponentRegistry[obj.type].contextMenu(obj, ctxMenu, saveFactoryState);
+            	}
             }
             let btnDel = document.createElement('div'); btnDel.className = 'ctx-item'; btnDel.textContent = '🗑️ Löschen';
             btnDel.onclick = () => { 
@@ -3777,6 +3888,40 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let btnCol = document.createElement('div'); btnCol.className = 'ctx-item'; let isSolid = obj.useCollision !== false;
                 btnCol.textContent = isSolid ? '👻 Kollision: AUS (Geist)' : '🧱 Kollision: AN (Massiv)';
                 btnCol.onclick = () => { obj.useCollision = !isSolid; updateObjTransform(obj); saveFactoryState(); }; ctxMenu.appendChild(btnCol);
+            }
+			if (obj.type && obj.type.startsWith('spawner_')) {
+                let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
+                // 1. Der Toggle für Massiv / Normal
+                let btnMode = document.createElement('div'); 
+                btnMode.className = 'ctx-item'; 
+                btnMode.innerHTML = obj.spawnSolid ? '🧱 Modus: Massiv (Kollision AN)' : '👻 Modus: Normal (Kollision AUS)';
+                btnMode.onclick = () => { 
+                    obj.spawnSolid = !obj.spawnSolid; 
+                    saveFactoryState(); 
+                }; 
+                ctxMenu.appendChild(btnMode);
+                // 2. NEU: Direkt-Eingabe für das Intervall
+                let intWrapper = document.createElement('div'); intWrapper.style.padding = '5px 15px';
+                intWrapper.onclick = (e) => e.stopPropagation(); // Menü schließt nicht beim Klicken ins Textfeld
+                intWrapper.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">⏱️ Intervall (Sekunden)</div>`;
+                let intInput = document.createElement('input');
+                intInput.type = 'number'; intInput.min = '0.5'; intInput.step = '0.5'; intInput.value = obj.interval || 3;
+                intInput.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; box-sizing: border-box;";
+                // Live-Update beim Ändern der Zahl!
+                intInput.onchange = (e) => {
+                    let newVal = parseFloat(e.target.value);
+                    if (newVal > 0) {
+                        obj.interval = newVal;
+                        // Namensschild sofort updaten
+                        if (obj.labelEl) {
+                            let v1 = obj.linkedVar || '';
+                            obj.labelEl.textContent = v1 ? `${v1} (${newVal}s)` : `Immer an (${newVal}s)`;
+                        }
+                        saveFactoryState();
+                    }
+                };
+                intWrapper.appendChild(intInput);
+                ctxMenu.appendChild(intWrapper);
             }
             if (obj.type && obj.type.startsWith('zylinder')) {
                 // 1. NEU: Bereits montierte Sensoren auflisten und Löschen anbieten
@@ -3843,6 +3988,16 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     ctxMenu.appendChild(btnAttach);
                 }
             }
+			// NEU: Individuelle Stummschaltung für jedes Bauteil
+            let sepSound = document.createElement('div'); sepSound.style.borderTop = '1px solid #555'; sepSound.style.margin = '5px 0'; ctxMenu.appendChild(sepSound);
+            let btnMute = document.createElement('div'); btnMute.className = 'ctx-item';
+            btnMute.textContent = obj.muteSound ? '🔇 Ton: STUMM (Klicken für Ton)' : '🔊 Ton: AN (Klicken zum Stummschalten)';
+            btnMute.onclick = () => { 
+                obj.muteSound = !obj.muteSound; 
+                saveFactoryState(); 
+                ctxMenu.style.display = 'none'; // Menü nach Klick schließen
+            }; 
+            ctxMenu.appendChild(btnMute);
             let wrapRect = document.getElementById('factory-wrapper').getBoundingClientRect();
             ctxMenu.style.left = (x - wrapRect.left) + 'px'; ctxMenu.style.top = (y - wrapRect.top) + 'px'; ctxMenu.style.display = 'block';
         }
@@ -3954,9 +4109,15 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     if (obj.type.startsWith('spawner_')) {
                         let isActive = obj.linkedVar ? !!spsState[obj.linkedVar] : true;
                         if (isActive) {
+                            // FIX: Die Zeit muss hochgezählt werden!
                             obj.timeAccum = (obj.timeAccum || 0) + deltaMs;
-                            if (obj.timeAccum >= obj.interval * 1000) { obj.timeAccum -= obj.interval * 1000; spawnFactoryItem(obj.type === 'spawner_metall' ? 'metall' : 'kunststoff', obj.x + 5, obj.y + 5); }
-                        } else { obj.timeAccum = 0; }
+                            if (obj.timeAccum >= obj.interval * 1000) { 
+                                obj.timeAccum -= obj.interval * 1000; 
+                                spawnFactoryItem(obj.type.includes('metall') ? 'metall' : 'kunststoff', obj.x + 5, obj.y + 5, obj.spawnSolid); 
+                            }
+                        } else { 
+                            obj.timeAccum = 0; 
+                        }
                     } else if (obj.type === 'despawner') {
                         factoryItems = factoryItems.filter(item => {
                             if (draggedElement && draggedElement.data === item) return true;
@@ -4082,6 +4243,37 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                     if (item.y > 2000) item.el.remove(); 
                 });
+				// --- NEU: Item vs Item Kollision ---
+                for (let i = 0; i < factoryItems.length; i++) {
+                    let itA = factoryItems[i];
+                    if (!itA.isSolid) continue;
+                    for (let j = i + 1; j < factoryItems.length; j++) {
+                        let itB = factoryItems[j];
+                        if (!itB.isSolid) continue;
+                        let r = itA.width / 2; 
+                        let dx = (itA.x + r) - (itB.x + r);
+                        let dy = (itA.y + r) - (itB.y + r);
+                        let distSq = dx*dx + dy*dy;
+                        let minDistSq = (r * 2) * (r * 2); 
+                        // Wenn sie sich überlappen...
+                        if (distSq < minDistSq && distSq > 0) {
+                            let dist = Math.sqrt(distSq);
+                            let overlap = (r * 2) - dist;
+                            let nx = dx / dist; let ny = dy / dist;
+                            // 1. Auseinanderdrücken (sofortige Struktur-Korrektur!)
+                            itA.x += nx * overlap / 2; itA.y += ny * overlap / 2;
+                            itB.x -= nx * overlap / 2; itB.y -= ny * overlap / 2;
+                            // 2. Abprallen (Elastischer Stoß)
+                            let rvx = itA.vx - itB.vx; let rvy = itA.vy - itB.vy;
+                            let velAlongNormal = rvx * nx + rvy * ny;
+                            if (velAlongNormal < 0) {
+                                let bounce = -(1 + 0.2) * velAlongNormal / 2; // 0.2 = Bounciness
+                                itA.vx += bounce * nx; itA.vy += bounce * ny;
+                                itB.vx -= bounce * nx; itB.vy -= bounce * ny;
+                            }
+                        }
+                    }
+                }
                 factoryItems.forEach(item => updateObjTransform(item));
                 factoryObjects.forEach(obj => {
                     if (obj.type.startsWith('sensor_')) {
@@ -4255,12 +4447,13 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             return {
                 globalViewMode: globalViewMode,
                 // NEU: Werte runden (Math.round), da 15-stellige Kommazahlen aus der Physik den Link extrem aufblähen!
-                items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision })),
+                items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid })),
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
-                    linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, // NEU
+					thickness: o.thickness, // <--- NEU
+                    linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, spawnSolid: o.spawnSolid,
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType,
-                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned 
+                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound
                 }))
             };
         }
@@ -4286,7 +4479,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                 }
                 state.items.forEach(i => {
-                    spawnFactoryItem(i.material, i.x, i.y);
+                    spawnFactoryItem(i.material, i.x, i.y, i.isSolid);
                     let created = factoryItems[factoryItems.length - 1];
                     created.vx = i.vx || 0; created.vy = i.vy || 0; 
                     created.useGravity = i.useGravity !== undefined ? i.useGravity : true;
@@ -4294,11 +4487,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 });
                 let idMap = {};
                 state.objects.forEach(o => {
-                    let newObj = createFactoryObject(o.type, o.linkedVar || o.linkedVarExt, o.linkedVarRet, o.id, o.color, o.interval, o.linkedVar3); // NEU
+                    // FIX: var2 intelligent befüllen! Spawner brauchen 'solid'/'normal', Zylinder brauchen ihre Ret-Variable!
+                    let var2 = o.type.startsWith('spawner_') ? (o.spawnSolid ? 'solid' : 'normal') : o.linkedVarRet;
+                    let newObj = createFactoryObject(o.type, o.linkedVar || o.linkedVarExt, var2, o.id, o.color, o.interval, o.linkedVar3);
                     newObj.x = o.x; newObj.y = o.y; newObj.width = o.width; newObj.rotation = o.rotation;
                     if (o.height) newObj.height = o.height; 
                     if (o.useCollision !== undefined) newObj.useCollision = o.useCollision;
-                    // NEU: Namensschild-Zustand wiederherstellen
+					if (o.muteSound !== undefined) newObj.muteSound = o.muteSound;
+					if (o.thickness) { 
+                        newObj.thickness = o.thickness; 
+                        newObj.el.style.setProperty('--tk', o.thickness + 'px'); 
+                    }
                     if (o.labelPinned) {
                         newObj.labelPinned = true;
                         if (newObj.labelEl) newObj.labelEl.classList.add('f2d-label-pinned');
