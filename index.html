@@ -2243,22 +2243,28 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let varName = varClass.replace('circ-var-', '');
                     let val = !!spsState[varName]; 
                     let blade = el.querySelector('.circ-moving-contact');
+                    
                     let isNC = blade ? blade.classList.contains('is-nc') : el.classList.contains('is-nc-wire');
-											   
-                    let isInput = globalInputs.includes(varName); 
-                    // 1. Mechanischer Zustand (Bewegt die Kontaktklinge physisch)
-                    let isMechanicallyClosed = isNC ? (isInput ? val : !val) : val;
-                    // 2. Elektrischer Stromfluss prüfen (Prüft den Pfad von oben nach unten)
+                    let cType = el.dataset.ctype || 'relais';
+                    let isRelayContact = ['relais', 'ton', 'tof', 'tp', 'ctu'].includes(cType);
+                    
+                    // 1. Physische Klinge bewegen (Relais schalten wenn Spule=1, Hardware schaltet wenn ungedrückt/gedrückt)
+                    let isMechanicallyClosed = isRelayContact ? (isNC ? !val : val) : val;
+                    
+                    // 2. Stromfluss prüfen (Ist der Pfad von L+ bis hier intakt?)
                     let hasPower = el._checkPower ? el._checkPower(spsState) : true;
-                    // Ein Kontakt leuchtet nur, wenn er geschlossen ist UND Strom fließt. Eine Leitung leuchtet, wenn Strom fließt.
+                    
+                    // Ein Element leuchtet nur, wenn auch wirklich Strom von oben bis hierher fließt!
                     let shouldGlow = el.classList.contains('circ-wire') ? hasPower : (hasPower && isMechanicallyClosed);
+                    
                     if (isSimulationActive) {
                         // Klinge physisch öffnen/schließen
                         if (blade) {
                             if (isMechanicallyClosed) blade.classList.remove('open');
                             else blade.classList.add('open');
                         }
-                        // Farbe / Glow (Stromfluss)
+                        
+                        // Farbe (Stromfluss) animieren
                         if (shouldGlow) {
                             el.dataset.lastOn = Date.now();
                             if (el.offTimeout) { clearTimeout(el.offTimeout); el.offTimeout = null; }
@@ -2428,6 +2434,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             };
             const drawContact = (x, y, label, isNC, type, varName, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-contact-group circ-colored-group circ-var-${varName}`});
+				g.dataset.ctype = type; // <--- NEU: Diese Zeile einfügen!
                 if (color) g.style.setProperty('--logic-color', color);
                 // NEU: Zählen der Kontakte für die durchlaufende Nummerierung
                 if (varName && varName !== 'NONE') {
@@ -2601,7 +2608,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     currX += 140;
                 }
             });
-																										
+			
+			// NEU: Zentraler Helfer, der sauber zwischen Hardware-Schaltern und Relais unterscheidet!
+            const getContactNC = (edge) => {
+                if (!edge) return false;
+                let t = contactTypeMap[edge.sourceId] || 'relais';
+                // Relais-Kontakte übernehmen einfach 1:1 die Logik (inverted = NC)
+                if (['relais', 'ton', 'tof', 'tp', 'ctu'].includes(t)) return edge.inverted;
+                // Hardware-Taster müssen ihren physischen Zustand berücksichtigen!
+                let cT = componentTypes[edge.sourceId];
+                let pNC = cT === 'nothalt' || cT === 'taster_nc' || cT === 'schalter_nc';
+                return pNC ? !edge.inverted : edge.inverted;
+            };			
 																
             const nodesToDraw = Array.from(graph.nodes.values()).filter(n => ['GATE', 'RS', 'SR', 'TON', 'TOF', 'TP', 'CTU', 'OUTPUT'].includes(n.type)).sort((a,b) => a.level - b.level);
 												  
@@ -2617,9 +2635,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     inEdges.forEach((edge, idx) => {
                         let name = symMap[edge.sourceId] || edge.sourceId;
                         let type = contactTypeMap[edge.sourceId] || 'relais';
-                        let cTypeSrc = componentTypes[edge.sourceId];
-                        let physNC = cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc';
-                        let isNC = physNC ? !edge.inverted : edge.inverted;
+                        let isNC = getContactNC(edge);
                         let srcCol = getNodeColor(edge.sourceId);
                         setPower(drawContact(currX, y, name, isNC, type, edge.sourceId, srcCol, p), pCond);
                         let thisCond = getCond(edge);
@@ -2673,14 +2689,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let rName = rEdge ? (symMap[rEdge.sourceId] || rEdge.sourceId) : 'N/A';
                     let sType = sEdge ? (contactTypeMap[sEdge.sourceId] || 'relais') : 'relais';
                     let rType = rEdge ? (contactTypeMap[rEdge.sourceId] || 'relais') : 'relais';
-                    let sInverted = sEdge ? sEdge.inverted : false;
-                    if (sEdge) { let cTypeSrc = componentTypes[sEdge.sourceId]; if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') sInverted = !sInverted; }
-																	  
-																																	 
-					 
-                    let rInverted = rEdge ? rEdge.inverted : false;
-                    if (rEdge) { let cTypeSrc = componentTypes[rEdge.sourceId]; if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') rInverted = !rInverted; }
-																	  
+                    let sInverted = getContactNC(sEdge);
+					let rInverted = getContactNC(rEdge);												  
 																																	 
 					 
                     let startX = currX, parX = currX + 90;
@@ -2733,9 +2743,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let rName = rEdge ? (symMap[rEdge.sourceId] || rEdge.sourceId) : 'N/A';
                     let cuType = cuEdge ? (contactTypeMap[cuEdge.sourceId] || 'relais') : 'relais';
                     let rType = rEdge ? (contactTypeMap[rEdge.sourceId] || 'relais') : 'relais';
-                    let cuInverted = cuEdge ? cuEdge.inverted : false;
+                    let cuInverted = getContactNC(cuEdge);
                     if (cuEdge) { let cTypeSrc = componentTypes[cuEdge.sourceId]; if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') cuInverted = !cuInverted; }
-                    let rInverted = rEdge ? rEdge.inverted : false;
+                    let rInverted = getContactNC(rEdge);
                     if (rEdge) { let cTypeSrc = componentTypes[rEdge.sourceId]; if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') rInverted = !rInverted; }
                     let startX = currX, parX = currX + 90;
                     drawText(startX, yTop - 25, p1.toString(), true); drawText(parX, yTop - 25, p2.toString(), true);
@@ -2788,7 +2798,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let inEdge = inEdges.find(e => e.targetPin === 'IN');
                     let sName = inEdge ? (symMap[inEdge.sourceId] || inEdge.sourceId) : 'N/A';
                     let sType = inEdge ? (contactTypeMap[inEdge.sourceId] || 'relais') : 'relais';
-                    let sInverted = inEdge ? inEdge.inverted : false;
+                    let sInverted = getContactNC(inEdge);
                     if (inEdge) { let cTypeSrc = componentTypes[inEdge.sourceId]; if (cTypeSrc === 'nothalt' || cTypeSrc === 'taster_nc' || cTypeSrc === 'schalter_nc') sInverted = !sInverted; }
                     drawText(currX, yTop - 25, p1.toString(), true);
                     let sCol = inEdge ? getNodeColor(inEdge.sourceId) : col;
