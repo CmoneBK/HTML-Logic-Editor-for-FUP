@@ -1547,7 +1547,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             currentGraph = graph;
             // ABSOLUTER FIX: Die Bibliothek MUSS zerstört werden, bevor wir die HTML-Knoten leeren.
             // Sonst überschreibt ihr internes Backup unsere neuen Zeichnungen!
+								   
+										   
             let isFirstRun = !panZoomInstance;
+			 
             svgHalos.innerHTML = '';
             svgLines.innerHTML = '';
             svgNodes.innerHTML = '';
@@ -1787,7 +1790,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if (!type) return;
             const selectEl = document.querySelector('.btn-reset');
             // Minimales Timeout, damit das Dropdown visuell sauber schließt
+																					   
             setTimeout(() => {
+																											
                 try {
                     textarea.value = EXAMPLES[type];
                     if (EXAMPLES.types) {
@@ -1806,10 +1811,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     } else {
                         clearFactory(true); 
                     }
+																						   
+																						 
+																						
+																	
+																   
+						 
                 } catch (e) {
+																									  
                     console.error("Fehler beim Laden des Beispiels:", e);
                     alert("Fehler beim Laden: " + e.message);
                 }
+				 
                 // Dropdown wieder auf "Beispiele..." zurücksetzen
                 selectEl.selectedIndex = 0;
             }, 10);
@@ -2507,7 +2520,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             return el;
         }
         function drawCircuitPlan(graph, inputsList, outputsList, keepView = false) {
+							   
+							  
+										  
+																														 
+							   
+															   
+															 
+				 
+												  
             let isFirstRun = !panZoomCircuitInstance;
+			 
             circuitContent.innerHTML = '';
             let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1;
             let symMap = {};
@@ -4478,7 +4501,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             requestAnimationFrame(factoryLoop);
         }
         window.clearFactory = function(force = false) {
+																																			
             factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; saveFactoryState();
+			 
         };
 		// --- NEU: KEYBOARD SHORTCUTS (Kopieren, Einfügen, Löschen) ---
         let factoryClipboard = null;
@@ -5275,7 +5300,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             const menu = document.getElementById('fbs-context-menu');
             menu.innerHTML = '';
             
-																							 
+            // NEU: Globaler Such-String für ALLE erlaubten Zuweisungs-Operatoren!
+            const assignStr = "(?::=|=|<-|\\\\bIST\\\\b|\\\\bIS\\\\b|\\\\bGLEICH\\\\b)";
+            
             let datalist = document.createElement('datalist');
             datalist.id = 'fbs-var-list';
             let allVars = [...new Set([...globalInputs, ...globalOutputs])].filter(v => !v.startsWith('AND_') && !v.startsWith('OR_')).sort();
@@ -5314,8 +5341,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 
                 let currentVal = "0";
                 let outStr = node.id.substring(node.type.length + 1);
-                let regex = isTimer ? new RegExp(`^(\\s*${outStr}\\s*:=\\s*${node.type}\\s*\\([^,]+,\\s*)([\\d\\.]+)(\\s*[a-zA-Z]*\\s*\\).*)$`, 'im') 
-                                    : new RegExp(`^(\\s*${outStr}\\s*:=\\s*CTU\\s*\\([^,]+,\\s*[^,]+,\\s*)(\\d+)(\\s*\\).*)$`, 'im');
+                let regex = isTimer ? new RegExp(`^(\\s*${outStr}\\s*${assignStr}\\s*${node.type}\\s*\\([^,]+,\\s*)([\\d\\.]+)(\\s*[a-zA-Z]*\\s*\\).*)$`, 'im') 
+                                    : new RegExp(`^(\\s*${outStr}\\s*${assignStr}\\s*CTU\\s*\\([^,]+,\\s*[^,]+,\\s*)(\\d+)(\\s*\\).*)$`, 'im');
                 let match = textarea.value.match(regex);
                 if (match) currentVal = match[2];
                 
@@ -5342,7 +5369,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     btnType.style.cssText = "width: 100%; padding: 4px; background: #9c27b0; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer;";
                     btnType.onclick = () => {
                         if (match) {
-                            let typeRegex = new RegExp(`^(\\s*${outStr}\\s*:=\\s*)${node.type}(\\s*\\(.*)$`, 'im');
+                            let typeRegex = new RegExp(`^(\\s*${outStr}\\s*${assignStr}\\s*)${node.type}(\\s*\\(.*)$`, 'im');
                             textarea.value = textarea.value.replace(typeRegex, `$1${nextType}$2`);
                             updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
                         }
@@ -5381,8 +5408,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 
                 btn.onclick = () => {
                     let code = textarea.value; let lines = code.split('\n');
-                    
-                    // FIX: Echte Variablennamen für interne Systemblöcke (RS, Timer) rekonstruieren!
                     let getRealName = (id) => {
                         let n = currentGraph.nodes.get(id);
                         if (n) {
@@ -5393,24 +5418,28 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         return id;
                     };
                     let realInputs = node.inputs.map(getRealName);
-
-                    // Nutzt jetzt 'realInputs' statt 'node.inputs' für die Suche im Text!
-                    let lineIdx = lines.findIndex(l => realInputs.every(inp => l.toUpperCase().includes(inp.toUpperCase())) && l.includes(':='));
+                    
+                    let assignRegex = /(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i;
+                    let lineIdx = lines.findIndex(l => realInputs.every(inp => l.toUpperCase().includes(inp.toUpperCase())) && assignRegex.test(l));
                     if (lineIdx !== -1) {
-                        let parts = lines[lineIdx].split(':=');
-                        if (parts.length === 2) {
-                            let rhs = parts[1]; let targetOp = isAnd ? '||' : '&&';
-                            for (let i = 0; i < realInputs.length - 1; i++) {
-                                for (let j = i + 1; j < realInputs.length; j++) {
-                                    let s1 = realInputs[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
-                                    let s2 = realInputs[j].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                    let r1 = new RegExp(`(${s1}\\s*(?:\\)|!|¬)*\\s*)(&&|&|AND|∧|\\|\\||\\||OR|∨)(\\s*(?:\\(|!|¬)*\\s*${s2})`, 'gi');
-                                    let r2 = new RegExp(`(${s2}\\s*(?:\\)|!|¬)*\\s*)(&&|&|AND|∧|\\|\\||\\||OR|∨)(\\s*(?:\\(|!|¬)*\\s*${s1})`, 'gi');
-                                    rhs = rhs.replace(r1, `$1${targetOp}$3`).replace(r2, `$1${targetOp}$3`);
+                        let match = lines[lineIdx].match(assignRegex);
+                        if (match) {
+                            let parts = lines[lineIdx].split(match[0]);
+                            if (parts.length === 2) {
+                                let rhs = parts[1]; let targetOp = isAnd ? '||' : '&&';
+                                for (let i = 0; i < realInputs.length - 1; i++) {
+                                    for (let j = i + 1; j < realInputs.length; j++) {
+                                        let s1 = realInputs[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+                                        let s2 = realInputs[j].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                        let r1 = new RegExp(`(${s1}\\s*(?:\\)|!|¬)*\\s*)(&&|&|AND|UND|∧|\\|\\||\\||OR|ODER|∨|v)(\\s*(?:\\(|!|¬)*\\s*${s2})`, 'gi');
+                                        let r2 = new RegExp(`(${s2}\\s*(?:\\)|!|¬)*\\s*)(&&|&|AND|UND|∧|\\|\\||\\||OR|ODER|∨|v)(\\s*(?:\\(|!|¬)*\\s*${s1})`, 'gi');
+                                        rhs = rhs.replace(r1, `$1${targetOp}$3`).replace(r2, `$1${targetOp}$3`);
+                                    }
                                 }
+                                lines[lineIdx] = parts[0] + match[0] + rhs; 
+                                textarea.value = lines.join('\n');
+                                updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
                             }
-                            lines[lineIdx] = parts[0] + ':=' + rhs; textarea.value = lines.join('\n');
-                            updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
                         }
                     }
                 };
@@ -5424,7 +5453,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             let ioTitle = document.createElement('div'); ioTitle.style.cssText = 'color: #aaa; font-size: 10px; margin-bottom: 5px; border-bottom: 1px dashed #555; padding-bottom: 3px; margin-top: 5px;'; 
             ioTitle.innerHTML = '🔌 Anschlüsse / Zuweisung'; ioWrap.appendChild(ioTitle);
 
-			  
            	// Hilfsfunktion 1: Formel statt ID anzeigen
             const getDisp = (id) => {
                 let n = currentGraph.nodes.get(id);
@@ -5480,21 +5508,21 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let code = textarea.value;
                 if (!newRHS) newRHS = 'FALSE';
                 if (rootNode.type === 'OUTPUT') {
-                    let regex = new RegExp(`^(\\s*${rootNode.id}\\s*:=).*$`, 'im');
+                    let regex = new RegExp(`^(\\s*${rootNode.id}\\s*${assignStr}).*$`, 'im');
                     code = code.replace(regex, `$1 ${newRHS}`);
                 } else if (rootNode.type === 'RS' || rootNode.type === 'SR') {
                     let num = rootNode.id.match(/\d+/)[0];
                     let prefix = pin + num + (rootNode.type === 'SR' ? '_SR' : '');
-                    let regex = new RegExp(`^(\\s*${prefix}\\s*:=).*$`, 'im');
+                    let regex = new RegExp(`^(\\s*${prefix}\\s*${assignStr}).*$`, 'im');
                     if(regex.test(code)) code = code.replace(regex, `$1 ${newRHS}`);
                     else code += `\n${prefix} := ${newRHS}`;
                 } else if (['TON', 'TOF', 'TP'].includes(rootNode.type)) {
                     let outStr = rootNode.id.substring(rootNode.type.length + 1);
-                    let regex = new RegExp(`^(\\s*${outStr}\\s*:=\\s*${rootNode.type}\\s*\\()([^,]+)(,.*)$`, 'im');
+                    let regex = new RegExp(`^(\\s*${outStr}\\s*${assignStr}\\s*${rootNode.type}\\s*\\()([^,]+)(,.*)$`, 'im');
                     code = code.replace(regex, `$1${newRHS}$3`);
                 } else if (rootNode.type === 'CTU') {
                     let outStr = rootNode.id.substring(rootNode.type.length + 1);
-                    let regex = new RegExp(`^(\\s*${outStr}\\s*:=\\s*CTU\\s*\\()([^,]+)\\s*,\\s*([^,]+)(,.*)$`, 'im');
+                    let regex = new RegExp(`^(\\s*${outStr}\\s*${assignStr}\\s*CTU\\s*\\()([^,]+)\\s*,\\s*([^,]+)(,.*)$`, 'im');
                     let match = code.match(regex);
                     if (match) {
                         let cu = pin === 'CU' ? newRHS : match[2]; let r = pin === 'R' ? newRHS : match[3];
@@ -5504,7 +5532,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 return code;
             };
 
-				  
             // Hilfsfunktion 5: Verwaiste Variablen ("Limbus") abfangen!
             const checkOrphan = (oldVar, newCode) => {
                 // FIX: Systemblöcke dürfen niemals als verwaiste Inputs im Limbus landen!
@@ -5653,11 +5680,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             btnDel.innerHTML = '🗑️ Baustein löschen';
             btnDel.style.cssText = "width: 100%; padding: 6px; background: #b71c1c; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);";
             
-            btnDel.onclick = () => {            
+            btnDel.onclick = () => {
+																								   
+				
                 let code = textarea.value;
                 let lines = code.split('\n');
                 
-                // 1. Sammle alle Eingänge, die in diesen Block fließen (potenzielle Waisen)
                 let possibleOrphans = new Set();
                 let traverseOrphans = (id) => {
                     let edges = currentGraph.edges.filter(e => e.targetId === id);
@@ -5669,33 +5697,35 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 };
                 if (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU', 'OUTPUT', 'GATE'].includes(node.type)) traverseOrphans(node.id);
 
-                // 2. Lösche den Block sicher
+                // FIX: Intelligente Such-Funktion für das Löschen ganzer Zeilen (ignoriert die Art der Zuweisung)
+                let assignOpTest = (line, varName) => new RegExp(`^\\s*${varName}\\s*${assignStr}`, 'i').test(line);
+
                 if (['RS', 'SR'].includes(node.type)) {
                     let num = node.id.match(/\d+/)[0];
                     let isSR = node.type === 'SR';
                     let sVar = isSR ? `S${num}_SR` : `S${num}`;
                     let rVar = isSR ? `R${num}_SR` : `R${num}`;
-																					
+                    lines = lines.filter(l => !(assignOpTest(l, sVar) || assignOpTest(l, rVar)));
 											   
 											
-                    lines = lines.filter(l => !(l.trim().startsWith(sVar + ' :=') || l.trim().startsWith(sVar + ':=') || l.trim().startsWith(rVar + ' :=') || l.trim().startsWith(rVar + ':=')));
+																																								 
 					   
                     code = lines.join('\n');
                 } else if (['TON', 'TOF', 'TP', 'CTU'].includes(node.type)) {
                     let outStr = node.id.substring(node.type.length + 1);
-											   
+                    lines = lines.filter(l => !assignOpTest(l, outStr));
 											
-                    lines = lines.filter(l => !(l.trim().startsWith(outStr + ' :=') || l.trim().startsWith(outStr + ':=')));
+																									
 					   
                     code = lines.join('\n');
                 } else if (node.type === 'OUTPUT') {
-											   
+                    lines = lines.filter(l => !assignOpTest(l, node.id));
 											
-                    lines = lines.filter(l => !(l.trim().startsWith(node.id + ' :=') || l.trim().startsWith(node.id + ':=')));
+																																			 
 					   
                     code = lines.join('\n');
                 } else if (node.type === 'GATE' || node.type === 'INPUT' || node.type === 'PURE_INPUT') {
-                    // Finde alle Verbindungen, die von diesem Block ausgehen, und berechne deren Äste neu!
+																						  
                     let outEdges = currentGraph.edges.filter(e => e.sourceId === node.id);
                     if (outEdges.length > 0) {
                         outEdges.forEach(outEdge => {
@@ -5707,7 +5737,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 let rootInEdges = currentGraph.edges.filter(e => e.targetId === rootCtx.targetNode.id && e.targetPin === rootCtx.targetPin);
                                 let newRHS = rootInEdges.length > 0 ? rebuildGraphExpr(rootInEdges[0]) : 'FALSE';
                                 code = updateRHS(rootCtx.targetNode, rootCtx.targetPin, newRHS);
-                                textarea.value = code; // Sofort überschreiben für den nächsten Schleifendurchlauf
+                                textarea.value = code; 
                             }
                         });
                     }
@@ -5717,17 +5747,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                 }
                 
-                // 3. Waisen sicher im Limbus ablegen
                 possibleOrphans.forEach(v => { code = checkOrphan(v, code); });
                 
+													   
                 textarea.value = cleanRedundantInputs(code);
                 updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
 											
             };
             delWrap.appendChild(btnDel); menu.appendChild(delWrap);
 									  
+			
             
-				  
             let wrapper = customSvg.closest('.workspace-panel') || document.getElementById('fbs-wrapper');
             let wrapRect = wrapper.getBoundingClientRect();
             menu.style.left = (x - wrapRect.left + 10) + 'px'; 
