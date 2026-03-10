@@ -16,10 +16,6 @@ A powerful, browser-based logic circuit IDE, electrical schematic generator, and
 
 ## ✨ Features
 
-### 🖥️ Multi-Panel IDE Workspace
-* **Customizable Layout:** Open up to 3 views simultaneously (Logic, Circuit, Factory). Resize panels dynamically using draggable splitters, or toggle between vertical/horizontal and professional grid layouts.
-* **Auto-Save & Project Files:** Never lose your work. The editor auto-saves to `localStorage`. You can also export/import your entire project (code, components, and 2D layout) as `.valisave` files or copy-paste raw JSON. The save system is fully backwards-compatible.
-
 ### 🧠 Logic Engine & Code Editor
 * **Native RS & SR Flip-Flop Support:** Variables starting with `S`, `R`, and `Q` followed by a number are automatically detected and wrapped into dedicated Flip-Flop logic blocks. You can explicitly create Reset-dominant (RS) or Set-dominant (SR) flip-flops by appending the respective suffixes (`_RS` or `_SR`).
 * **Syntax Highlighting:** Custom, non-blocking text highlighting for operators, assignments, and logic states.
@@ -30,14 +26,32 @@ A powerful, browser-based logic circuit IDE, electrical schematic generator, and
 2. **Schaltplan (IEC):** Automatic generation of traditional electrical circuit diagrams (relays, contacts, valves, LEDs). Adapts dynamically to NC (Normally Closed) and NO (Normally Open) logic.
 3. **SVG Export:** Download your cleanly routed diagrams as `.svg` files (retains CSS rendering properties).
 
+### 🎛️ Interactive Visual Editor (Two-Way Binding)
+* **Click-to-Edit:** Right-click any block in the Logic Plan (FBS) to seamlessly alter its configuration. Change variables, swap logic gates (AND <-> OR), cycle timer types, or delete components.
+* **Smart Reverse-Parsing:** Any visual change made in the logic graph instantly rewrites the underlying text code perfectly formatted. Disconnected variables are safely stored in a "Limbo" (`INPUT`) state to prevent data loss.
+
 ### 🏭 2D Factory Physics Simulator (Digital Twin)
 * **Background Simulation:** The physics engine runs seamlessly in the background. If a sensor triggers in the factory, the logic gate switches, and the IEC relay activates—all in real-time.
 * **Kinematics & Attachments:** Mount objects (like pushers, windows, or sensors) to cylinder rods. When the cylinder extends, all attached children move with it perfectly synchronized.
 * **Physics & Collisions:** Fully integrated OBB (Oriented Bounding Box) math engine. Items interact with conveyor belts, fall via gravity, and collide with walls, pushers, or frames.
-* **Advanced Sensors:** * `Inductive`: Detects only metallic objects (FE items, metal frames, aluminum window edges).
+* **Advanced Sensors:**
+  * `Inductive`: Detects only metallic objects (FE items, metal frames, aluminum window edges).
   * `Capacitive` / `Optical`: Detects all physical objects.
   * `Magnetic (Reed)`: Snaps directly to cylinders to detect rod extension/retraction.
 * **Sandbox Controls:** Multi-select, copy/paste (Ctrl+C / Ctrl+V), rotate, scale, and delete components. Drag & drop elements like Spawners, Despawners, Safety Doors (Alu/Glass), Presses, and L-shaped Pushers.
+*  **Web Audio API Synthesizer:** Zero-byte procedural sound engine! Hear mechanical relay clacks, pneumatic cylinder hisses, and synthetic UI clicks based strictly on the physics state.
+* **Plugin Architecture:** Expand the factory with custom components via the Plugin Manager (e.g., Signal Towers, 7-Segment Displays, Rotational Turntables, and Metal Presses).
+* **Advanced Physics:** Items feature elastic collisions and bounce off each other.
+
+### 📊 Logic Analyzer (Oscilloscope)
+* **Real-time Signal Tracking:** Open the built-in logic analyzer to plot boolean states (High/Low) over time, exactly like an EKG or a professional hardware oscilloscope.
+
+### 🖥️ Multi-Panel IDE Workspace
+* **Customizable Layout:** Open up to 3 views simultaneously (Logic, Circuit, Factory). Resize panels dynamically using draggable splitters, or toggle between vertical/horizontal and professional grid layouts.
+* **Auto-Save & Project Files:** Never lose your work. The editor auto-saves to `localStorage`. You can also export/import your entire project (code, components, and 2D layout) as `.valisave` files or copy-paste raw JSON. The save system is fully backwards-compatible.
+* **Multi-Monitor Support (Pop-Outs):** Detach any panel (Logic, Circuit, Factory, or Oscilloscope) into its own native browser window to utilize multiple monitors. The engine maintains real-time synchronization across all screens.
+* **Deep Linking & QR Codes:** Share your exact factory and code state via URL. The built-in LZString compression generates tiny, shareable links and crisp QR Codes directly in the app.
+* **AI Prompt Generator:** Built-in tool to generate perfect prompts for ChatGPT/Claude/Gemini to translate textual automation scenarios directly into VALIS-compatible JSON code.
 
 ## 🚀 Quick Start
 
@@ -62,6 +76,15 @@ The editor uses a straightforward, pseudo-code style syntax to define logic gate
 If you name your variables using `S`, `R`, and `Q` followed by a number (e.g., `1`), the engine automatically groups them into a **Flip-Flop block**. You can define priority behavior by adding suffixes:
 * **RS (Reset-dominant, Default):** `S1` / `S1_RS` and `R1` / `R1_RS` create an RS block with the output `Q1` / `Q1_RS`. If both inputs are true simultaneously, Reset wins (Standard for machine safety).
 * **SR (Set-dominant):** `S1_SR` and `R1_SR` create an SR block with the output `Q1_SR`. If both inputs are true simultaneously, Set wins.
+
+### Timers & Counters
+The engine natively supports industrial timing and counting functions:
+* **`TON(Signal, Seconds)`**: On-Delay Timer. Output turns true after the signal is held for the specified time.
+* **`TOF(Signal, Seconds)`**: Off-Delay Timer. Output remains true for the specified time after the signal drops.
+* **`TP(Signal, Seconds)`**: Pulse Timer. A brief input triggers a fixed-length output pulse.
+* **`CTU(Count_Signal, Reset_Signal, Limit)`**: Count Up. Increments on a rising edge. Output turns true when the limit is reached.
+
+*Example:* `WARNING_LED := TON(ERROR_SENSOR, 2.5)`
 
 ### Example Code
 
@@ -109,9 +132,7 @@ Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Phys
 
 ## ✨ Funktionen
 
-### 🖥️ Multi-Panel IDE Workspace
-* **Dynamisches Layout:** Öffnen Sie bis zu 3 Ansichten gleichzeitig (Logik, Schaltplan, 2D Anlage). Verschieben Sie die Zwischenräume (Splitter) stufenlos oder wechseln Sie zwischen flexibler Anordnung und festen Profi-Rastern.
-* **Auto-Save & Projektdateien:** Der Editor speichert kontinuierlich im `localStorage`. Projekte (inkl. Code, Bauteilzuweisungen und der kompletten 2D-Matrix) können als `.valisave`-Datei exportiert/importiert oder als Raw-JSON kopiert werden. Alte Speicherstände sind aufwärtskompatibel.
+
 
 ### 🧠 Logik-Engine & Code-Editor
 * **Native RS- & SR-Flip-Flop Unterstützung:** Der Compiler erkennt Variablen mit `S`, `R` und `Q` (gefolgt von einer Zahl) automatisch und fasst sie in speziellen Speicherbausteinen zusammen. Über die Suffixe `_RS` und `_SR` können Sie explizit zwischen rücksetzdominanten und setzdominanten Gliedern wählen.
@@ -123,14 +144,32 @@ Eine leistungsstarke, browserbasierte Logik-IDE, Schaltplangenerator und 2D-Phys
 2. **Schaltplan (IEC):** Automatische Erstellung von klassischen Stromlaufplänen (Relais, Kontakte, Ventile, Meldeleuchten). Passt sich dynamisch an Öffner (NC) und Schließer (NO) an.
 3. **SVG-Export:** Laden Sie die Pläne als saubere `.svg`-Dateien herunter.
 
+### 🎛️ Interaktiver Visueller Editor (Two-Way Binding)
+* **Klicken & Bearbeiten:** Per Rechtsklick auf Bausteine im Logikplan (FBS) können Sie direkt in die Logik eingreifen. Variablen umbenennen, Gatter-Typen tauschen (UND <-> ODER), Timer-Zeiten ändern oder Knoten löschen.
+* **Smart Reverse-Parsing:** Jede visuelle Änderung wird in Millisekunden in den Quellcode links zurückgeschrieben. Abgeklemmte Variablen gehen nicht verloren, sondern werden sicher im Limbus (`INPUT`) geparkt.
+
 ### 🏭 2D Anlagen-Physiksimulator (Digitaler Zwilling)
 * **Hintergrund-Simulation:** Die Physikengine läuft nahtlos im Hintergrund weiter. Löst ein Sensor in der 2D-Fabrik aus, schaltet das Logikgatter und zieht den IEC-Schütz an – alles synchron in Echtzeit.
 * **Kinematik & Anbauteile:** Montieren Sie Objekte (wie Schieber, Schutztüren oder Sensoren) per Rechtsklick an Zylinderkolben. Fährt der Zylinder aus, bewegen sich alle montierten Bauteile physikalisch korrekt mit.
 * **Physik & Kollision:** Echte Mathematik-Engine. Werkstücke fallen auf Förderbänder, werden transportiert und kollidieren mit Wänden, L-Schiebern und Pressen.
-* **Erweiterte Sensorik:** * `Induktiv`: Erkennt nur metallische Objekte (Metallblöcke, Riffelblech, Alu-Rahmen von Türen).
+* **Erweiterte Sensorik:**
+* * `Induktiv`: Erkennt nur metallische Objekte (Metallblöcke, Riffelblech, Alu-Rahmen von Türen).
   * `Kapazitiv` / `Optisch`: Erkennt alle physischen Objekte.
   * `Magnetisch (Reed)`: Lässt sich an Zylinder anheften, um die Endlagen des internen Magneten abzufragen.
 * **Sandbox-Steuerung:** Multi-Select (Auswahlrahmen), Kopieren/Einfügen (Strg+C / Strg+V), Drehen, Skalieren und Löschen von Bauteilen.
+* **Web Audio API Synthesizer:** Prozedurale Sound-Engine (0 Bytes!). Hören Sie das mechanische Klackern von Relais, das Zischen von Pneumatik-Zylindern und das Klicken von Tastern passend zum physikalischen Zustand.
+* **Plugin-Architektur:** Erweitern Sie die Anlage über den Plugin-Manager mit Sonderbauteilen (Signalsäulen, 7-Segment-Anzeigen, Drehtischen oder Pressstempeln).
+* **Erweiterte Physik:** Werkstücke besitzen nun elastische Hitboxen und prallen realistisch voneinander ab.
+
+### 📊 Logik-Analysator (Oszilloskop)
+* **Echtzeit-Signalverfolgung:** Öffnen Sie das Oszilloskop, um Signalflanken (High/Low) aller Ein- und Ausgänge wie bei einem EKG präzise über die Zeit aufzuzeichnen und auszuwerten.
+
+### 🖥️ Multi-Panel IDE Workspace & Tools
+* **Dynamisches Layout:** Öffnen Sie bis zu 3 Ansichten gleichzeitig (Logik, Schaltplan, 2D Anlage). Verschieben Sie die Zwischenräume (Splitter) stufenlos oder wechseln Sie zwischen flexibler Anordnung und festen Profi-Rastern.
+* **Auto-Save & Projektdateien:** Der Editor speichert kontinuierlich im `localStorage`. Projekte (inkl. Code, Bauteilzuweisungen und der kompletten 2D-Matrix) können als `.valisave`-Datei exportiert/importiert oder als Raw-JSON kopiert werden. Alte Speicherstände sind aufwärtskompatibel.
+* **Multi-Monitor Support (Pop-Outs):** Koppeln Sie beliebige Fenster (Logik, Schaltplan, Anlage oder Oszilloskop) als eigenständige Browser-Fenster ab, um auf mehreren Bildschirmen zu arbeiten. Alles bleibt in Echtzeit synchronisiert.
+* **Deep Links & QR Codes:** Teilen Sie Ihre komplette Anlage inkl. Code als einfachen Link. Die integrierte LZString-Komprimierung erzeugt winzige URLs und scanbare QR-Codes direkt im Tool.
+* **KI-Prompt Generator:** Ein integrierter Assistent, der maßgeschneiderte Prompts für ChatGPT/Claude/Gemini erstellt, um textuelle Aufgabenstellungen sofort in VALIS-kompatiblen Code übersetzen zu lassen.
 
 ## 🚀 Schnellstart
 
@@ -155,6 +194,15 @@ Der Editor verwendet eine einfache Syntax im Pseudocode-Stil, um Logikgatter und
 Wenn Sie Ihre Variablen mit `S`, `R` und `Q` gefolgt von einer Zahl (z.B. `1`) benennen, gruppiert die Engine diese automatisch in einen **Flip-Flop-Baustein**. Über Suffixe bestimmen Sie das Dominanz-Verhalten:
 * **RS (Rücksetz-dominant, Standard):** `S1` / `S1_RS` und `R1` / `R1_RS` erzeugen ein RS-Glied mit dem Ausgang `Q1` / `Q1_RS`. Liegen beide Signale an, gewinnt das Rücksetzen (Industrieller Sicherheitsstandard).
 * **SR (Setz-dominant):** `S1_SR` und `R1_SR` erzeugen ein SR-Glied mit dem Ausgang `Q1_SR`. Liegen beide Signale an, gewinnt das Setzen.
+
+### Zeit- und Zählglieder (Timers & Counters)
+Die Engine unterstützt industrielle Standard-Funktionen out-of-the-box:
+* **`TON(Signal, Sekunden)`**: Einschaltverzögert. Schaltet den Ausgang erst ein, wenn das Signal für die angegebene Zeit anliegt.
+* **`TOF(Signal, Sekunden)`**: Ausschaltverzögert. Hält den Ausgang nach Abfall des Signals noch für die angegebene Zeit aktiv.
+* **`TP(Signal, Sekunden)`**: Impuls. Ein kurzer Trigger erzeugt ein Signal mit exakt der angegebenen Dauer.
+* **`CTU(Zähl_Signal, Reset, Limit)`**: Vorwärtszähler. Zählt bei positiver Flanke hoch. Der Ausgang schaltet, sobald das Limit erreicht ist.
+
+*Beispiel:* `WARN_LED := TON(FEHLER_SENSOR, 2.5)`
 
 ### Beispielcode
 
