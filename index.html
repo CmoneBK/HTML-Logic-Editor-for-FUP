@@ -471,6 +471,20 @@
         .factory-zoom-controls button:hover { background: #eee; }
         .factory-zoom-controls button:active { background: #ddd; transform: scale(0.95); }
 		.token.func { color: #DCDCAA; font-weight: bold; }
+		/* NEU: Drag & Drop visuelles Feedback (Neon-Cyan Leuchten) */
+        .fbs-drag-target {
+            stroke: #00e5ff !important;
+            filter: drop-shadow(0 0 6px #00e5ff) !important;
+            stroke-width: 4.5px !important;
+            transition: stroke 0.1s, filter 0.1s, stroke-width 0.1s !important;
+        }
+        .tool-btn.drag-active-target {
+            box-shadow: 0 0 15px #00e5ff, inset 0 0 10px rgba(0, 229, 255, 0.4) !important;
+            border-color: #00e5ff !important;
+            color: #fff !important;
+            transform: scale(1.05);
+            transition: all 0.1s;
+        }
     </style>
 </head>
 <body>
@@ -734,7 +748,6 @@
 		<div id="fbs-add-modal" style="display: none; position: absolute; top: 15%; left: 35%; background: #2d2d30; padding: 20px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.8); z-index: 3000; width: 320px;">
             <h3 id="fbs-add-title" style="margin-top: 0; font-size: 14px; color: #fff; border-bottom: 1px solid #555; padding-bottom: 8px;">Baustein hinzufügen</h3>
             <input type="hidden" id="fbs-add-type">
-			
             <div id="fbs-add-out-grp" style="margin-bottom: 10px;">
                 <label style="color: #9CDCFE; font-size: 11px; display: block; margin-bottom: 3px; font-weight: bold;">Ziel-Variable (Ausgang / Ergebnis)</label>
                 <input type="text" id="fbs-add-out" list="fbs-var-list" placeholder="z.B. MOTOR_1 oder Q1" style="width: 100%; padding: 6px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 12px; box-sizing: border-box;">
@@ -751,7 +764,6 @@
                 <label id="fbs-add-param-lbl" style="color: #aaa; font-size: 11px; display: block; margin-bottom: 3px;">Parameter</label>
                 <input type="number" id="fbs-add-param" step="0.1" min="0.1" value="2.0" style="width: 100%; padding: 6px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 12px; box-sizing: border-box;">
             </div>
-			
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
                 <button onclick="document.getElementById('fbs-add-modal').style.display='none'" style="background: #555; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer;">Abbrechen</button>
                 <button onclick="confirmFbsAdd()" style="background: #4caf50; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-weight: bold;">Generieren</button>
@@ -1015,7 +1027,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     {"id":"wall1","type":"wall","x":460,"y":340,"width":100,"rotation":90,"useCollision":true}
                 ]
             }, // <--- WICHTIG: Hier ein Komma anfügen!
-			
             // NEU: Die Master-Demo als völlig eigenständiges Paket
             full_demo: {
             code: `// --- 1. HAUPTSCHALTER (RS-Glied) ---\nS1 := START\nR1 := ¬STOP || Q2_SR\nSYS_ON := Q1\n\n// --- 2. NOT-HALT SPEICHER (SR-Glied) ---\nS2_SR := ¬NOTHALT\nR2_SR := RESET\nALARM := Q2_SR\n\n// --- 3. MATERIALFLUSS & ZÄHLER ---\nBAND := SYS_ON && ¬STAMP_PULSE && ¬BOX_FULL\nBOX_FULL := CTU(S_ENDE, RESET, 5)\n\n// --- 4. BEARBEITUNG (TP & TOF) ---\nSTAMP_REQ := S_MITTE && SYS_ON\nSTAMP_PULSE := TP(STAMP_REQ, 1.5)\nSTEMPEL := STAMP_PULSE\nLUEFTER := TOF(STAMP_PULSE, 3.0)\n\n// --- 5. ABTRANSPORT (TON) ---\nEJECT_READY := TON(S_ENDE, 1.0)\nAUSWERFER := EJECT_READY && SYS_ON`,
@@ -1056,6 +1067,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     { id: "sens1", type: "sensor_ind", x: 249, y: 258, width: 20, height: 40, rotation: 180, linkedVar: "S_MITTE", color: "green", interval: 3, useCollision: false, labelPinned: false },
                     { id: "zyl1", type: "zylinder_single", x: 200, y: 131, width: 50, height: 30, rotation: 90, linkedVarExt: "STEMPEL", color: "blue", interval: 3, speed: 2.5, useCollision: true, labelPinned: false },
                     { id: "pr1", type: "press", x: 196, y: 170, width: 60, height: 40, rotation: 0, parentId: "zyl1", attachmentType: "rod", isMetallic: true, color: "green", interval: 3, useCollision: true, labelPinned: false },
+					{ id: "fan1", type: "fan", x: 130, y: 220, width: 60, height: 60, rotation: 0, linkedVar: "LUEFTER", useCollision: false, labelPinned: false },
                     { id: "sens2", type: "sensor_opt", x: 269, y: 181, width: 20, height: 40, rotation: 90, linkedVar: "S_ENDE", color: "green", interval: 3, useCollision: false, labelPinned: false },
                     { id: "zyl2", type: "zylinder_single", x: 312, y: 383, width: 100, height: 30, rotation: 0, linkedVarExt: "AUSWERFER", color: "yellow", interval: 3, speed: 15, useCollision: true, labelPinned: false },
                     { id: "pu1", type: "pusher", x: 412, y: 350, width: 341, height: 94, rotation: 0, thickness: 15, parentId: "zyl2", attachmentType: "rod", isMetallic: true, color: "green", interval: 3, useCollision: true, labelPinned: false },
@@ -1296,12 +1308,20 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             addNode(id, type, label = id) {
                 if (!this.nodes.has(id)) {
                     let c = '#333';
-                    // FIX: Hier hat das SR-Glied gefehlt, weshalb es unsichtbar dunkelgrau gezeichnet wurde!
                     if (type === 'INPUT' || type === 'GATE' || type === 'RS' || type === 'SR') {
                         c = palette[this.colorIndex % palette.length];
                         this.colorIndex++;
                     }
                     this.nodes.set(id, { id, type, label, inputs: [], x: 0, y: 0, level: 0, color: c });
+                } else {
+                    // FIX: Intelligentes Typ-Upgrade! 
+                    // Wenn eine Variable zuerst als INPUT eingelesen wurde, sich später aber 
+                    // als OUTPUT oder Systembaustein entpuppt, wird der Typ korrigiert!
+                    let existing = this.nodes.get(id);
+                    if (existing.type === 'INPUT' && type !== 'INPUT') {
+                        existing.type = type;
+                        if (label !== id) existing.label = label;
+                    }
                 }
                 return this.nodes.get(id);
             }
@@ -1326,10 +1346,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             const rsBlocks = new Map(); // NEU: Map statt Set für RS/SR Unterscheidung
             const exprCache = new Map();
             // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
-            // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
-				
                 // Explizite Input-Deklaration fängt Limbus-Variablen sicher und sauber auf!
                 let inputMatch = cleanLine.match(/^INPUT\s+([a-zA-Z0-9_]+)$/i);
                 if (inputMatch) {
@@ -1338,10 +1356,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     allUsedInputs.add(varName);
                     return; 
                 }
-
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
-				
                 // FIX: Hier registrieren wir alle RS/SR-Blöcke vorab, 
                 // damit Ausgänge (Q) auch gefunden werden, wenn sie weiter oben im Text stehen!
                 let parts = cleanLine.split(':=');
@@ -1453,15 +1469,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     graph.addNode(outputStr, 'OUTPUT', outputStr);
                     graph.addEdge(blockId, outputStr, 'Q', false);
                     definedOutputs.add(outputStr);
-                    
                     // FIX: Intelligente Eingangsprüfung! Ist die Quelle ein anderer Timer/Zähler, müssen wir dessen .q abfragen!
                     let sourceIsTimer = sourceObj.id.startsWith('TON_') || sourceObj.id.startsWith('TOF_') || sourceObj.id.startsWith('TP_') || sourceObj.id.startsWith('CTU_');
                     let inVarQuery = sourceIsTimer ? `(timers['${sourceObj.id}'] ? timers['${sourceObj.id}'].q : false)` : `state['${sourceObj.id}']`;
-
                     // SPS Code für Timer 
                     jsCompiledCode += `    if (!timers['${blockId}']) timers['${blockId}'] = { et: 0, q: false, active: false, lastIn: false };\n`;
                     jsCompiledCode += `    let in_${blockId} = ${sourceObj.inverted ? '!' : ''}${inVarQuery};\n`;
-                    
                     if (funcType === 'TON') {
                         jsCompiledCode += `    if (in_${blockId}) { timers['${blockId}'].et += deltaMs; if (timers['${blockId}'].et >= ${ptVal * 1000}) timers['${blockId}'].q = true; } else { timers['${blockId}'].et = 0; timers['${blockId}'].q = false; }\n`;
                     } else if (funcType === 'TOF') {
@@ -1571,24 +1584,44 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 if (!columns[node.level]) columns[node.level] = [];
                 columns[node.level].push(node);
             });
-            const COLUMN_WIDTH = 220;
-            const MIN_GAP = 25; 
-            Object.keys(columns).forEach(level => {
+            
+            // =========================================================
+            // NEU: DYNAMISCHE SPALTENBREITE
+            // =========================================================
+            const MIN_GAP = 20;       // Abstand untereinander (vertikal)
+            const WIRE_PADDING = 70;  // Platz für die Kabel ZWISCHEN den Spalten
+            let currentX = 40;        // Start-X der allerersten Spalte
+
+            // Wichtig: Levels sortieren, damit wir sauber von links nach rechts zeichnen
+            let sortedLevels = Object.keys(columns).sort((a,b) => parseInt(a) - parseInt(b));
+
+            sortedLevels.forEach(level => {
                 let totalHeight = 0;
+                let maxColumnWidth = 0;
+
+                // 1. Abmessen: Wie breit und hoch wird diese Spalte maximal?
                 columns[level].forEach(node => {
-                    // NEU: Breite und Höhe für RS, SR, Timer und Zähler auf einheitliche Größe setzen
+                    // Breite & Höhe der Nodes berechnen (Zahlen/Gatter sind fix, Text ist dynamisch)
                     node.width = (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(node.type)) ? 55 : (node.type === 'GATE' ? 45 : Math.max(60, node.label.length * 8 + 10));
                     node.height = (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(node.type)) ? 65 : (node.type === 'GATE' ? Math.max(30, node.inputs.length * 15 + 15) : 30);
-                    // WICHTIG: Diese Zeile bleibt exakt wie sie war!
+                    
                     totalHeight += node.height + MIN_GAP;
+                    if (node.width > maxColumnWidth) maxColumnWidth = node.width;
                 });
+                
                 totalHeight -= MIN_GAP;
-                let currentY = Math.max(40, (600 - totalHeight) / 2); 
+                let currentY = Math.max(40, (600 - totalHeight) / 2); // Vertikal zentrieren
+                
+                // 2. Platzieren: Alle Bausteine dieses Levels in die aktuelle X-Spalte setzen
                 columns[level].forEach(node => {
-                    node.x = 40 + parseInt(level) * COLUMN_WIDTH;
+                    node.x = currentX;
                     node.y = currentY;
                     currentY += node.height + MIN_GAP; 
                 });
+
+                // 3. Weiterrücken: Den X-Cursor für die *nächste* Spalte berechnen
+                // (Maximale Breite der aktuellen Spalte + Platz für die Kabel)
+                currentX += maxColumnWidth + WIRE_PADDING;
             });
         }
         function findFreeY(startY, x1, x2, nodes, horizontalUsage) {
@@ -1891,23 +1924,19 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             setTimeout(() => {
                 try {
                     let exData = EXAMPLES[type];
-					
                     // FIX: Unterscheidung zwischen alten Strings (reiner Code) und neuen Objekten (volle Anlage)
                     let newCode = typeof exData === 'string' ? exData : exData.code;
                     let newTypes = typeof exData === 'string' ? EXAMPLES.types : exData.types;
                     let newFactory = typeof exData === 'string' ? EXAMPLES.factory : exData.factory;
-
                     textarea.value = newCode;
                     if (newTypes) {
                         componentTypes = { ...newTypes };
                         localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
                     }
-					
                     spsState = {};
                     updateHighlighting(); 
                     updateEditor(); 
                     saveToStorage();
-					
                     // Anlage aufbauen und Physik vorbereiten
                     if (newFactory) {
                         newFactory.globalViewMode = 'side';
@@ -3469,17 +3498,14 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let sRad = (sensorObj.rotation || 0) * Math.PI / 180;
                     let steps = sensorObj.type === 'sensor_opt' ? 5 : 2;
                     let tk = targetObj.thickness || 20;
-                    
                     for(let i=0; i<=steps; i++) {
                         let stepX = lx + (lw/steps)*i; 
                         let stepY = ly + lh/2;
-                        
                         // 1. Punkt in globale Koordinaten umwandeln
                         let distX = stepX - sensorObj.width/2;
                         let distY = stepY - (sensorObj.height||sensorObj.width)/2;
                         let globalX = sensorObj.x + sensorObj.width/2 + distX * Math.cos(sRad) - distY * Math.sin(sRad);
                         let globalY = sensorObj.y + (sensorObj.height||sensorObj.width)/2 + distX * Math.sin(sRad) + distY * Math.cos(sRad);
-                        
                         // 2. Punkt in das lokale System des Schiebers umwandeln
                         let tRad = (targetObj.rotation || 0) * Math.PI / 180;
                         let dx = globalX - (targetObj.x + targetObj.width/2);
@@ -3487,15 +3513,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         // Rückdrehung (-tRad)
                         let localX = dx * Math.cos(-tRad) - dy * Math.sin(-tRad);
                         let localY = dx * Math.sin(-tRad) + dy * Math.cos(-tRad);
-                        
                         // 3. Nullpunkt nach oben links verschieben (wie im CSS Polygon)
                         localX += targetObj.width / 2;
                         localY += targetObj.height / 2;
-                        
                         // 4. Prüfen, ob der Punkt im linken oder unteren Schenkel liegt
                         let hitLeft = (localX >= 0 && localX <= tk && localY >= 0 && localY <= targetObj.height);
                         let hitBottom = (localX >= 0 && localX <= targetObj.width && localY >= targetObj.height - tk && localY <= targetObj.height);
-                        
                         if (hitLeft || hitBottom) return true; // Laser trifft Metall!
                     }
                     return false; // Laser geht durch die leere Luft
@@ -3576,20 +3599,16 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         let distY = stepY - (sensorObj.height||sensorObj.width)/2;
                         let px = sensorObj.x + sensorObj.width/2 + distX * Math.cos(sRad) - distY * Math.sin(sRad);
                         let py = sensorObj.y + (sensorObj.height||sensorObj.width)/2 + distX * Math.sin(sRad) + distY * Math.cos(sRad);
-                        
                         let tRad = (targetObj.rotation || 0) * Math.PI / 180;
                         let dx = px - (targetObj.x + targetObj.width/2);
                         let dy = py - (targetObj.y + targetObj.height/2);
                         let localX = dx * Math.cos(tRad) + dy * Math.sin(tRad);
                         let localY = -dx * Math.sin(tRad) + dy * Math.cos(tRad);
-                        
                         let tk = targetObj.thickness || 20;
                         let halfW = targetObj.width/2; let halfH = targetObj.height/2;
-                        
                         // Prüft exakt nur den vertikalen und den horizontalen Schenkel des "L"
                         let inVert = (localX >= -halfW) && (localX <= -halfW + tk) && (localY >= -halfH) && (localY <= halfH);
                         let inHoriz = (localX >= -halfW) && (localX <= halfW) && (localY >= halfH - tk) && (localY <= halfH);
-                        
                         if(inVert || inHoriz) return true;
                     }
                     return false;
@@ -3628,7 +3647,105 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     osc.connect(gain); gain.connect(engine.ctx.destination);
                     osc.start(); osc.stop(engine.ctx.currentTime + 0.15);
                 }
-            } // Ende von 'press'
+            }, // Ende von 'press'
+			'fan': {
+                meta: { name: 'Lüfter / Gebläse', icon: '🌀', desc: 'Dreht sich, wenn aktiviert (Kühlung/Absaugung)' },
+                modalConfig: { t: 'Lüfter (Ausgang) zuweisen:', l1: 'SPS Ausgangsvariable', out: true },
+                hasHeight: true, // FIX 1: Verhindert, dass das Bauteil zum "grauen Punkt" kollabiert!
+                menuTarget: '#menu-aktoren',
+                menuHtml: `<div onclick="addFactoryDevice('fan')">🌀 Lüfter / Gebläse</div>`,
+                css: `
+                    .f2d-fan { position: absolute; background: #263238; border: 4px solid #546e7a; border-radius: 50%; box-sizing: border-box; z-index: 2; display: flex; justify-content: center; align-items: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.9); overflow: hidden; }
+                    .f2d-fan-blade { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+                    /* FIX 2: Sichtbare Geschwindigkeit (0.5s) und korrekte Keyframes gegen den Stroboskop-Effekt */
+                    .f2d-fan.active .f2d-fan-blade { animation: valis-spin 0.5s linear infinite; }
+                    @keyframes valis-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    .f2d-fan-blade::before, .f2d-fan-blade::after { content: ''; position: absolute; border-radius: 2px; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+                    .f2d-fan-blade::before { width: 12px; height: 85%; background: #b0bec5; }
+                    .f2d-fan-blade::after { width: 85%; height: 12px; background: #90a4ae; }
+                    .f2d-fan-center { position: absolute; width: 16px; height: 16px; background: #eceff1; border-radius: 50%; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+                `,
+                build: function(obj, el, var1) {
+                    obj.linkedVar = var1; obj.width = 60; obj.height = 60; 
+                    el.className = 'f2d-obj f2d-fan';
+                    // FIX 1b: Höhe und Breite hart erzwingen!
+                    el.style.width = obj.width + 'px';
+                    el.style.height = obj.height + 'px';
+                    el.innerHTML = '<div class="f2d-fan-blade"></div><div class="f2d-fan-center"></div>';
+                    let resizer = document.createElement('div'); resizer.className = 'f2d-resize-handle-xy'; obj.resizerEl = resizer; el.appendChild(resizer);
+                    obj.useCollision = false; 
+                },
+                animate: function(obj, spsState) {
+                    let isActive = !!spsState[obj.linkedVar];
+                    if (isActive !== obj.isActive) {
+                        obj.isActive = isActive;
+                        if (isActive) {
+            obj.el.classList.add('active');
+            // START CONTINUOUS SOUND (Lüfter Loop)
+            if ((window.soundMode === 2 || window.soundMode === 3) && typeof SoundEngine !== 'undefined' && SoundEngine.ctx && !obj.muteSound) {
+                let ctx = SoundEngine.ctx;
+                let t = ctx.currentTime;
+                // 1. Gain Node für Fade-In (0 auf 0.4 in 1.5 Sekunden)
+                let gain = ctx.createGain();
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.4, t + 1.5); 
+                gain.connect(ctx.destination);
+                // 2. Tiefes Brummen (Motor)
+                let osc = ctx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.value = 55; // 55 Hz Netzbrummen/Rotor
+                osc.connect(gain);
+                osc.start(t);
+                // 3. Luftstrom (Gefiltertes Rauschen)
+                let bufferSize = ctx.sampleRate * 2; // 2 Sekunden Loop-Buffer
+                let buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                let data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1; // Weißes Rauschen
+                let noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true; 
+                let filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 800; // Dumpfer Luftstrom
+                noise.connect(filter).connect(gain);
+                noise.start(t);
+                // Referenzen speichern, um sie später zu stoppen
+                obj.audioOsc = osc;
+                obj.audioNoise = noise;
+                obj.audioGain = gain;
+            }
+        } else {
+            obj.el.classList.remove('active');
+            // STOP SOUND (Sanft ausklingen lassen)
+            if (obj.audioGain && typeof SoundEngine !== 'undefined' && SoundEngine.ctx) {
+                let ctx = SoundEngine.ctx;
+                let t = ctx.currentTime;
+                // Aktuellen Gain-Wert einfrieren und sanft ausfaden (2 Sekunden)
+                obj.audioGain.gain.cancelScheduledValues(t);
+                obj.audioGain.gain.setValueAtTime(obj.audioGain.gain.value, t);
+                obj.audioGain.gain.linearRampToValueAtTime(0.001, t + 2.0); 
+                let oscToStop = obj.audioOsc;
+                let noiseToStop = obj.audioNoise;
+                let gainToDisconnect = obj.audioGain;
+                setTimeout(() => {
+                    try { 
+                        if (oscToStop) { oscToStop.stop(); oscToStop.disconnect(); }
+                        if (noiseToStop) { noiseToStop.stop(); noiseToStop.disconnect(); }
+                        if (gainToDisconnect) { gainToDisconnect.disconnect(); }
+                    } catch(e) {}
+                }, 2100); // Kurz nach dem Fade-Out (2.1s) abräumen
+                // Referenzen leeren
+                obj.audioOsc = null;
+                obj.audioNoise = null;
+                obj.audioGain = null;
+                            }
+                        }
+                    }
+                },
+                // Die reguläre Trigger-Funktion leeren wir. 
+                // So wird auch das Standard-Pneumatik-Zischen der Engine elegant unterdrückt.
+                playSound: function(obj, engine) { }
+            }
         };
         window.toggleGlobalViewMode = function() {
             const btn = document.getElementById('btn-viewmode');
@@ -4173,7 +4290,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 };
                 spdWrapper.appendChild(spdInput);
                 ctxMenu.appendChild(spdWrapper);
-
                 let attachedSensors = obj.children ? obj.children.filter(c => c.type === 'sensor_mag') : [];
                 if (attachedSensors.length > 0) {
                     let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
@@ -4200,7 +4316,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         btnAddRight.onclick = () => { attachReed(obj, magVar, 'right'); saveFactoryState(); }; ctxMenu.appendChild(btnAddRight);
                     });
                 }
-				
             }
             if (obj.parent && obj.attachmentType === 'rod') {
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
@@ -4545,7 +4660,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 if (obj.type === 'sensor_kap') isTriggered = true; 
                             }
                         });
-						// NEU: Sensoren erkennen jetzt auch Anlagen-Bauteile (Alutüren, Schieber, Pressen)
                         // NEU: Sensoren erkennen jetzt auch Anlagen-Bauteile extrem präzise (Raycast!)
                         if (!isTriggered && obj.type !== 'sensor_mag') {
                             // Raycast vorbereiten: Wir testen 5 Punkte auf dem Laser-Strahl (Optisch) oder 2 (Induktiv/Kapazitiv)
@@ -4562,11 +4676,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                     y: obj.y + (obj.height||obj.width)/2 + distX * Math.sin(sRad) + distY * Math.cos(sRad)
                                 });
                             }
-
                             factoryObjects.forEach(targetObj => {
                                 // Sich selbst, Zonen, Spawner und Despawner ignorieren
                                 if (targetObj === obj || targetObj.type.startsWith('zone_') || targetObj.type === 'despawner' || targetObj.type.startsWith('spawner_') || targetObj.type === 'led') return;
-                                
                                 // 1. Wenn das Zielobjekt eine spezielle Sensor-Logik (wie Schieber oder Schutztür) hat:
                                 if (ComponentRegistry[targetObj.type] && ComponentRegistry[targetObj.type].customSensorHit) {
                                     if (ComponentRegistry[targetObj.type].customSensorHit(targetObj, obj, lx, ly, lw, lh)) {
@@ -4579,22 +4691,16 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                     let halfH = (targetObj.height || targetObj.width) / 2;
                                     let tCx = targetObj.x + halfW;
                                     let tCy = targetObj.y + halfH;
-                                    
                                     for (let pt of testPoints) {
                                         let dx = pt.x - tCx;
                                         let dy = pt.y - tCy;
                                         let localX = dx * Math.cos(tRad) + dy * Math.sin(tRad);
                                         let localY = -dx * Math.sin(tRad) + dy * Math.cos(tRad);
-                                        
                                         if (localX >= -halfW && localX <= halfW && localY >= -halfH && localY <= halfH) {
                                             if (obj.type === 'sensor_opt' || obj.type === 'sensor_kap') isTriggered = true;
                                             if (obj.type === 'sensor_ind' && targetObj.isMetallic) isTriggered = true;
                                             break;
                                         }
-											
-																														  
-																													   
-																												  
                                     }
                                 }
                             });
@@ -5418,7 +5524,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             title.textContent = `🛠️ Edit: ${node.label || node.id}`;
             menu.appendChild(title);
             // =========================================================
-            // TEIL 1: GRUNDFUNKTIONEN (Umbenennen, Zeit ändern, Swap)
+            // TEIL 1: GRUNDFUNKTIONEN (Ausbaustufe 1) (Umbenennen, Zeit ändern, Swap)
             // =========================================================
             if (['INPUT', 'PURE_INPUT', 'OUTPUT'].includes(node.type)) {
                 let wrap = document.createElement('div'); wrap.style.padding = '5px 15px'; wrap.onclick = e => e.stopPropagation();
@@ -5543,10 +5649,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             let ioWrap = document.createElement('div'); ioWrap.style.padding = '5px 15px'; ioWrap.onclick = e => e.stopPropagation();
             let ioTitle = document.createElement('div'); ioTitle.style.cssText = 'color: #aaa; font-size: 10px; margin-bottom: 5px; border-bottom: 1px dashed #555; padding-bottom: 3px; margin-top: 5px;'; 
             ioTitle.innerHTML = '🔌 Anschlüsse / Zuweisung'; ioWrap.appendChild(ioTitle);
-           	// Hilfsfunktion 1: Formel statt ID anzeigen
             const getDisp = (id) => {
                 let n = currentGraph.nodes.get(id);
-                // FIX: Echte Variablennamen für interne Systemblöcke ausgeben!
                 if (n) {
                     if (n.type === 'RS') return 'Q' + n.id.match(/\d+/)[0];
                     if (n.type === 'SR') return 'Q' + n.id.match(/\d+/)[0] + '_SR';
@@ -5557,25 +5661,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let inEdges = currentGraph.edges.filter(e => e.targetId === id);
                 return '(' + inEdges.map(e => (e.inverted?'¬':'') + getDisp(e.sourceId)).join(op) + ')';
             };
-            // INTELLIGENTER PFAF-SUCHER: Geht spezifisch vom veränderten Ast bis zum Hauptausgang!
-            const getRootContext = (specificEdge) => {
-                let edge = specificEdge;
-                while (edge) {
-                    let target = currentGraph.nodes.get(edge.targetId);
-                    if (!target) break;
-                    if (['OUTPUT', 'RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(target.type)) {
-                        return { targetNode: target, targetPin: edge.targetPin };
-                    }
-                    edge = currentGraph.edges.find(e => e.sourceId === target.id);
-                }
-                return null;
-            };
-			// Hilfsfunktion 3: Mathematische Formel aus dem Graph generieren
             const rebuildGraphExpr = (edge) => {
                 if (!edge) return '';
                 let prefix = edge.inverted ? '¬' : '';
                 let n = currentGraph.nodes.get(edge.sourceId);
-                // FIX: Auch hier die echten Code-Namen für den Editor rekonstruieren!
                 if (n) {
                     if (n.type === 'RS') return prefix + 'Q' + n.id.match(/\d+/)[0];
                     if (n.type === 'SR') return prefix + 'Q' + n.id.match(/\d+/)[0] + '_SR';
@@ -5589,8 +5678,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let op = n.label === '&' ? ' && ' : ' || ';
                 return prefix + '(' + parts.join(op) + ')';
             };
-            const updateRHS = (rootNode, pin, newRHS) => {
-                let code = textarea.value;
+            // FIX: Nimmt jetzt `currentCode` als Parameter, um Überschreiben im Loop zu verhindern!
+            const updateRHS = (currentCode, rootNode, pin, newRHS) => {
+                let code = currentCode;
                 if (!newRHS) newRHS = 'FALSE';
                 if (rootNode.type === 'OUTPUT') {
                     let regex = new RegExp(`^(\\s*${rootNode.id}\\s*${assignStr}).*$`, 'im');
@@ -5616,9 +5706,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 }
                 return code;
             };
-            // Hilfsfunktion 5: Verwaiste Variablen ("Limbus") abfangen!
             const checkOrphan = (oldVar, newCode) => {
-                // FIX: Systemblöcke und Konstanten dürfen niemals als verwaiste Inputs im Limbus landen!
                 if (!oldVar || oldVar === 'FALSE' || oldVar === 'TRUE' || oldVar.startsWith('AND_') || oldVar.startsWith('OR_') || 
                     oldVar.startsWith('RS_') || oldVar.startsWith('SR_') || 
                     oldVar.startsWith('TON_') || oldVar.startsWith('TOF_') || 
@@ -5651,12 +5739,13 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let btn = document.createElement('button'); btn.textContent = '❌'; btn.title = 'Entfernen';
                     btn.style.cssText = "background: #e6194B; border: none; border-radius: 3px; cursor: pointer; color: white; padding: 2px 5px; font-size: 9px;";
                     btn.onclick = () => {
-                        let rootCtx = getRootContext(edge); // NEU: Pfad direkt ab der Kante suchen!
+                        let rootCtx = window.getRootContextGlobal(edge); // <-- Globale Funktion!
                         currentGraph.edges = currentGraph.edges.filter(e => e !== edge);
                         if(rootCtx) {
                             let rootInEdges = currentGraph.edges.filter(e => e.targetId === rootCtx.targetNode.id && e.targetPin === rootCtx.targetPin);
                             let newRHS = rootInEdges.length > 0 ? rebuildGraphExpr(rootInEdges[0]) : 'FALSE';
-                            let newCode = updateRHS(rootCtx.targetNode, rootCtx.targetPin, newRHS);
+                            // FIX: Code direkt übergeben und neu zuweisen
+                            let newCode = updateRHS(textarea.value, rootCtx.targetNode, rootCtx.targetPin, newRHS);
                             newCode = checkOrphan(edge.sourceId, newCode);
                             textarea.value = cleanRedundantInputs(newCode); 
                             updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
@@ -5675,11 +5764,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     if (!nV) return;
                     let dummyEdge = {sourceId: nV, targetId: node.id, targetPin: '', inverted: false};
                     currentGraph.edges.push(dummyEdge);
-                    let rootCtx = getRootContext(dummyEdge);
+                    let rootCtx = window.getRootContextGlobal(dummyEdge); // <-- Globale Funktion!
                     if(rootCtx) {
                         let rootInEdges = currentGraph.edges.filter(e => e.targetId === rootCtx.targetNode.id && e.targetPin === rootCtx.targetPin);
                         let newRHS = rootInEdges.length > 0 ? rebuildGraphExpr(rootInEdges[0]) : 'FALSE';
-                        let newCode = updateRHS(rootCtx.targetNode, rootCtx.targetPin, newRHS);
+                        // FIX: Code direkt übergeben und neu zuweisen
+                        let newCode = updateRHS(textarea.value, rootCtx.targetNode, rootCtx.targetPin, newRHS);
                         textarea.value = cleanRedundantInputs(newCode); 
                         updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
                     }
@@ -5698,7 +5788,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 addBtn.style.cssText = "background: #007acc; border: none; border-radius: 3px; cursor: pointer; color: white; padding: 2px 8px;";
                 let doSave = () => {
                     let nV = addInp.value.trim() || 'FALSE';
-                    let newCode = updateRHS(node, '', nV);
+                    let newCode = updateRHS(textarea.value, node, '', nV);
                     if(edge) newCode = checkOrphan(edge.sourceId, newCode);
                     textarea.value = cleanRedundantInputs(newCode); 
                     updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
@@ -5724,7 +5814,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     btn.style.cssText = "background: #007acc; border: none; border-radius: 3px; cursor: pointer; color: white; padding: 2px 8px;";
                     let doSave = () => {
                         let nV = inp.value.trim() || 'FALSE';
-                        let newCode = updateRHS(node, pin, nV);
+                        let newCode = updateRHS(textarea.value, node, pin, nV);
                         if(edge) newCode = checkOrphan(edge.sourceId, newCode);
                         textarea.value = cleanRedundantInputs(newCode); 
                         updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
@@ -5735,7 +5825,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             }
             menu.appendChild(ioWrap);
             // =========================================================
-            // TEIL 3: INTELLIGENTES LÖSCHEN (Safe Node Deletion)
+            // TEIL 3: INTELLIGENTES LÖSCHEN (Hybrid Auto-Healing)
             // =========================================================
             let delWrap = document.createElement('div'); delWrap.style.padding = '10px 15px 5px 15px'; delWrap.onclick = e => e.stopPropagation();
             let btnDel = document.createElement('button');
@@ -5744,6 +5834,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             btnDel.onclick = () => {
                 let code = textarea.value;
                 let lines = code.split('\n');
+                let assignOpTest = (line, varName) => new RegExp(`^\\s*${varName}\\s*${assignStr}`, 'i').test(line);
                 let possibleOrphans = new Set();
                 let traverseOrphans = (id) => {
                     let edges = currentGraph.edges.filter(e => e.targetId === id);
@@ -5754,40 +5845,88 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     });
                 };
                 if (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU', 'OUTPUT', 'GATE'].includes(node.type)) traverseOrphans(node.id);
-                // FIX: Intelligente Such-Funktion für das Löschen ganzer Zeilen (ignoriert die Art der Zuweisung)
-                let assignOpTest = (line, varName) => new RegExp(`^\\s*${varName}\\s*${assignStr}`, 'i').test(line);
-                if (['RS', 'SR'].includes(node.type)) {
-                    let num = node.id.match(/\d+/)[0];
-                    let isSR = node.type === 'SR';
-                    let sVar = isSR ? `S${num}_SR` : `S${num}`;
-                    let rVar = isSR ? `R${num}_SR` : `R${num}`;
-                    lines = lines.filter(l => !(assignOpTest(l, sVar) || assignOpTest(l, rVar)));
-                    code = lines.join('\n');
-                } else if (['TON', 'TOF', 'TP', 'CTU'].includes(node.type)) {
-                    let outStr = node.id.substring(node.type.length + 1);
-                    lines = lines.filter(l => !assignOpTest(l, outStr));
-                    code = lines.join('\n');
-                } else if (node.type === 'OUTPUT') {
-                    lines = lines.filter(l => !assignOpTest(l, node.id));
-                    code = lines.join('\n');
-                } else if (node.type === 'GATE' || node.type === 'INPUT' || node.type === 'PURE_INPUT') {
+                // --- METHODE 1: GATTER LÖSCHEN (Graph-Bridging) ---
+                // Gatter existieren als '&&' oder '||' in der Formel. Wir flicken den Graph und berechnen die Formel neu.
+                if (node.type === 'GATE') {
                     let outEdges = currentGraph.edges.filter(e => e.sourceId === node.id);
                     if (outEdges.length > 0) {
                         outEdges.forEach(outEdge => {
-                            let rootCtx = getRootContext(outEdge);
+                            let rootCtx = window.getRootContextGlobal(outEdge);
                             if (rootCtx) {
-                                currentGraph.edges = currentGraph.edges.filter(e => e !== outEdge);
+                                let inputEdges = currentGraph.edges.filter(e => e.targetId === node.id);
+                                let primaryInputEdge = inputEdges[0]; // Das erste Eingangskabel ans Gatter
+                                // 1. Baustein aus den Verbindungen kappen
+                                currentGraph.edges = currentGraph.edges.filter(e => e !== outEdge && e.targetId !== node.id);
+                                // 2. Lücke überbrücken
+                                if (primaryInputEdge) {
+                                    currentGraph.edges.push({
+                                        sourceId: primaryInputEdge.sourceId,
+                                        targetId: outEdge.targetId,
+                                        targetPin: outEdge.targetPin,
+                                        inverted: (primaryInputEdge.inverted !== outEdge.inverted) // Verhindert doppelte Invertierung
+                                    });
+                                }
+                                // 3. Code für diesen Ziel-Ast sauber neu generieren
                                 let rootInEdges = currentGraph.edges.filter(e => e.targetId === rootCtx.targetNode.id && e.targetPin === rootCtx.targetPin);
                                 let newRHS = rootInEdges.length > 0 ? rebuildGraphExpr(rootInEdges[0]) : 'FALSE';
-                                code = updateRHS(rootCtx.targetNode, rootCtx.targetPin, newRHS);
-                                textarea.value = code; 
+                                code = updateRHS(code, rootCtx.targetNode, rootCtx.targetPin, newRHS);
                             }
                         });
                     }
-                    if (['INPUT', 'PURE_INPUT'].includes(node.type)) {
-                        let r = new RegExp(`^\\s*INPUT\\s+${node.id}\\s*$`, 'im');
-                        code = code.replace(r, '');
+                } 
+                // --- METHODE 2: BLÖCKE LÖSCHEN (Text-Suchen & Ersetzen) ---
+                // Timer, Zähler und Speicherglieder haben feste Variablennamen. Hier ist Text-Splicing unschlagbar.
+                else if (['TON', 'TOF', 'TP', 'CTU', 'RS', 'SR'].includes(node.type)) {
+                    let healSourceStr = "";
+                    let healTargetVar = "";
+                    if (node.type === 'RS') healTargetVar = 'Q' + node.id.match(/\d+/)[0];
+                    else if (node.type === 'SR') healTargetVar = 'Q' + node.id.match(/\d+/)[0] + '_SR';
+                    else healTargetVar = node.id.substring(node.type.length + 1);
+                    let targetPin = node.type === 'CTU' ? 'CU' : (node.type === 'RS' || node.type === 'SR' ? 'S' : 'IN');
+                    let inputEdges = currentGraph.edges.filter(e => e.targetId === node.id);
+                    let primaryInputEdge = inputEdges.find(e => e.targetPin === targetPin) || inputEdges[0];
+                    if (primaryInputEdge) {
+                        healSourceStr = (primaryInputEdge.inverted ? '¬' : '') + getDisp(primaryInputEdge.sourceId);
+                        if (healSourceStr.includes('&&') || healSourceStr.includes('||')) healSourceStr = `(${healSourceStr})`;
+                    } else {
+                        healSourceStr = 'FALSE';
                     }
+                    // INTELLIGENZ-UPGRADE: Handelt es sich um einen Helfer oder eine echte User-Variable?
+                    let isHelper = /^(TON|TOF|TP|CTU)_/i.test(healTargetVar) || ['RS', 'SR'].includes(node.type);
+                    if (isHelper) {
+                        // 1. Definition des Helfer-Bausteins restlos löschen
+                        if (['RS', 'SR'].includes(node.type)) {
+                            let num = node.id.match(/\d+/)[0];
+                            let sVar = node.type === 'SR' ? `S${num}_SR` : `S${num}`;
+                            let rVar = node.type === 'SR' ? `R${num}_SR` : `R${num}`;
+                            lines = lines.filter(l => !(assignOpTest(l, sVar) || assignOpTest(l, rVar)));
+                        } else {
+                            lines = lines.filter(l => !assignOpTest(l, healTargetVar));
+                        }
+                        code = lines.join('\n');
+                        // 2. Das Ziel-Wort überall im Code durch den Eingang ersetzen
+                        let healRegex = new RegExp(`\\b${healTargetVar}\\b`, 'g');
+                        code = code.replace(healRegex, healSourceStr);
+                    } else {
+                        // ECHTE USER-VARIABLE: Darf nicht gelöscht werden!
+                        // Wir suchen die Definitions-Zeile und setzen sie sanft auf das Eingangssignal zurück.
+                        for (let i = 0; i < lines.length; i++) {
+                            if (assignOpTest(lines[i], healTargetVar)) {
+                                let parts = lines[i].split('//')[0].replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=').split(':=');
+                                lines[i] = `${parts[0]}:= ${healSourceStr}`;
+                                break;
+                            }
+                        }
+                        code = lines.join('\n');
+                    }
+                }
+                // --- METHODE 3: I/O LÖSCHEN ---
+                else if (node.type === 'OUTPUT') {
+                    lines = lines.filter(l => !assignOpTest(l, node.id));
+                    code = lines.join('\n');
+                } else if (['INPUT', 'PURE_INPUT'].includes(node.type)) {
+                    let r = new RegExp(`^\\s*INPUT\\s+${node.id}\\s*$`, 'im');
+                    code = lines.join('\n').replace(r, '');
                 }
                 possibleOrphans.forEach(v => { code = checkOrphan(v, code); });
                 textarea.value = cleanRedundantInputs(code);
@@ -5805,14 +5944,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         // ==========================================
         window.openFbsAddModal = function(type) {
             document.getElementById('fbs-add-type').value = type;
-			
             const title = document.getElementById('fbs-add-title');
             const in2Grp = document.getElementById('fbs-add-in2-grp');
             const paramGrp = document.getElementById('fbs-add-param-grp');
             const lbl1 = document.getElementById('fbs-add-in1-lbl');
             const lbl2 = document.getElementById('fbs-add-in2-lbl');
             const lblParam = document.getElementById('fbs-add-param-lbl');
-			
             // Reset
             document.getElementById('fbs-add-out').value = ''; 
             document.getElementById('fbs-add-in1').value = '';
@@ -5820,7 +5957,6 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             in2Grp.style.display = 'block';
             paramGrp.style.display = 'none';
             document.getElementById('fbs-add-out').placeholder = "Ziel-Variable (z.B. MOTOR)";
-			
             if (type === 'AND' || type === 'OR') {
                 title.textContent = `Logik-Gatter (${type}) hinzufügen`;
                 lbl1.textContent = 'Eingang 1';
@@ -5847,54 +5983,320 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 document.getElementById('fbs-add-param').step = '1';
                 document.getElementById('fbs-add-param').value = '5';
             }
-			
             document.getElementById('fbs-add-modal').style.display = 'block';
             document.getElementById('fbs-add-out').focus();
         };
-
         window.confirmFbsAdd = function() {
             let type = document.getElementById('fbs-add-type').value;
             let out = document.getElementById('fbs-add-out').value.trim().toUpperCase();
             let in1 = document.getElementById('fbs-add-in1').value.trim().toUpperCase();
             let in2 = document.getElementById('fbs-add-in2').value.trim().toUpperCase();
             let param = document.getElementById('fbs-add-param').value;
-			
             if (!out || !in1) { alert("Bitte mindestens Ziel und Eingang 1 ausfüllen!"); return; }
-
-            let newCodeLine = "";
-            if (type === 'AND') newCodeLine = `${out} := ${in1} && ${in2 || 'FALSE'}`;
-            else if (type === 'OR') newCodeLine = `${out} := ${in1} || ${in2 || 'FALSE'}`;
-            else if (type === 'RS') newCodeLine = `S${out} := ${in1}\nR${out} := ${in2 || 'FALSE'}`;
-            else if (type === 'TON') newCodeLine = `${out} := TON(${in1}, ${param})`;
-            else if (type === 'CTU') newCodeLine = `${out} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
-
+            // ==========================================
+            // NEU: PERFEKTES SPLICING & ÜBERSCHREIBEN (V5 - RS-Glied Fix)
+            // ==========================================
             let code = textarea.value;
-            textarea.value = code + (code.endsWith('\n') ? '' : '\n') + newCodeLine + '\n';
-			
+            let lines = code.split('\n');
+            let allPossibleVars = [out, `S${out}`, `R${out}`, `S${out}_SR`, `R${out}_SR`];
+            // 1. Finde ALLE Zeilen, die zur Ziel-Variable gehören
+            let targetLines = [];
+            for (let i = 0; i < lines.length; i++) {
+                let cl = lines[i].split('//')[0].trim().replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
+                if (cl.includes(':=')) {
+                    let leftSide = cl.split(':=')[0].trim().toUpperCase();
+                    if (allPossibleVars.includes(leftSide)) {
+                        targetLines.push({ idx: i, left: leftSide, rhs: cl.split(':=')[1].trim() });
+                    }
+                }
+            }
+            let in1Regex = new RegExp(`\\b${in1}\\b`, 'g');
+            let matchLine = targetLines.find(t => in1Regex.test(t.rhs));
+            // --- NEU: RS-GLIED NUMMERIERUNGS-LOGIK ---
+            // Ein FlipFlop MUSS zwingend eine Zahl haben (S1, R1, Q1)
+            let rsNum = null;
+            if (type === 'RS') {
+                let outMatch = out.match(/^Q?(\d+)$/);
+                if (outMatch) {
+                    rsNum = outMatch[1]; // Der User hat explizit "1" oder "Q1" ins Feld getippt
+                } else {
+                    // Der User hat eine Variable wie "SYS_ON" gewählt. Wir suchen die nächste freie FlipFlop-Nummer!
+                    rsNum = 1;
+                    while (new RegExp(`\\b[SRQ]${rsNum}(?:_SR)?\\b`, 'i').test(code)) { rsNum++; }
+                }
+            }
+            if (matchLine) {
+                let isExactMatch = matchLine.rhs.trim() === in1;
+                if (['AND', 'OR'].includes(type)) {
+                    let op = type === 'AND' ? '&&' : '||';
+                    if (isExactMatch) {
+                        lines[matchLine.idx] = `${matchLine.left} := ${in1} ${op} ${in2 || 'FALSE'}`;
+                    } else {
+                        let newRHS = matchLine.rhs.replace(in1Regex, `(${in1} ${op} ${in2 || 'FALSE'})`);
+                        lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                    }
+                } else {
+                    if (isExactMatch) {
+                        // Bei direkten Verbindungen einfach sauber ersetzen
+                        if (type === 'RS') {
+                            lines[matchLine.idx] = `${matchLine.left} := Q${rsNum}`;
+                            lines.push(`S${rsNum} := ${in1}`);
+                            lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
+                        } else if (['TON', 'TOF', 'TP'].includes(type)) {
+                            lines[matchLine.idx] = `${matchLine.left} := ${type}(${in1}, ${param})`;
+                        } else if (type === 'CTU') {
+                            lines[matchLine.idx] = `${matchLine.left} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
+                        }
+                    } else {
+                        // Spleißen in komplexer Formel -> Helfer zwingend notwendig
+                        if (type === 'RS') {
+                            let newRHS = matchLine.rhs.replace(in1Regex, `Q${rsNum}`);
+                            lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                            lines.push(`S${rsNum} := ${in1}`);
+                            lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
+                        } else {
+                            let helperVar = `${type}_${in1}`;
+                            let counter = 1; while(code.includes(helperVar)) { helperVar = `${type}_${in1}_${counter++}`; }
+                            let newRHS = matchLine.rhs.replace(in1Regex, helperVar);
+                            lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                            if (['TON', 'TOF', 'TP'].includes(type)) {
+                                lines.push(`${helperVar} := ${type}(${in1}, ${param})`);
+                            } else if (type === 'CTU') {
+                                lines.push(`${helperVar} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`);
+                            }
+                        }
+                    }
+                }
+                textarea.value = lines.join('\n');
+            } else {
+                // 3. Klassisches Überschreiben (Die Leitung wurde komplett abgerissen und neu gezogen)
+                if (targetLines.length > 0) {
+                    let targetIndices = targetLines.map(t => t.idx);
+                    lines = lines.filter((_, i) => !targetIndices.includes(i));
+                }
+                let newCodeLine = "";
+                if (type === 'AND') newCodeLine = `${out} := ${in1} && ${in2 || 'FALSE'}`;
+                else if (type === 'OR') newCodeLine = `${out} := ${in1} || ${in2 || 'FALSE'}`;
+                else if (type === 'RS') {
+                    if (out.match(/^Q?\d+$/)) {
+                        newCodeLine = `S${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
+                    } else {
+                        // User will ein RS-Glied in eine benannte Variable (wie MOTOR) bauen
+                        newCodeLine = `${out} := Q${rsNum}\nS${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
+                    }
+                }
+                else if (['TON', 'TOF', 'TP'].includes(type)) newCodeLine = `${out} := ${type}(${in1}, ${param})`;
+                else if (type === 'CTU') newCodeLine = `${out} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
+                textarea.value = lines.join('\n') + (lines.length > 0 ? '\n' : '') + newCodeLine;
+            }
+            // ==========================================
             updateHighlighting(); updateEditor(); saveToStorage();
-            document.getElementById('fbs-add-modal').style.display = 'none';
+            if (typeof window.closeFbsModal === 'function') window.closeFbsModal();
+            else document.getElementById('fbs-add-modal').style.display = 'none';
         };
-
-        // Dummy-Funktion (Vorbereitung für das spätere Drag & Drop)
+		// ==========================================
+        // NEU: VISUAL EDITOR AUSBAUSTUFE 2 (Drag & Drop + Click to Fill)
+        // ==========================================
+        // INTELLIGENTER PFAD-SUCHER (Global verfügbar für Drag&Drop)
+        window.getRootContextGlobal = function(specificEdge) {
+            let edge = specificEdge;
+            while (edge) {
+                let target = currentGraph.nodes.get(edge.targetId);
+                if (!target) break;
+                if (['OUTPUT', 'RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(target.type)) {
+                    return { targetNode: target, targetPin: edge.targetPin };
+                }
+                edge = currentGraph.edges.find(e => e.sourceId === target.id);
+            }
+            return null;
+        };
+        // Hilfsfunktion: Übersetzt interne IDs (wie AND_0) in echte SPS-Variablen oder Formeln
+        window.getFbsVariableDisplay = function(id) {
+            if (!currentGraph) return id;
+            let n = currentGraph.nodes.get(id);
+            if (n) {
+                if (n.type === 'RS') return 'Q' + n.id.match(/\d+/)[0];
+                if (n.type === 'SR') return 'Q' + n.id.match(/\d+/)[0] + '_SR';
+                if (['TON', 'TOF', 'TP', 'CTU'].includes(n.type)) return n.id.substring(n.type.length + 1);
+            }
+            if (!n || n.type !== 'GATE') return id;
+            let op = n.label === '&' ? ' && ' : ' || ';
+            let inEdges = currentGraph.edges.filter(e => e.targetId === id);
+            return '(' + inEdges.map(e => (e.inverted ? '¬' : '') + getFbsVariableDisplay(e.sourceId)).join(op) + ')';
+        };
+        // Tracking des fokussierten Input-Feldes im Modal
+        window.activeFbsInput = null;
+        ['fbs-add-out', 'fbs-add-in1', 'fbs-add-in2'].forEach(id => {
+            let el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('focus', function() { window.activeFbsInput = this; });
+            }
+        });
+        // Schließen-Funktion für das Modal definieren & aufräumen
+        window.closeFbsModal = function() {
+            document.getElementById('fbs-add-modal').style.display = 'none';
+            window.activeFbsInput = null;
+            document.getElementById('custom-svg').style.cursor = 'grab'; // Fadenkreuz entfernen
+        };
+        // Das "Abbrechen" Button im Modal kugelsicher patchen (Sucht einfach nach dem Wort "Abbrechen")
+        let cancelBtn = Array.from(document.querySelectorAll('#fbs-add-modal button')).find(b => b.textContent.includes('Abbrechen'));
+        if(cancelBtn) cancelBtn.onclick = closeFbsModal;
+        const originalConfirmFbsAdd = window.confirmFbsAdd;
+        window.confirmFbsAdd = function() {
+            originalConfirmFbsAdd();
+            closeFbsModal();
+        };
+        const originalOpenFbsAddModal = window.openFbsAddModal;
+        window.openFbsAddModal = function(type) {
+            originalOpenFbsAddModal(type);
+            document.getElementById('custom-svg').style.cursor = 'crosshair';
+        };
+        // --- 1. DRAG & DROP AUF LINIEN ---
+        const fbsWrapper = document.getElementById('fbs-wrapper');
+        let lastHighlightedLine = null;
+        window.draggedFbsButton = null; 
         window.startFbsDrag = function(e, type) {
             e.dataTransfer.setData('text/plain', type);
             e.dataTransfer.effectAllowed = 'copy';
+            window.draggedFbsButton = e.target; 
         };
+        document.addEventListener('dragend', () => {
+            if (window.draggedFbsButton) { window.draggedFbsButton.classList.remove('drag-active-target'); window.draggedFbsButton = null; }
+            if (lastHighlightedLine) { document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); lastHighlightedLine = null; }
+        });
+        fbsWrapper.addEventListener('dragover', (e) => {
+            e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+            let target = e.target;
+            if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
+                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
+                if (match && lastHighlightedLine !== match) {
+                    if (lastHighlightedLine) document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target'));
+                    document.querySelectorAll('.' + match).forEach(el => el.classList.add('fbs-drag-target'));
+                    lastHighlightedLine = match;
+                    if (window.draggedFbsButton) window.draggedFbsButton.classList.add('drag-active-target');
+                }
+            } else {
+                if (lastHighlightedLine) { document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); lastHighlightedLine = null; }
+                if (window.draggedFbsButton) window.draggedFbsButton.classList.remove('drag-active-target');
+            }
+        });
+        fbsWrapper.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (lastHighlightedLine) { document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); lastHighlightedLine = null; }
+            if (window.draggedFbsButton) { window.draggedFbsButton.classList.remove('drag-active-target'); window.draggedFbsButton = null; }
+            const type = e.dataTransfer.getData('text/plain');
+            if (!type || !['AND','OR','RS','TON','CTU'].includes(type)) return;
+            let prefillSource = "";
+            let prefillTarget = "";
+            let target = e.target;
+            if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
+                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
+                if (match) {
+                    let rawId = match.replace('net-source-', '').replace(/\\/g, '');
+                    prefillSource = window.getFbsVariableDisplay(rawId);
+                    // FIX: Nutzt jetzt die globale Such-Funktion
+                    let outEdges = currentGraph.edges.filter(ed => ed.sourceId === rawId);
+                    if (outEdges.length > 0) {
+                        let rootCtx = window.getRootContextGlobal(outEdges[0]);
+                        if (rootCtx) {
+                            let tNode = rootCtx.targetNode;
+                            if (tNode.type === 'OUTPUT') prefillTarget = tNode.id;
+                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) prefillTarget = tNode.id.substring(tNode.type.length + 1);
+                            else if (['RS', 'SR'].includes(tNode.type)) {
+                                let matchNum = tNode.id.match(/\d+/);
+                                if (matchNum) prefillTarget = matchNum[0]; 
+                            }
+                        }
+                    }
+                }
+            }
+            openFbsAddModal(type);
+            if (prefillSource) document.getElementById('fbs-add-in1').value = prefillSource;
+            if (prefillTarget) document.getElementById('fbs-add-out').value = prefillTarget;
+            if (prefillSource) {
+                setTimeout(() => {
+                    // Fokus schlau setzen
+                    if (!prefillTarget) {
+                        document.getElementById('fbs-add-out').focus();
+                    } else if (['AND', 'OR', 'CTU', 'RS'].includes(type)) {
+                        let in2 = document.getElementById('fbs-add-in2');
+                        if(in2) in2.focus();
+                    } else {
+                        let param = document.getElementById('fbs-add-param');
+                        if(param) param.focus();
+                    }
+                }, 10);
+            }
+        });
+        // --- 2. CLICK-TO-FILL IM MODAL (Mit Ziel-Erkennung) ---
+        document.getElementById('custom-svg').addEventListener('click', (e) => {
+            const modal = document.getElementById('fbs-add-modal');
+            if (modal.style.display !== 'block' || !window.activeFbsInput) return;
+            let target = e.target;
+            let clickedVar = null;
+            let rawId = null;
+            let clickedType = null; 
+            if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
+                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
+                if (match) {
+                    rawId = match.replace('net-source-', '').replace(/\\/g, '');
+                    clickedVar = window.getFbsVariableDisplay(rawId);
+                    clickedType = 'line';
+                }
+            } else {
+                let group = target.closest('g');
+                if (group) {
+                    let rect = group.querySelector('rect') || group.querySelector('circle');
+                    if (rect && rect.id && rect.id.startsWith('node-block-')) {
+                        rawId = rect.id.replace('node-block-', '').replace(/\\/g, '');
+                        if (currentGraph && currentGraph.nodes.has(rawId)) {
+                            let n = currentGraph.nodes.get(rawId);
+                            clickedVar = window.getFbsVariableDisplay(rawId);
+                            if (n.type === 'INPUT' || n.type === 'PURE_INPUT') clickedType = 'input';
+                            else if (n.type === 'OUTPUT') clickedType = 'output';
+                            else clickedType = 'gate';
+                        }
+                    }
+                }
+            }
+            if (!clickedVar) return;
+            let inputId = window.activeFbsInput.id;
+            const visualFlash = (el) => {
+                let oldBg = el.style.backgroundColor;
+                el.style.backgroundColor = '#007acc';
+                setTimeout(() => el.style.backgroundColor = oldBg, 250);
+            };
+            if (inputId === 'fbs-add-in1' || inputId === 'fbs-add-in2') {
+                window.activeFbsInput.value = clickedVar;
+                visualFlash(window.activeFbsInput);
+            } 
+            else if (inputId === 'fbs-add-out') {
+                let finalTarget = clickedVar;
+                // Wenn Linie oder Gatter angeklickt wird, extrahieren wir das WAHRE Ziel (Output) am Ende der Leitung
+                if (clickedType === 'line' || clickedType === 'gate') {
+                    let outEdges = currentGraph.edges.filter(ed => ed.sourceId === rawId);
+                    if(outEdges.length > 0) {
+                        // FIX: Nutzt jetzt die globale Such-Funktion
+                        let rootCtx = window.getRootContextGlobal(outEdges[0]);
+                        if (rootCtx) {
+                            let tNode = rootCtx.targetNode;
+                            if (tNode.type === 'OUTPUT') finalTarget = tNode.id;
+                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) finalTarget = tNode.id.substring(tNode.type.length + 1);
+                            else if (['RS', 'SR'].includes(tNode.type)) {
+                                let matchNum = tNode.id.match(/\d+/);
+                                if (matchNum) finalTarget = matchNum[0]; 
+                            }
+                        }
+                    }
+                }
+                if (finalTarget && !finalTarget.startsWith('(')) {
+                    window.activeFbsInput.value = finalTarget;
+                    visualFlash(window.activeFbsInput);
+                }
+            }
+        });
         // 3. Engine zünden
         startFactoryEngine();
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
