@@ -10,7 +10,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; margin: 0; background-color: #1e1e1e; color: #d4d4d4; }
         #left-panel { width: 35%; padding: 20px; background: #252526; border-right: 2px solid #333; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
-        #graph-container { width: 65%; padding: 0; display: flex; flex-direction: column; background: #ffffff; overflow: hidden; position: relative; box-sizing: border-box; }
+        #graph-container { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; background: #ffffff; overflow: hidden; position: relative; box-sizing: border-box; }
         .header-area { display: flex; justify-content: space-between; align-items: baseline; }
         .header-title-wrapper { display: flex; align-items: baseline; gap: 12px; }
         h2 { margin: 0; color: #fff; font-size: 18px; }
@@ -568,6 +568,7 @@
     <div id="graph-container">
         <div class="graph-top-bar">
             <div style="display: flex; gap: 5px; align-items: center;">
+				<button id="btn-toggle-sidebar" class="btn-export" style="background-color: #333; border: 1px solid #555; padding: 4px 10px; font-size: 14px; margin-right: 5px;" onclick="toggleSidebar()" title="Seitenleiste einklappen">◀</button>
                 <button id="btn-view-fbs" class="btn-export view-btn active" onclick="toggleWorkspaceView('fbs-wrapper')">Logikplan</button>
                 <button id="btn-view-iec" class="btn-export view-btn" onclick="toggleWorkspaceView('circuit-wrapper')">Schaltplan</button>
                 <button id="btn-view-fac" class="btn-export view-btn" onclick="toggleWorkspaceView('factory-wrapper')">2D Anlage</button>
@@ -1579,52 +1580,181 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             graph.nodes.forEach(n => { if(n.level > maxLevel) maxLevel = n.level; });
             const hasOut = new Set(graph.edges.map(e => e.sourceId));
             graph.nodes.forEach(n => { if(n.type === 'OUTPUT' && !hasOut.has(n.id)) n.level = maxLevel + 1; });
+            
             const columns = {};
             graph.nodes.forEach(node => {
                 if (!columns[node.level]) columns[node.level] = [];
                 columns[node.level].push(node);
             });
-            
-            // =========================================================
-            // NEU: DYNAMISCHE SPALTENBREITE
-            // =========================================================
-            const MIN_GAP = 20;       // Abstand untereinander (vertikal)
-            const WIRE_PADDING = 70;  // Platz für die Kabel ZWISCHEN den Spalten
-            let currentX = 40;        // Start-X der allerersten Spalte
 
-            // Wichtig: Levels sortieren, damit wir sauber von links nach rechts zeichnen
+            // =========================================================
+            // NEU: PERFEKTIONIERTES LAYOUT (Barycenter + Elastisch + Lücken)
+            // =========================================================
+            const MIN_GAP = 20;       
+            const WIRE_PADDING = 70;  
             let sortedLevels = Object.keys(columns).sort((a,b) => parseInt(a) - parseInt(b));
 
-            sortedLevels.forEach(level => {
-                let totalHeight = 0;
-                let maxColumnWidth = 0;
+            // --- 1. EINGÄNGE ALPHABETISCH VORSORTIEREN ---
+            if (columns[0]) columns[0].sort((a, b) => a.id.localeCompare(b.id));
 
-                // 1. Abmessen: Wie breit und hoch wird diese Spalte maximal?
+            // --- 2. BARYCENTER SORTIERUNG (Verhindert Kreuzungen) ---
+            sortedLevels.forEach(levelStr => {
+                let level = parseInt(levelStr);
+                if (level > 0) {
+                    columns[level].forEach(node => {
+                        let inEdges = graph.edges.filter(e => e.targetId === node.id);
+                        if (inEdges.length === 0) {
+                            node._barycenter = 0.5;
+                        } else {
+                            let sum = 0, count = 0;
+                            inEdges.forEach(edge => {
+                                let srcNode = graph.nodes.get(edge.sourceId);
+                                if (srcNode && columns[srcNode.level]) {
+                                    let srcCol = columns[srcNode.level];
+                                    sum += srcCol.length > 1 ? srcCol.indexOf(srcNode) / (srcCol.length - 1) : 0.5;
+                                    count++;
+                                }
+                            });
+                            node._barycenter = count > 0 ? (sum / count) : 0.5;
+                        }
+                    });
+                    columns[level].sort((a, b) => {
+                        if (a._barycenter === b._barycenter) return a.id.localeCompare(b.id);
+                        return a._barycenter - b._barycenter;
+                    });
+                }
+            });
+
+            // --- 3. X-ACHSE BERECHNEN ---
+            let currentX = 40;        
+            sortedLevels.forEach((levelStr, index) => {
+                let level = parseInt(levelStr);
+                let maxColumnWidth = 0;
+                let incomingCount = 0;
+                
                 columns[level].forEach(node => {
-                    // Breite & Höhe der Nodes berechnen (Zahlen/Gatter sind fix, Text ist dynamisch)
-                    node.width = (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(node.type)) ? 55 : (node.type === 'GATE' ? 45 : Math.max(60, node.label.length * 8 + 10));
+                    incomingCount += graph.edges.filter(e => e.targetId === node.id).length;
+                    node.width = (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU', 'GATE'].includes(node.type)) ? 55 : Math.max(60, node.label.length * 8 + 10);
                     node.height = (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(node.type)) ? 65 : (node.type === 'GATE' ? Math.max(30, node.inputs.length * 15 + 15) : 30);
-                    
-                    totalHeight += node.height + MIN_GAP;
                     if (node.width > maxColumnWidth) maxColumnWidth = node.width;
                 });
                 
-                totalHeight -= MIN_GAP;
-                let currentY = Math.max(40, (600 - totalHeight) / 2); // Vertikal zentrieren
-                
-                // 2. Platzieren: Alle Bausteine dieses Levels in die aktuelle X-Spalte setzen
+                // FIX: Dramatisch verkleinerter Kabelkanal! 
+                // 6px pro einkommendem Kabel reichen völlig aus. Die ausgehenden Kabel verbrauchen kaum noch Platz!
+                let dynamicWirePadding = Math.max(50, 20 + (incomingCount * 6));
+                if (index > 0) currentX += dynamicWirePadding;
+
                 columns[level].forEach(node => {
-                    node.x = currentX;
-                    node.y = currentY;
-                    currentY += node.height + MIN_GAP; 
+                    if (level === 0) {
+                        node.x = currentX + (maxColumnWidth - node.width); // Rechtsbündig für saubere Kante
+                    } else {
+                        node.x = currentX; 
+                    }
+                    node.idealY = 40; 
                 });
 
-                // 3. Weiterrücken: Den X-Cursor für die *nächste* Spalte berechnen
-                // (Maximale Breite der aktuellen Spalte + Platz für die Kabel)
-                currentX += maxColumnWidth + WIRE_PADDING;
+                currentX += maxColumnWidth;
             });
+
+            // --- 4. Y-ACHSE INIT ---
+            sortedLevels.forEach(levelStr => {
+                let level = parseInt(levelStr);
+                let currentY = 40;
+                columns[level].forEach(node => {
+                    node.y = currentY;
+                    currentY += node.height + MIN_GAP;
+                });
+            });
+
+            // Hilfsfunktion: Eine Spalte überschneidungsfrei anordnen (LÄSST LÜCKEN ZU!)
+            function resolveOverlaps(column) {
+                column.sort((a, b) => a.idealY - b.idealY); 
+                let currentY = Math.max(40, column[0].idealY); 
+                column.forEach(node => {
+                    node.y = Math.max(currentY, node.idealY);
+                    currentY = node.y + node.height + MIN_GAP;
+                });
+            }
+
+            // --- 5. ELASTISCHE ENTWIRRUNG (Relaxation-Pass mit Lücken-Logik) ---
+            for (let iter = 0; iter < 4; iter++) {
+                // A) Vorwärts-Durchlauf
+                sortedLevels.forEach(levelStr => {
+                    let level = parseInt(levelStr);
+                    if (level === 0) return; 
+                    columns[level].forEach(node => {
+                        let inEdges = graph.edges.filter(e => e.targetId === node.id);
+                        if (inEdges.length > 0) {
+                            let sumY = 0;
+                            inEdges.forEach(e => {
+                                let src = graph.nodes.get(e.sourceId);
+                                sumY += src.y + src.height / 2;
+                            });
+                            node.idealY = (sumY / inEdges.length) - (node.height / 2);
+                        } else {
+                            node.idealY = node.y;
+                        }
+                    });
+                    resolveOverlaps(columns[level]);
+                });
+
+                // B) Rückwärts-Durchlauf: Bausteine richten sich nach der Höhe ihrer ZIELE aus!
+                let reversedLevels = [...sortedLevels].reverse();
+                reversedLevels.forEach(levelStr => {
+                    let level = parseInt(levelStr);
+                    columns[level].forEach(node => {
+                        let outEdges = graph.edges.filter(e => e.sourceId === node.id);
+                        if (outEdges.length > 0) {
+                            let sumY = 0;
+                            let minTargetLevel = 999;
+                            
+                            outEdges.forEach(e => {
+                                let tgt = graph.nodes.get(e.targetId);
+                                sumY += tgt.y + tgt.height / 2;
+                                if (tgt.level < minTargetLevel) minTargetLevel = tgt.level;
+                            });
+                            
+                            let avgTargetY = sumY / outEdges.length;
+
+                            // 🌟 DIE MAGIE: Fern-Verbindungen nach außen drängen (Lücken erzeugen!) 🌟
+                            if (level === 0 && minTargetLevel > 1) {
+                                // Wir berechnen die exakten Grenzen der benachbarten Spalte
+                                let pivotY = 300;
+                                let topY = 0;
+                                let bottomY = 800;
+                                
+                                if (columns[1] && columns[1].length > 0) {
+                                    let firstNode = columns[1][0];
+                                    let lastNode = columns[1][columns[1].length - 1];
+                                    
+                                    let firstY = firstNode.y;
+                                    let lastY = lastNode.y + lastNode.height;
+                                    
+                                    pivotY = (firstY + lastY) / 2;
+                                    
+                                    // Knapp über oder unter der benachbarten Gatter-Spalte platzieren (40px Puffer)
+                                    topY = firstY - node.height - 40;
+                                    bottomY = lastY + 40; 
+                                }
+                                
+                                if (avgTargetY < pivotY) {
+                                    node.idealY = topY; 
+                                } else {
+                                    node.idealY = bottomY; 
+                                }
+                            } else {
+                                // Normale Bausteine (oder lokale Verbindungen) ziehen sich einfach auf die Höhe ihrer Ziele
+                                node.idealY = avgTargetY - (node.height / 2);
+                            }
+                        } else {
+                            node.idealY = node.y;
+                        }
+                    });
+                    resolveOverlaps(columns[level]);
+                });
+            }
         }
-        function findFreeY(startY, x1, x2, nodes, horizontalUsage) {
+        function findFreeY(startY, x1, x2, nodes, horizontalUsage, validEndYs = []) {
             let blocked = [];
             for (let [id, n] of nodes) {
                 if ((n.x - 10) < x2 && (n.x + n.width + 10) > x1) {
@@ -1633,10 +1763,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             }
             for (let h of horizontalUsage) {
                 if (Math.max(x1, h.x1) < Math.min(x2, h.x2)) {
-                    blocked.push({ min: h.y - 4, max: h.y + 4 });
+                    if (h.isPinStub) {
+                        // Wenn der Pin das EIGENE Ziel ist, dürfen wir durchfliegen
+                        if (validEndYs.includes(h.y)) continue;
+                        // FIX 1: Puffer für Fremd-Pins von 8px auf 3px reduziert! (Verhindert unnötige Knicke)
+                        blocked.push({ min: h.y - 3, max: h.y + 3 }); 
+                    } else {
+                        blocked.push({ min: h.y - 8, max: h.y + 8 }); 
+                    }
                 }
             }
-            for (let offset = 0; offset < 800; offset += 5) {
+            for (let offset = 0; offset < 800; offset += 10) { 
                 for (let sign of [1, -1]) {
                     if (offset === 0 && sign === -1) continue;
                     let testY = startY + offset * sign;
@@ -1679,14 +1816,39 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         }
         function drawGraph(graph) {
             currentGraph = graph;
-            // ABSOLUTER FIX: Die Bibliothek MUSS zerstört werden, bevor wir die HTML-Knoten leeren.
-            // Sonst überschreibt ihr internes Backup unsere neuen Zeichnungen!
+						  
+					
             let isFirstRun = !panZoomInstance;
             svgHalos.innerHTML = '';
             svgLines.innerHTML = '';
             svgNodes.innerHTML = '';
             const channelUsage = {};
             const horizontalUsage = [];
+            
+            // =========================================================
+            // NEU: PRE-PASS FÜR PIN-EINFLUGSCHNEISEN
+            // =========================================================
+            // Wir markieren die horizontalen Anflugwege zu JEDEM Pin vorab als blockiert.
+            // So vermeiden wir, dass fremde Leitungen versehentlich auf der Y-Höhe eines Pins verlegt werden.
+            graph.edges.forEach(edge => {
+                const target = graph.nodes.get(edge.targetId);
+                if (!target) return;
+                let endY = target.y + (target.height / 2);
+                if (target.type === 'GATE') {
+                    let inIndex = target.inputs.indexOf(edge.originalSourceId);
+                    if(inIndex === -1) inIndex = 0; 
+                    const usableHeight = target.height - 20; 
+                    const spacing = usableHeight / Math.max(1, target.inputs.length);
+                    endY = target.y + 20 + spacing * (inIndex + 0.5); 
+                } else if (target.type === 'RS' || target.type === 'SR' || target.type === 'CTU') {
+                    if (edge.targetPin === 'S' || edge.targetPin === 'CU') endY = target.y + 15;
+                    if (edge.targetPin === 'R') endY = target.y + target.height - 15;
+                }
+                // Jeder Pin blockiert horizontal den Kanal (120px nach links) für alle fremden Leitungen!
+                horizontalUsage.push({ y: safe(endY), x1: target.x - 120, x2: target.x, isPinStub: true });
+            });
+            // =========================================================
+
             const nets = {};
             graph.edges.forEach(edge => {
                 const source = graph.nodes.get(edge.sourceId);
@@ -1698,8 +1860,22 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 if (!nets[netKey]) nets[netKey] = { source, startY, edges: [], color: edge.color };
                 nets[netKey].edges.push(edge);
             });
+
+			// HYBRID-FIX: Wir MÜSSEN uns die rechteste Kante merken, um lange Hilfsvariablen in Level > 0 zu schützen!
+            const levelRightEdges = {};
+            graph.nodes.forEach(n => {
+                let rightEdge = n.x + n.width;
+                if (!levelRightEdges[n.level] || rightEdge > levelRightEdges[n.level]) {
+                    levelRightEdges[n.level] = rightEdge;
+                }
+            });
+
+            const sourceUsage = {}; 
+
             Object.values(nets).forEach(net => {
                 let startX = safe(net.source.x + net.source.width);
+                let colRightEdge = safe(levelRightEdges[net.source.level]);
+                
                 net.edges.forEach(edge => {
                     const target = graph.nodes.get(edge.targetId);
                     let endY = target.y + (target.height / 2);
@@ -1710,31 +1886,62 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         const spacing = usableHeight / Math.max(1, target.inputs.length);
                         endY = target.y + 20 + spacing * (inIndex + 0.5); 
                     } else if (target.type === 'RS' || target.type === 'SR' || target.type === 'CTU') {
-                        // FIX: Auch das CU-Signal vom Zähler muss an den oberen Pin geroutet werden!
                         if (edge.targetPin === 'S' || edge.targetPin === 'CU') endY = target.y + 15;
                         if (edge.targetPin === 'R') endY = target.y + target.height - 15;
                     }
                     edge.calcEndY = safe(endY);
                     edge.calcEndX = safe(target.x);
                     if (!channelUsage[target.level]) channelUsage[target.level] = 0;
-                    edge.calcMidX = safe(target.x - 12 - (channelUsage[target.level] * 8));
+                    // FIX: Fall-Linien am Ziel näher zusammenrücken (6px statt 8px)
+                    edge.calcMidX = safe(target.x - 12 - (channelUsage[target.level] * 6));
                     channelUsage[target.level]++;
                 });
+                
                 let maxMidX = safe(Math.max(...net.edges.map(e => e.calcMidX)));
+                let minMidX = safe(Math.min(...net.edges.map(e => e.calcMidX))); 
+                
+                // Vorab-Schätzung für den horizontalen Bereich
+                let tempDropX = safe(colRightEdge + 12);
+                let rightExtent = Math.max(tempDropX, maxMidX);
+                let leftExtent = Math.min(tempDropX, minMidX);
+                
                 let trunkY = safe(net.startY);
-                if (maxMidX > startX + 10) {
-                    trunkY = safe(findFreeY(net.startY, startX + 10, maxMidX, graph.nodes, horizontalUsage));
-                    horizontalUsage.push({y: trunkY, x1: startX + 10, x2: maxMidX});
+                let validEndYs = net.edges.map(e => e.calcEndY);
+
+                if (rightExtent > leftExtent) {
+                    trunkY = safe(findFreeY(net.startY, leftExtent, rightExtent, graph.nodes, horizontalUsage, validEndYs));
+                    horizontalUsage.push({y: trunkY, x1: leftExtent, x2: rightExtent, isPinStub: false});
                 }
-                if (net.edges.length > 0 && maxMidX > startX) {
-                    let trunkD = `M ${startX} ${net.startY}`;
-                    if (Math.abs(trunkY - net.startY) > 2) {
-                        trunkD += ` L ${startX + 10} ${net.startY} L ${startX + 10} ${trunkY} L ${maxMidX} ${trunkY}`;
+                
+                let hasKnick = Math.abs(trunkY - net.startY) > 2;
+                
+                // 🌟 DER MAGISCHE FIX: Wir verbrauchen NUR dann eine vertikale Spur am Start, 
+                // wenn die Linie wirklich abknicken muss!
+                let dropX = tempDropX;
+                if (hasKnick) {
+                    let lvl = net.source.level;
+                    if (!sourceUsage[lvl]) sourceUsage[lvl] = 0;
+                    dropX = safe(colRightEdge + 12 + (sourceUsage[lvl] * 6)); // 6px Schritte
+                    sourceUsage[lvl]++;
+                    
+                    // Extents mit dem finalen aufgefächerten dropX korrigieren
+                    rightExtent = Math.max(dropX, maxMidX);
+                    leftExtent = Math.min(dropX, minMidX);
+                }
+
+                let drawLeft = hasKnick ? leftExtent : Math.min(startX, minMidX);
+                let drawRight = hasKnick ? rightExtent : Math.max(startX, maxMidX);
+
+                if (net.edges.length > 0) {
+                    let trunkD = "";
+                    if (hasKnick) {
+                        trunkD = `M ${startX} ${net.startY} L ${dropX} ${net.startY} L ${dropX} ${trunkY} M ${drawLeft} ${trunkY} L ${drawRight} ${trunkY}`;
                     } else {
-                        trunkD += ` L ${maxMidX} ${trunkY}`; 
+                        trunkD = `M ${drawLeft} ${trunkY} L ${drawRight} ${trunkY}`; 
                     }
                     drawPath(trunkD, net.color, net.source.id);
                 }
+                
                 const dots = new Set();
                 net.edges.forEach(edge => {
                     let actualEndX = edge.calcEndX;
@@ -1742,27 +1949,29 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         actualEndX -= 7;
                         drawBubble(actualEndX + 3.5, edge.calcEndY, net.color, net.source.id);
                     }
+                    
                     let dropD = "";
-                    if (maxMidX > startX) {
-                        if (Math.abs(trunkY - edge.calcEndY) <= 4) {
-                            dropD = `M ${edge.calcMidX} ${trunkY} L ${actualEndX} ${trunkY}`;
-                        } else {
-                            dropD = `M ${edge.calcMidX} ${trunkY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
-                        }
-                        let isJunction = false;
-                        if (edge.calcMidX < maxMidX) {
-                            isJunction = true; 
-                        } else {
-                            const edgesHere = net.edges.filter(e => e.calcMidX === edge.calcMidX);
-                            const uniqueYs = new Set(edgesHere.map(e => e.calcEndY));
-                            if (uniqueYs.size > 1) isJunction = true;
-                        }
-                        if (isJunction) dots.add(`${edge.calcMidX},${trunkY}`);
+                    if (Math.abs(trunkY - edge.calcEndY) <= 4) {
+                        dropD = `M ${edge.calcMidX} ${trunkY} L ${actualEndX} ${trunkY}`;
                     } else {
-                        dropD = `M ${startX} ${net.startY} L ${edge.calcMidX} ${net.startY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
+                        dropD = `M ${edge.calcMidX} ${trunkY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
                     }
                     drawPath(dropD, net.color, net.source.id);
+
+                    let X = edge.calcMidX;
+                    let segments = 0;
+                    if (drawLeft < X) segments++; 
+                    if (drawRight > X) segments++; 
+                    if (hasKnick && dropX === X) segments++; 
+                    else if (!hasKnick && startX === X) segments++; 
+                    
+                    const edgesHere = net.edges.filter(e => e.calcMidX === X);
+                    const uniqueYs = new Set(edgesHere.map(e => e.calcEndY));
+                    segments += uniqueYs.size; 
+
+                    if (segments >= 3) dots.add(`${X},${trunkY}`);
                 });
+                
                 dots.forEach(d => {
                     const [dx, dy] = d.split(',').map(Number);
                     drawDot(dx, dy, net.color, net.source.id);
@@ -6295,6 +6504,35 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 }
             }
         });
+		// ==========================================
+        // NEU: SEITENLEISTE TOGGLE
+        // ==========================================
+        window.toggleSidebar = function() {
+            const panel = document.getElementById('left-panel');
+            const btn = document.getElementById('btn-toggle-sidebar');
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'flex';
+                btn.textContent = '◀';
+                btn.title = 'Seitenleiste einklappen';
+            } else {
+                panel.style.display = 'none';
+                btn.textContent = '☰'; // Burger-Menu Icon, wenn eingeklappt
+                btn.title = 'Seitenleiste ausklappen';
+            }
+            
+            // WICHTIG: Den SVG-Engines und dem Oszilloskop einen Moment Zeit geben, 
+            // den neuen Platz zu erkennen, und sie dann neu zentrieren lassen!
+            setTimeout(() => {
+                if (panZoomInstance && document.getElementById('fbs-wrapper').style.display !== 'none') { 
+                    panZoomInstance.resize(); panZoomInstance.fit(); panZoomInstance.center(); 
+                }
+                if (panZoomCircuitInstance && document.getElementById('circuit-wrapper').style.display !== 'none') { 
+                    panZoomCircuitInstance.resize(); panZoomCircuitInstance.fit(); panZoomCircuitInstance.center(); 
+                }
+                if (isAnalyzerOpen) drawAnalyzer();
+            }, 15);
+        };
         // 3. Engine zünden
         startFactoryEngine();
     </script>
