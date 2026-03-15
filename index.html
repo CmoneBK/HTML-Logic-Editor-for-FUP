@@ -670,6 +670,8 @@
                 <span id="save-indicator">Gespeichert</span>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
+                <button id="btn-install-app" class="btn-export" onclick="installApp()" style="background: #e91e63; font-size: 11px; padding: 3px 8px; box-shadow: none; display: none;">📱 App installieren</button>
+                
               	<button class="btn-export" onclick="openHelpModal()" style="background: #17a2b8; font-size: 11px; padding: 3px 8px; box-shadow: none;">ℹ️ Hilfe / Tipps</button>
                 <button class="btn-export" onclick="openSaveLoadModal()" style="background: #2196f3; font-size: 11px; padding: 3px 8px; box-shadow: none;">💾 Speichern / Laden</button>
                 <select class="btn-reset" onchange="loadExample(this.value)" style="background: #333; padding: 3px 5px; border-radius: 3px;">
@@ -7968,9 +7970,53 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         }, { passive: false });
         
         document.addEventListener('touchcancel', () => { if (touchTimer) clearTimeout(touchTimer); });
+		// ==========================================
+        // 🌟 NEU: PROGRESSIVE WEB APP (PWA) INSTALL-ENGINE
+        // ==========================================
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btn-install-app');
+        
+        // Prüfen, ob wir bereits als App im Vollbild laufen (dann Button verstecken)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+        
+        // 🌟 FIX: Bessere Apple-Erkennung (schließt auch neue iPads ein, die sich als Mac tarnen!)
+        const isAppleMobile = (/iphone|ipad|ipod|macintosh/.test(window.navigator.userAgent.toLowerCase()) && 'ontouchend' in document);
+        
+        // 1. Fallback für Apple (da Apple das automatische Install-Event blockiert)
+        window.addEventListener('DOMContentLoaded', () => {
+            if (btnInstall && !isStandalone && isAppleMobile) {
+                btnInstall.style.display = 'inline-block';
+            }
+        });
 
-        // 3. Engine zünden
-        startFactoryEngine();
+        // 2. Android / Chrome / Edge Logic (Fängt die Einladung des Browsers ab)
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (btnInstall && !isStandalone) {
+                btnInstall.style.display = 'inline-block';
+            }
+        });
+
+        // 3. Die Klick-Funktion
+        window.installApp = async function() {
+            if (deferredPrompt) {
+                // Zeigt den nativen Android/Windows/Edge Installations-Dialog
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    btnInstall.style.display = 'none'; 
+                }
+                deferredPrompt = null;
+            } else if (isAppleMobile) {
+                // 🌟 FIX: Browser-neutrale Anleitung (für Safari, Edge, Chrome auf iPad/iPhone)
+                alert("🍏 App-Installation (iOS / iPadOS):\n\n1. Tippe im Browser auf das 'Teilen'-Symbol (Viereck mit Pfeil nach oben) oder öffne das Browser-Menü (oft drei Punkte).\n2. Scrolle zu den Optionen und wähle 'Zum Home-Bildschirm'.\n3. Bestätige oben rechts mit 'Hinzufügen'.\n\nVALIS startet danach als echte Vollbild-App!");
+            } else {
+                // Genereller Fallback für sonstige Browser
+                alert("💡 App-Installation:\n\nÖffne das Menü deines Browsers (meist drei Punkte oder Striche) und wähle 'Zum Startbildschirm hinzufügen' oder 'App installieren'.");
+            }
+        };
+
         // 3. Engine zünden
         startFactoryEngine();
     </script>
