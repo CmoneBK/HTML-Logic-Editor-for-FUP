@@ -271,6 +271,11 @@
         /* UI-Erweiterungen für Dropdowns */
         .type-select { background: #252526; color: #9CDCFE; border: 1px solid #555; border-radius: 3px; font-size: 10.5px; padding: 2px; font-family: inherit; cursor: pointer; outline: none; margin-left: 5px; max-width: 85px; text-overflow: ellipsis; flex-shrink: 0; }
         .type-select:hover { border-color: #007acc; }
+		/* NEU: Tasten-Zuweisung */
+        .key-bind-btn { background: #333; color: #ccc; border: 1px solid #555; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 2px 6px; margin-right: 5px; transition: 0.2s; font-family: monospace; font-weight: bold; flex-shrink: 0; }
+        .key-bind-btn:hover { border-color: #007acc; color: #fff; background: #444; }
+        .key-bind-btn.assigning { background: #007acc; color: #fff; animation: valis-pulse 1s infinite; }
+        @keyframes valis-pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 122, 204, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(0, 122, 204, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 122, 204, 0); } }
         .flex-col { display: flex; flex-direction: column; gap: 5px; width: 100%; box-sizing: border-box; }
         .flex-row-between { display: flex; justify-content: space-between; align-items: center; width: 100%; min-width: 0; box-sizing: border-box; }
         .flex-row-between span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; padding-right: 5px; }
@@ -365,14 +370,14 @@
         svg.sim-running .fbs-bubble.inactive { stroke: #333 !important; }
 		/* Schaltplan-spezifische Transitionen */
         .circ-component { transition: fill 0.2s ease; }
-													 
-						   
-														   
-																			  
-														 
-																 
-																									
+			  
 		 
+				 
+					 
+			   
+				 
+						 
+   
         /* Buttons bleiben strikt IN der Leiste, Emojis bekommen mehr Luft! */
         .tool-btn, .tb-drop-btn { 
             background: #555; color: #fff; border: 1px solid #777; 
@@ -393,31 +398,31 @@
             text-align: center;
             overflow: hidden; 
         }
-																   
-						   
-													   
-									  
-																						
-																
-																									
+				   
 		 
-											   
-																	 
+				
+		   
+					  
+				
+						 
+   
+			  
+				  
+   
 		 
-									
-																				  
+					  
+		
+						
+		  
+   
+				  
+		  
 					   
-																					   
-							   
-		 
-																		
-									 
-																				   
-																			 
-														   
-																					   
-							 
-		 
+					
+				 
+						
+		
+   
         #btn-fbs-toggle {
             flex: 0 0 34px !important; /* Verhindert, dass das Plus-Icon wächst */
             height: 34px !important;
@@ -689,7 +694,7 @@
         .f2d-v-solenoid::before { content: ''; position: absolute; width: 1px; height: 130%; background: #333; transform: rotate(45deg); transition: background 0.4s ease-out; }
         .f2d-v-solenoid.left { left: -14px; border-radius: 3px 0 0 3px; border-right: none; }
         .f2d-v-solenoid.right { right: -14px; border-radius: 0 3px 3px 0; border-left: none; }
-        
+		
         /* Spulen glühen Orange (Zündet sofort ohne Verzögerung!) */
         .f2d-v-solenoid.energized { background: #ff9800; border-color: #e65100; box-shadow: 0 0 10px #ff9800; z-index: 6; transition: none; }
         .f2d-v-solenoid.energized::before { background: #fff; transition: none; }
@@ -734,6 +739,7 @@
                     <option value="code">Reiner Code</option>
                     <option value="comments">Mit Erklärungen</option>
                     <option value="full_demo">Master-Anlage (Alle Bausteine)</option>
+                    <option value="portal_crane">Portalkran (Pick & Place)</option>
                 </select>
             </div>
         </div>
@@ -804,18 +810,18 @@
                 <button id="btn-view-fbs" class="btn-export view-btn active" onclick="toggleWorkspaceView('fbs-wrapper')">Logikplan</button>
                 <button id="btn-view-iec" class="btn-export view-btn" onclick="toggleWorkspaceView('circuit-wrapper')">Schaltplan</button>
                 <button id="btn-view-fac" class="btn-export view-btn" onclick="toggleWorkspaceView('factory-wrapper')">2D Anlage</button>
-																																																				
-												  
-																		   
-																		   
-							   
-															
-																					 
-																				 
-																					
-																				  
-							   
-						 
+																													 
+			  
+					 
+					 
+		  
+			   
+					  
+					 
+					 
+					  
+		  
+	   
             </div>
             <div style="display: flex; gap: 5px; align-items: center; margin: 0 auto;">
                 <div class="tb-dropdown">
@@ -1178,6 +1184,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         const simOutputsContainer = document.getElementById('sim-outputs');
         let panZoomInstance = null;
         let spsState = {};
+		// 🌟 NEU: Tastatur-Steuerung
+        window.inputKeyBindings = JSON.parse(localStorage.getItem('valisKeyBindings')) || {};
+        window.isAssigningKey = null;
+        window.heldKeys = new Set(); // Verhindert Dauerfeuer durch Tastatur-Auto-Repeat
         let simulationFunction = null;
         let saveTimeout = null;
         let currentGraph = null;
@@ -1325,7 +1335,50 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     { id: "e6viun474", type: "siren", x: 277, y: -28, width: 40, height: 40, rotation: 0, linkedVar: "ALARM", useCollision: false, labelPinned: false }
                 ]
             }
-        }
+        },
+		// NEU: Portalkran "Pick & Place" Demo (mit WASD-Steuerung)
+            portal_crane: {
+                code: `// --- 1. ACHSEN-VERRIEGELUNG (Motorschutz) ---\n// Verhindert, dass die Motoren in zwei Richtungen gleichzeitig ziehen!\nX_PLUS := KRAN_RECHTS && ¬KRAN_LINKS\nX_MINUS := KRAN_LINKS && ¬KRAN_RECHTS\nY_PLUS := KRAN_AB && ¬KRAN_AUF\nY_MINUS := KRAN_AUF && ¬KRAN_AB\n\n// --- 2. VAKUUM-GREIFER ---\nVAKUUM := SAUGER\nLED_SAUGEN := SAUGER`,
+                types: {
+                    "KRAN_RECHTS": "taster", "KRAN_LINKS": "taster", "KRAN_AB": "taster", "KRAN_AUF": "taster",
+                    "SAUGER": "taster", "X_PLUS": "motor", "X_MINUS": "motor", "Y_PLUS": "motor", "Y_MINUS": "motor",
+                    "VAKUUM": "valve", "LED_SAUGEN": "led"
+                },
+                // 🌟 NEU: Die WASD-Tastenbelegung (Leertaste = " ")
+                keyBindings: {
+                    "KRAN_AUF": "w",
+                    "KRAN_LINKS": "a",
+                    "KRAN_AB": "s",
+                    "KRAN_RECHTS": "d",
+                    "SAUGER": " "
+                },
+                factory: {
+                    globalViewMode: "side",
+                    items: [],
+                    objects: [
+                        // Der Portalkran
+                        { id: "crane1", type: "portal_crane", x: 200, y: 50, width: 450, height: 300, rotation: 0, speed: 180, linkedVarX_Plus: "X_PLUS", linkedVarX_Minus: "X_MINUS", linkedVarY_Plus: "Y_PLUS", linkedVarY_Minus: "Y_MINUS", linkedVarGrab: "VAKUUM", useCollision: false },
+                        
+                        // Logistik: Spawner (Abholstation) & Despawner (Ablagestation)
+                        { id: "spawn1", type: "spawner_kunststoff", x: 220, y: 250, width: 50, height: 50, rotation: 0, interval: 4, spawnSolid: true, useCollision: false },
+                        { id: "desp1", type: "despawner", x: 550, y: 250, width: 50, height: 50, rotation: 0, useCollision: false },
+                        
+                        // Podeste (Struktur)
+                        { id: "wall1", type: "wall", x: 195, y: 300, width: 100, height: 20, useCollision: true },
+                        { id: "wall2", type: "wall", x: 525, y: 300, width: 100, height: 20, useCollision: true },
+                        
+                        // HMI: Das "Joystick" Steuerkreuz (Umgestellt auf Taster)
+                        { id: "btnU", type: "taster", x: 70, y: 50, width: 40, height: 40, linkedVar: "KRAN_AUF", color: "yellow" },
+                        { id: "btnL", type: "taster", x: 20, y: 100, width: 40, height: 40, linkedVar: "KRAN_LINKS", color: "blue" },
+                        { id: "btnR", type: "taster", x: 120, y: 100, width: 40, height: 40, linkedVar: "KRAN_RECHTS", color: "blue" },
+                        { id: "btnD", type: "taster", x: 70, y: 150, width: 40, height: 40, linkedVar: "KRAN_AB", color: "yellow" },
+                        
+                        // HMI: Vakuum-Steuerung (Umgestellt auf Taster)
+                        { id: "btnV", type: "taster", x: 70, y: 230, width: 40, height: 40, linkedVar: "SAUGER", color: "green" },
+                        { id: "ledV", type: "led", x: 75, y: 285, width: 30, height: 30, linkedVar: "LED_SAUGEN", color: "green" }
+                    ]
+                }
+            }
         }; // <-- Hier endet das gesamte EXAMPLES Objekt
         const DEFAULT_CODE = EXAMPLES.code; // Standard beim allerersten Öffnen
         const palette = ['#e6194B', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#00b3b3', '#f032e6', '#8cbd00', '#008080', '#9a6324', '#800000', '#000075', '#808000', '#f08080', '#20b2aa', '#cd5c5c', '#ba55d3', '#ff1493', '#4b0082', '#ff8c00'];
@@ -2466,11 +2519,16 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let newCode = typeof exData === 'string' ? exData : exData.code;
                     let newTypes = typeof exData === 'string' ? EXAMPLES.types : exData.types;
                     let newFactory = typeof exData === 'string' ? EXAMPLES.factory : exData.factory;
+                    let newKeys = typeof exData === 'string' ? {} : (exData.keyBindings || {}); // 🌟 NEU: KeyBindings auslesen
+                    
                     textarea.value = newCode;
                     if (newTypes) {
                         componentTypes = { ...newTypes };
                         localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
                     }
+                    // 🌟 NEU: KeyBindings anwenden und speichern
+                    window.inputKeyBindings = { ...newKeys };
+                    localStorage.setItem('valisKeyBindings', JSON.stringify(window.inputKeyBindings));
                     spsState = {};
 					window.fbsNodeColors = {}; 
 					window.fbsColorCounter = 0;
@@ -2565,8 +2623,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 let controlHTML = isSwitchUI 
                     ? `<label class="switch"><input type="checkbox" id="sim_in_${name}" ${isActuated ? 'checked' : ''} onchange="toggleInput('${name}')"><span class="slider"></span></label>`
                     : `<button class="taster-btn ${isActuated ? 'pressed' : ''}" id="sim_taster_${name}" onmousedown="setTaster('${name}', true, event)" onmouseup="setTaster('${name}', false, event)" onmouseleave="setTaster('${name}', false, event)" ontouchstart="setTaster('${name}', true, event)" ontouchend="setTaster('${name}', false, event)">TASTER</button>`;
+                // 🌟 FIX: Tasten-Zuweisungs-Button einbauen
+                let boundKey = window.inputKeyBindings[name] ? `[${window.inputKeyBindings[name].toUpperCase()}]` : '⌨️';
+                let keyBtnHTML = `<button id="btn_key_${name}" class="key-bind-btn" onclick="assignKey('${name}')" title="Klicken, um Taste zuzuweisen (Entf zum Löschen)">${boundKey}</button>`;
                 simInputsContainer.innerHTML += `<div class="switch-row flex-col">
-                    <div class="flex-row-between"><span>${name}</span>${selectHTML}</div>
+                    <div class="flex-row-between"><div style="display:flex; align-items:center; overflow:hidden; white-space:nowrap;">${keyBtnHTML}<span style="text-overflow:ellipsis; overflow:hidden;">${name}</span></div>${selectHTML}</div>
                     <div class="flex-row-between" style="justify-content: flex-end;">${controlHTML}</div>
                 </div>`;
             });
@@ -2656,7 +2717,24 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             }
         }
         document.addEventListener('keyup', (e) => {
+            // 1. Die alte Logik: STRG losgelassen -> eingerastete Taster lösen
             if (e.key === 'Control' || e.key === 'Meta') clearLatchedTasters();
+            // 2. Die NEUE Logik: Zugewiesene Taste losgelassen -> Taster springt zurück
+            if (isSimulationActive) {
+                let key = e.key.toLowerCase();
+                window.heldKeys.delete(key);
+                let boundVars = Object.keys(window.inputKeyBindings).filter(k => window.inputKeyBindings[k] === key);
+                boundVars.forEach(boundVar => {
+                    let cType = componentTypes[boundVar] || 'taster';
+                    if (cType.includes('taster')) {
+                        let isNC = cType === 'nothalt' || cType === 'taster_nc' || cType === 'schalter_nc' || cType === 'light_curtain';
+                        // Taster losgelassen -> Zurück in den Ruhezustand
+                        spsState[boundVar] = isNC ? true : false; 
+                    }
+                });
+                // Nur einen neuen Frame berechnen, wenn auch wirklich eine unserer Tasten losgelassen wurde
+                if (boundVars.length > 0) runSimulationTick();
+            }
         });
         window.addEventListener('blur', clearLatchedTasters);
         // --- SIMULATIONS-LOGIK ---
@@ -2719,15 +2797,15 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             const btn = getCircDoc().getElementById('btn-toggle-econ');
             if (btn) {
                 if (window.configEconMode) {
-																				   
+					   
                     btn.style.backgroundColor = '#4caf50'; btn.textContent = '💼 Modus: Direkt (Wirtschaftlich)';
                 } else {
-																			 
+					
                     btn.style.backgroundColor = '#555'; btn.textContent = '💼 Modus: Relais (Klassisch)';
                 }
-							   
-																				 
-									
+		  
+					 
+		 
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2735,18 +2813,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             window.configDetails = (window.configDetails + 1) % 3; 
             const btn = getCircDoc().getElementById('btn-toggle-details');
             if(btn) {
-															  
+				 
                 if (window.configDetails === 2) { btn.style.backgroundColor = '#911eb4'; btn.textContent = '🏷️ Details: ALLE'; } 
-													
-															  
-                else if (window.configDetails === 1) { btn.style.backgroundColor = '#007acc'; btn.textContent = '🏷️ Details: E/A'; } 
-					
-														   
-                else { btn.style.backgroundColor = '#555'; btn.textContent = '🏷️ Details: AUS'; }
 			 
-							   
-																				 
-									
+				 
+                else if (window.configDetails === 1) { btn.style.backgroundColor = '#007acc'; btn.textContent = '🏷️ Details: E/A'; } 
+	 
+				 
+                else { btn.style.backgroundColor = '#555'; btn.textContent = '🏷️ Details: AUS'; }
+	
+		  
+					 
+		 
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2756,10 +2834,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(btn){
                 btn.style.backgroundColor = window.configWechsler ? '#911eb4' : '#555';
                 btn.textContent = window.configWechsler ? '🔀 Wechslernummerierung: AN' : '🔀 Wechslernummerierung: AUS';
-							   
-																						  
-																				 
-									 
+		  
+						
+					 
+		  
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2769,10 +2847,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(btn){
                 btn.style.backgroundColor = window.configSeqNum ? '#911eb4' : '#555';
                 btn.textContent = window.configSeqNum ? '🔢 Fortlaufende Nrn: AN' : '🔢 Fortlaufende Nrn: AUS';
-							   
-																						  
-																				 
-									
+		  
+						
+					 
+		 
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -4000,9 +4078,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     drawGraph(parsed.graph);
                 }
                 // 🌟 FIX: Schaltplan IMMER (auch unsichtbar) generieren, damit die IEC-Namen für die Anlage aktuell sind!
-				 
-                drawCircuitPlan(parsed.graph, globalInputs, globalOutputs, true);
 	 
+                drawCircuitPlan(parsed.graph, globalInputs, globalOutputs, true);
+  
                 runSimulationTick();
             } catch (e) {
                 console.warn("Warte auf korrekte Syntax...", e);
@@ -4293,7 +4371,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 },
                 animate: function(obj, spsState) {
                     let isActive = false;
-                    
+					
                     let extVar = obj.linkedVarExt;
                     let retVar = obj.linkedVarRet;
                     if (obj.targetCylinderId) {
@@ -4338,7 +4416,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 lblR.innerHTML = retVar ? `${retVar}<br><span style="color:#03a9f4">${iecName}</span>` : '';
                             }
                         }
-                        
+						
                         // 3. Mechanische Logik (Reagiert SOFORT auf das echte Signal, nicht auf die Optik!)
                         if (extElec && !retElec) obj.valveState = 'ext';
                         if (retElec && !extElec) obj.valveState = 'ret';
@@ -4347,7 +4425,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         // Monostabil (Federrückstellung)
                         isActive = extElec;
                     }
-                    
+					
                     // 4. Optisches und akustisches Schalten des Schiebers
                     if (isActive !== obj.isActive) {
                         obj.isActive = isActive;
@@ -5123,6 +5201,134 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                             item.isHeatedThisFrame = true; // Verhindert sofortiges Auskühlen in der Hauptschleife
                         }
                     }
+                }
+            },
+			'portal_crane': {
+                meta: { name: 'Portalkran (Pick & Place)', icon: '🏗️', desc: '3-Achsen Greifarm mit Vakuum-Sauger' },
+                modalConfig: { t: 'Portalkran anlegen:', l1: 'X+ (Nach Rechts)', l2: 'Y+ (Nach Unten)', l3: 'Greifen (Vakuum)', out: true },
+                menuTarget: '#menu-aktoren',
+                menuHtml: `<div onclick="addFactoryDevice('portal_crane')">🏗️ Portalkran (Pick&Place)</div>`,
+                css: `
+                    .f2d-portal-crane { position: absolute; border-top: 6px solid #455a64; box-sizing: border-box; z-index: 6; }
+                    .f2d-portal-crane::after { content: "PORTALKRAN"; position: absolute; top: -18px; left: 0; font-size: 10px; font-weight: bold; color: #455a64; pointer-events: none; }
+                    .f2d-crane-carriage { position: absolute; top: -6px; left: 0; width: 30px; height: 15px; background: #ff9800; border: 2px solid #e65100; border-radius: 2px; z-index: 7; display: flex; justify-content: center; }
+                    .f2d-crane-arm { position: absolute; top: 11px; width: 8px; height: 20px; background: #cfd8dc; border: 2px solid #546e7a; border-top: none; transform-origin: top center; z-index: 6; box-sizing: border-box; }
+                    .f2d-crane-vacuum { position: absolute; bottom: -8px; left: -6px; width: 16px; height: 8px; background: #263238; border-radius: 0 0 4px 4px; border-bottom: 2px solid #00e5ff; transition: border-color 0.1s, box-shadow 0.1s; }
+                    .f2d-crane-vacuum.active { border-bottom-color: #ff1744; box-shadow: 0 4px 10px rgba(255, 23, 68, 0.6); }
+                `,
+                build: function(obj, el, var1, var2, var3) {
+                    obj.width = 300; obj.height = 150;
+                    obj.linkedVarX_Plus = var1;
+                    obj.linkedVarY_Plus = var2;
+                    obj.linkedVarGrab = var3;
+                    obj.linkedVarX_Minus = null;
+                    obj.linkedVarY_Minus = null;
+                    obj.posX = 0; obj.posY = 20;
+                    obj.speed = 100;
+					
+                    el.className = 'f2d-obj f2d-portal-crane';
+                    el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
+                    el.innerHTML = `
+                        <div class="f2d-crane-carriage">
+                            <div class="f2d-crane-arm">
+                                <div class="f2d-crane-vacuum"></div>
+                            </div>
+                        </div>
+                    `;
+                    let resizer = document.createElement('div'); resizer.className = 'f2d-resize-handle-xy'; obj.resizerEl = resizer; el.appendChild(resizer);
+                    obj.useCollision = false; // Rahmen ist ein Geist, nur der Greifer agiert
+                },
+                animate: function(obj, spsState) {
+                    // 1. Echte Pixel-Bewegung pro Frame berechnen
+                    let speed = (obj.speed || 100) * 0.0166 * window.simSpeed * timeScale;
+                    if (obj.linkedVarX_Plus && spsState[obj.linkedVarX_Plus]) obj.posX += speed;
+                    if (obj.linkedVarX_Minus && spsState[obj.linkedVarX_Minus]) obj.posX -= speed;
+                    if (obj.linkedVarY_Plus && spsState[obj.linkedVarY_Plus]) obj.posY += speed;
+                    if (obj.linkedVarY_Minus && spsState[obj.linkedVarY_Minus]) obj.posY -= speed;
+
+                    // 2. Hardware-Endlagen (Mechanische Anschläge)
+                    obj.posX = Math.max(0, Math.min(obj.posX, obj.width - 30));
+                    obj.posY = Math.max(20, Math.min(obj.posY, obj.height));
+
+                    let carriage = obj.el.querySelector('.f2d-crane-carriage');
+                    let arm = obj.el.querySelector('.f2d-crane-arm');
+                    if (carriage) carriage.style.transform = `translateX(${obj.posX}px)`;
+                    if (arm) arm.style.height = `${obj.posY}px`;
+
+                    // 3. Vakuum-Logik (Greifen)
+                    let grabActive = obj.linkedVarGrab ? !!spsState[obj.linkedVarGrab] : false;
+                    let vacuumEl = obj.el.querySelector('.f2d-crane-vacuum');
+                    if (vacuumEl) vacuumEl.classList.toggle('active', grabActive);
+
+                    // Globale Ziel-Koordinaten des Saugnapfes
+                    let vacGlobalX = obj.x + obj.posX + 15; 
+                    let vacGlobalY = obj.y + obj.posY + 8; 
+
+                    if (grabActive) {
+                        if (!obj.grabbedItemObj) {
+                            // Hitbox-Scan: Ist eine Box in Reichweite? (Toleranz: 25px)
+                            let hitRadius = 25; 
+                            for (let i = 0; i < factoryItems.length; i++) {
+                                let item = factoryItems[i];
+                                let icx = item.x + item.width / 2;
+                                let icy = item.y + (item.height || item.width) / 2;
+                                if (Math.hypot(vacGlobalX - icx, vacGlobalY - icy) < hitRadius) {
+                                    obj.grabbedItemObj = item;
+                                    if (typeof SoundEngine !== 'undefined') SoundEngine.pneumatic(); // Zischen!
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        if (obj.grabbedItemObj) {
+                            if (typeof SoundEngine !== 'undefined') SoundEngine.pneumatic(); // Druckablass
+                        }
+                        obj.grabbedItemObj = null;
+                    }
+
+                    // 4. Physik-Bypass: Das Item an den Saugnapf ketten!
+                    if (obj.grabbedItemObj) {
+                        let item = obj.grabbedItemObj;
+                        item.x = vacGlobalX - item.width / 2;
+                        item.y = vacGlobalY + 2; // Hängt satt am Sauger
+                        // Zwingt die Fall-Physik in die Knie
+                        item.vx = 0;
+                        item.vy = 0; 
+                        if (typeof updateObjTransform === 'function') updateObjTransform(item);
+                    }
+                },
+                // 5. Profi-Menü für alle 5 Achsen
+                contextMenu: function(obj, ctxMenu, saveCallback) {
+                    let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
+                    let title = document.createElement('div'); title.style.padding = '0 10px'; title.style.color = '#03a9f4'; title.style.fontSize = '10px'; title.style.fontWeight = 'bold'; title.textContent = 'Kransteuerung & Achsen:'; ctxMenu.appendChild(title);
+
+                    const createVarSelect = (label, propName) => {
+                        let wrap = document.createElement('div'); wrap.style.padding = '2px 15px'; wrap.onclick = e => e.stopPropagation();
+                        wrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 1px;">🔌 ${label}</div>`;
+                        let sel = document.createElement('select');
+                        sel.style.cssText = "width: 100%; padding: 2px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 10px; outline: none; cursor: pointer;";
+                        let optNone = document.createElement('option'); optNone.value = ""; optNone.textContent = "-- Keine --"; sel.appendChild(optNone);
+                        globalOutputs.forEach(o => {
+                            let opt = document.createElement('option'); opt.value = o; opt.textContent = o;
+                            if (o === obj[propName]) opt.selected = true;
+                            sel.appendChild(opt);
+                        });
+                        sel.onchange = e => { obj[propName] = e.target.value || null; saveCallback(); };
+                        wrap.appendChild(sel); ctxMenu.appendChild(wrap);
+                    };
+
+                    createVarSelect('X+ (Rechts fahren)', 'linkedVarX_Plus');
+                    createVarSelect('X- (Links fahren)', 'linkedVarX_Minus');
+                    createVarSelect('Y+ (Abwärts fahren)', 'linkedVarY_Plus');
+                    createVarSelect('Y- (Aufwärts fahren)', 'linkedVarY_Minus');
+                    createVarSelect('Vakuum (Greifen)', 'linkedVarGrab');
+
+                    let speedWrap = document.createElement('div'); speedWrap.style.padding = '5px 15px'; speedWrap.onclick = e => e.stopPropagation();
+                    speedWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">💨 Geschwindigkeit (px/s)</div>`;
+                    let speedInp = document.createElement('input'); speedInp.type = 'number'; speedInp.min = '10'; speedInp.max = '1000'; speedInp.value = obj.speed || 100;
+                    speedInp.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px;";
+                    speedInp.onchange = e => { obj.speed = parseInt(e.target.value); saveCallback(); };
+                    speedWrap.appendChild(speedInp); ctxMenu.appendChild(speedWrap);
                 }
             }
         }; //Ende von Component Registry 
@@ -5926,7 +6132,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             // ==========================================
             if (!window.pneumaticZoneMemory) window.pneumaticZoneMemory = {};
             let currentZoneIds = factoryObjects.filter(o => o.type === 'pneumatic_zone').map(z => z.id);
-            
+			
             // Zerstörte Zonen erkennen und ihren Inhalt restlos löschen
             Object.keys(window.pneumaticZoneMemory).forEach(zoneId => {
                 if (!currentZoneIds.includes(zoneId)) {
@@ -5950,7 +6156,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 if (obj.type === 'pneumatic_zone') {
                     let insideIds = [];
                     let pneuTypes = ['compressor', 'manifold', 'valve_pneu', 'throttle'];
-                    
+					
                     // 1. Bewegung synchronisieren (Hat sich die Kiste bewegt?)
                     if (obj.lastX !== undefined && obj.lastY !== undefined) {
                         let dx = obj.x - obj.lastX;
@@ -6001,36 +6207,36 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if (isSimulationActive) {
                 // Wir nutzen jetzt die ECHTE verstrichene Zeit für die Timer, statt fest 16.666ms!
                 let deltaMs = (deltaTime * 1000) * window.simSpeed; 
-															 
-																																	 
-														 
+				
+																																										   
+			   
                 factoryObjects.forEach(obj => {
-													
-													
-									   
-																						 
-																			 
-																			   
-												   
-														 
-																			  
-																																																																		  
-																																				
-								 
-							   
-						 
-					 
-														 
-												 
-																	  
-																																												
-															   
-						 
+			 
+			 
+			
 					   
-																   
-				 
+					
+					  
+			   
+			   
+					 
+																																																														
+																														 
+		 
+		  
+	   
+	  
+			   
+			 
+				   
+																																					
+				  
+	   
+		
+				   
+	 
 
-												 
+			 
                     if (obj.type.startsWith('spawner_')) {
                         let isActive = obj.linkedVar ? !!spsState[obj.linkedVar] : true;
                         if (isActive) {
@@ -6070,7 +6276,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         let baseSpeed = obj.speed !== undefined ? obj.speed : 10;
                         let forceExt = false;
                         let forceRet = false;
-                        
+						
                         // 🌟 AUTO-HEAL: Prüfen, ob das Wegeventil auf dem Spielfeld gelöscht wurde!
                         if (obj.hasPneumatics) {
                             let valveExists = factoryObjects.some(o => o.type === 'valve_pneu' && o.targetCylinderId === obj.id);
@@ -6084,60 +6290,60 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 }
                             }
                         }
-                        
+						
                         // 🌟 ECHTE PNEUMATIK-STEUERUNG (Phase 3: Fluidik & Volumenstrom)
                         if (obj.hasPneumatics) {
                             let valve = factoryObjects.find(o => o.type === 'valve_pneu' && o.targetCylinderId === obj.id);
                             let tExt = factoryObjects.find(o => o.type === 'throttle' && o.targetCylinderId === obj.id && o.role === 'ext');
                             let tRet = factoryObjects.find(o => o.type === 'throttle' && o.targetCylinderId === obj.id && o.role === 'ret');
                             let comp = factoryObjects.find(o => o.type === 'compressor');
-                            
+							
                             // Zylinder ist komplett entkoppelt vom Strom und hört NUR NOCH auf das Ventil!
                             if (valve && comp) {
                                 // 1. Systemparameter abrufen
                                 let p_supply = comp.pressure || 6.0; // Bar
                                 let q_max_l_min = comp.maxFlow || 200; // l/min
-                                
+								
                                 // 2. Volumenstrom-Umrechnung (l/min -> mm³/s)
                                 // ECHTE PHYSIK: 1 l/min = 16666.67 mm³/s (Keine magischen Konstanten mehr!)
                                 let q_max_mm3_s = q_max_l_min * 16666.67;
-                                
+								
                                 // 3. Kolbenflächen berechnen (A = pi * r²) in mm²
                                 let dPiston = obj.pistonD || 20;
                                 let dRod = obj.rodD || 8;
                                 let stroke = obj.stroke || 100;
-                                
+								
                                 let aExt = Math.PI * Math.pow(dPiston / 2, 2); // Volle Kolbenfläche (Ausfahren)
                                 let aRet = aExt - (Math.PI * Math.pow(dRod / 2, 2)); // Ringfläche (Einfahren)
-                                
+								
                                 // Druckabfall bei geringerem Kompressordruck (linear genähert)
                                 let pressureFactor = p_supply / 6.0;
-                                
+								
                                 if (valve.isActive) {
                                     forceExt = true; // Druckluft strömt in die Ausfahr-Kammer
                                     let opening = tExt ? (tExt.opening / 100) : 1.0;
                                     let q_eff = q_max_mm3_s * opening * pressureFactor;
-                                    
+									
                                     // v = Q / A (Geschwindigkeit in mm/s)
                                     let v_mm_s = q_eff / aExt;
-                                    
+									
                                     // Umrechnung für die Game-Engine (% der Hublänge pro Frame)
                                     baseSpeed = ((v_mm_s / stroke) * 100) / 60;
                                 } else {
                                     forceRet = true; // Druckluft strömt in die Einfahr-Kammer
                                     let opening = 1.0;
                                     if (tRet) opening = (tRet.opening / 100);
-					 
+	  
                                     else if (obj.type === 'zylinder_single' && tExt) opening = (tExt.opening / 100);
-                                    
+									
                                     let q_eff = q_max_mm3_s * opening * pressureFactor;
-                                    
+									
                                     // 🌟 LEHRBUCH: Hier wird durch die kleinere Ringfläche geteilt!
                                     // v = Q / A_retract (Zylinder fährt bei gleicher Drossel schneller ein als aus!)
                                     let v_mm_s = q_eff / aRet;
-                                    
+									
                                     baseSpeed = ((v_mm_s / stroke) * 100) / 60;
-		  
+	
                                 }
                             }
                         } else {
@@ -6350,7 +6556,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         if(obj.type==='sensor_kap'){ lx=20; ly=10; lw=25; lh=20; }
                         if(obj.type==='sensor_opt'){ lx=20; ly=15; lw=80; lh=10; }
                         if(obj.type==='sensor_mag'){ lx=-5; ly=5; lw=30; lh=30; }
-					
+	 
                         factoryItems.forEach(item => {
                             if (isBlockInLocalRect(item, obj, lx, ly, lw, lh)) {
                                 if (obj.type === 'sensor_ind' && item.material === 'metall') isTriggered = true;
@@ -6358,7 +6564,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 if (obj.type === 'sensor_kap') isTriggered = true; 
                             }
                         });
-					
+	 
                         if (!isTriggered && obj.type !== 'sensor_mag') {
                             let sRad = (obj.rotation || 0) * Math.PI / 180;
                             let steps = obj.type === 'sensor_opt' ? 5 : 2;
@@ -6412,9 +6618,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                 });
 
-														 
-																						
-														 
+			   
+					  
+			   
                 runSimulationTick();
             }
 			// 🌟 DER FIX: Schläuche IMMER live nachziehen (auch im Pause/Editor-Modus!)
@@ -6426,10 +6632,69 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         window.clearFactory = function(force = false) {
             factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; saveFactoryState();
         };
+		// 🌟 NEU: Funktion für den Klick auf den Zuweisungs-Button
+        window.assignKey = function(varName) {
+            window.isAssigningKey = varName;
+            const btn = document.getElementById(`btn_key_${varName}`);
+            if (btn) {
+                btn.textContent = "[...]";
+                btn.classList.add('assigning');
+            }
+        };
 		// --- NEU: KEYBOARD SHORTCUTS (Kopieren, Einfügen, Löschen) ---
         let factoryClipboard = null;
         let pasteOffset = 0;
         document.addEventListener('keydown', (e) => {
+			// 1. Zuweisungs-Modus aktiv?
+            if (window.isAssigningKey) {
+                e.preventDefault();
+                let key = e.key.toLowerCase();
+                // Mit ESC, Backspace oder Entf kann man die Zuweisung löschen
+                if (key === 'escape' || key === 'delete' || key === 'backspace') {
+                    delete window.inputKeyBindings[window.isAssigningKey];
+                } else {
+                    window.inputKeyBindings[window.isAssigningKey] = key;
+                }
+                localStorage.setItem('valisKeyBindings', JSON.stringify(window.inputKeyBindings));
+                let btn = document.getElementById(`btn_key_${window.isAssigningKey}`);
+                if (btn) {
+                    btn.classList.remove('assigning');
+                    btn.textContent = window.inputKeyBindings[window.isAssigningKey] ? `[${window.inputKeyBindings[window.isAssigningKey].toUpperCase()}]` : '⌨️';
+                }
+                window.isAssigningKey = null;
+                return;
+            }
+
+            // 2. WICHTIG: Wenn der User im Code-Editor oder einem Textfeld tippt, alles ignorieren!
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+            // 3. Simulations-Steuerung
+            if (isSimulationActive) {
+                let key = e.key.toLowerCase();
+                if (window.heldKeys.has(key)) return; // Verhindert Auto-Repeat Dauerfeuer des Browsers
+
+                // Alle Variablen finden, die auf diese Taste reagieren sollen
+                let boundVars = Object.keys(window.inputKeyBindings).filter(k => window.inputKeyBindings[k] === key);
+                if (boundVars.length > 0) {
+                    e.preventDefault(); // Verhindert Scrollen (z.B. bei Leertaste)
+                    window.heldKeys.add(key);
+                    if (typeof SoundEngine !== 'undefined') SoundEngine.click();
+
+                    boundVars.forEach(boundVar => {
+                        let cType = componentTypes[boundVar] || 'taster';
+                        let isNC = cType === 'nothalt' || cType === 'taster_nc' || cType === 'schalter_nc' || cType === 'light_curtain';
+                        
+                        if (cType.includes('taster')) {
+                            // Taster: Wird gedrückt
+                            spsState[boundVar] = isNC ? false : true; 
+                        } else {
+                            // Schalter/Sensoren: Zustand umschalten (Toggle)
+                            spsState[boundVar] = !spsState[boundVar];
+                        }
+                    });
+                    runSimulationTick();
+                }
+            }
             // WICHTIG: Wenn der User gerade im Code-Editor oder einem Dropdown tippt, Shortcuts ignorieren!
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
             // ENTF / BACKSPACE: Löschen
@@ -6543,7 +6808,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         function getFactoryStateObj() {
             return {
                 globalViewMode: globalViewMode,
-																														
+																																					  
                 items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid, meltTemp: i.meltTemp })),
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
@@ -6553,7 +6818,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     hasPneumatics: o.hasPneumatics, targetCylinderId: o.targetCylinderId, role: o.role, isDouble: o.isDouble,
                     // 🌟 FIX: parentId und attachmentType MÜSSEN gespeichert werden, sonst fällt der Stempel ab!
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType, normLabel: o.normLabel, originalLabelText: o.originalLabelText,
-                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound
+                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound,
+					linkedVarX_Plus: o.linkedVarX_Plus, linkedVarX_Minus: o.linkedVarX_Minus, linkedVarY_Plus: o.linkedVarY_Plus, linkedVarY_Minus: o.linkedVarY_Minus, linkedVarGrab: o.linkedVarGrab, posX: o.posX, posY: o.posY
                 }))
             };
         }
@@ -6598,6 +6864,12 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
 
                     let newObj = createFactoryObject(o.type, o.linkedVar || o.linkedVarExt, var2, o.id, o.color, o.interval, o.linkedVar3);
+					if (o.linkedVarX_Plus) newObj.linkedVarX_Plus = o.linkedVarX_Plus;
+                    if (o.linkedVarX_Minus) newObj.linkedVarX_Minus = o.linkedVarX_Minus;
+                    if (o.linkedVarY_Plus) newObj.linkedVarY_Plus = o.linkedVarY_Plus;
+                    if (o.linkedVarY_Minus) newObj.linkedVarY_Minus = o.linkedVarY_Minus;
+                    if (o.linkedVarGrab) newObj.linkedVarGrab = o.linkedVarGrab;
+                    if (o.posX !== undefined) { newObj.posX = o.posX; newObj.posY = o.posY; }
                     newObj.x = o.x; newObj.y = o.y; newObj.width = o.width; newObj.rotation = o.rotation;
                     if (o.height) newObj.height = o.height; 
                     if (o.useCollision !== undefined) newObj.useCollision = o.useCollision;
@@ -6688,8 +6960,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 version: "1.0",
                 code: textarea.value,
                 types: componentTypes,
+                keyBindings: window.inputKeyBindings, // 🌟 FIX: Tasten speichern
                 factory: getFactoryStateObj(),
-                plugins: activePlugins // 🌟 NEU: Aktueller Plugin-Status
+                plugins: activePlugins 
             };
             let jsonString = JSON.stringify(saveData);
             textArea.value = JSON.stringify(saveData, null, 2);
@@ -6785,6 +7058,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 const data = JSON.parse(document.getElementById('saveload-text').value);
                 if (data.code !== undefined) textarea.value = data.code;
                 if (data.types !== undefined) componentTypes = data.types;
+                // 🌟 FIX: Tasten laden
+                if (data.keyBindings !== undefined) {
+                    window.inputKeyBindings = data.keyBindings;
+                    localStorage.setItem('valisKeyBindings', JSON.stringify(window.inputKeyBindings));
+                }
                 // Speichert sofort in den LocalStorage
                 localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
                 // 🌟 NEU: Plugin-Konfiguration laden und Menüs updaten
@@ -8270,7 +8548,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(!group || !btn) return;
             group.classList.toggle('expanded');
             btn.classList.toggle('expanded');
-																	  
+				   
             if (typeof SoundEngine !== 'undefined') SoundEngine.click();
         };
         window.toggleIecToolbar = function() {
@@ -8383,33 +8661,33 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         window.generatePneumaticSetup = function(cylObj) {
             let zone = factoryObjects.find(o => o.type === 'pneumatic_zone');
             if (!zone) { zone = createFactoryObject('pneumatic_zone', ''); zone.x = 20; zone.y = 600; }
-            
+			
             let comp = factoryObjects.find(o => o.type === 'compressor');
             let manifold = factoryObjects.find(o => o.type === 'manifold');
-            
+			
             if (!comp) {
                 comp = createFactoryObject('compressor', ''); comp.x = zone.x + 20; comp.y = zone.y + zone.height - 80;
                 manifold = createFactoryObject('manifold', ''); manifold.x = comp.x + 140; manifold.y = comp.y + 45;
-                
+				
                 // 🌟 NORM-UPDATE (DIN EN 81346-2): Kompressor (GQA) und Wartungseinheit/Verteiler (GQ)
                 comp.normLabel = '-GQA1';
                 let cLbl = document.createElement('div'); cLbl.className = 'f2d-label f2d-norm-label'; 
                 cLbl.style.top = '-20px'; cLbl.innerHTML = `Kompressor<br><span style="color:#03a9f4; font-size:10px;">[${comp.normLabel}]</span>`; 
                 comp.el.appendChild(cLbl);
-                
+				
                 manifold.normLabel = '-GQ1';
                 let mLbl = document.createElement('div'); mLbl.className = 'f2d-label f2d-norm-label'; 
                 mLbl.style.top = '-25px'; mLbl.innerHTML = `Wartungseinheit<br><span style="color:#03a9f4; font-size:10px;">[${manifold.normLabel}]</span>`; 
                 manifold.el.appendChild(mLbl);
             }
-            
+			
             let isDouble = cylObj.type === 'zylinder_double';
-						 
+	   
             let existingValves = factoryObjects.filter(o => o.type === 'valve_pneu');
-            
+			
             // 🌟 NORM-LOGIK (DIN EN 81346-2)
             let groupNum = existingValves.length + 1;
-            
+			
             // Zylinder: MM (Linearer Antrieb)
             cylObj.normLabel = '-MM' + groupNum;
             let cLbl = cylObj.el.querySelector('.f2d-label'); 
@@ -8422,36 +8700,36 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             // Wegeventil: QM (Steuern von Energieflüssen)
             valve.normLabel = '-QM' + groupNum;
             let vLbl = valve.el.querySelector('.f2d-norm-label'); if(vLbl) vLbl.textContent = valve.normLabel;
-            
+			
             valve.x = comp.x + 140 + ((existingValves.length) * 130); 
             valve.y = comp.y - 10;
-            
+			
             valve.linkedVarExt = cylObj.linkedVarExt; valve.linkedVarRet = cylObj.linkedVarRet; valve.targetCylinderId = cylObj.id;
-            
+			
             // 🌟 REINE PHYSIK: Den alten Speed in die exakt nötigen Öffnungswinkel (%) umrechnen
             let targetSpeed = cylObj.speed !== undefined ? cylObj.speed : 10;
             let stroke = cylObj.stroke || 100;
             let target_v_mm_s = (targetSpeed * 60 * stroke) / 100;
-            
+			
             // 1. Beide Flächen berechnen (Die Ringfläche beim Einfahren ist kleiner!)
             let pistonD = cylObj.pistonD || 20;
             let rodD = cylObj.rodD || 8;
             let aExt = Math.PI * Math.pow(pistonD / 2, 2);
             let aRet = aExt - (Math.PI * Math.pow(rodD / 2, 2));
-            
+			
             // 2. Benötigte Volumenströme berechnen (Q = v * A)
             let target_Q_ext = target_v_mm_s * aExt;
             let target_Q_ret = target_v_mm_s * aRet; // 🌟 Korrekt: Braucht WENIGER Luft für dasselbe Tempo!
-            
+			
             // 3. Was liefert der Kompressor maximal?
             let compPressure = comp.pressure || 6.0;
             let compFlow = comp.maxFlow || 200;
             let max_Q_mm3_s = compFlow * 16666.67 * (compPressure / 6.0);
-            
+			
             // 4. Öffnungswinkel SEPARAT berechnen
             let reqOpenExt = Math.round((target_Q_ext / max_Q_mm3_s) * 100);
             let reqOpenRet = Math.round((target_Q_ret / max_Q_mm3_s) * 100);
-            
+			
             reqOpenExt = Math.max(1, Math.min(100, reqOpenExt));
             reqOpenRet = Math.max(1, Math.min(100, reqOpenRet));
 
@@ -8489,7 +8767,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if (manifold) updateObjTransform(manifold);
             updateObjTransform(valve); updateObjTransform(tExt);
             if (tRet) updateObjTransform(tRet);
-            
+			
             const scrollArea = document.getElementById('factory-canvas-area');
             scrollArea.scrollTo({ left: zone.x * factoryScale - 50, top: zone.y * factoryScale - 50, behavior: 'smooth' });
         };
