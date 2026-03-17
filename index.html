@@ -370,13 +370,13 @@
         svg.sim-running .fbs-bubble.inactive { stroke: #333 !important; }
 		/* Schaltplan-spezifische Transitionen */
         .circ-component { transition: fill 0.2s ease; }
-			  
-		 
-				 
-					 
-			   
-				 
-						 
+	 
+   
+	 
+	  
+	  
+	 
+	   
    
         /* Buttons bleiben strikt IN der Leiste, Emojis bekommen mehr Luft! */
         .tool-btn, .tb-drop-btn { 
@@ -398,30 +398,30 @@
             text-align: center;
             overflow: hidden; 
         }
-				   
-		 
-				
-		   
-					  
-				
-						 
+	   
    
-			  
-				  
+	
+	 
+	   
+	
+	   
    
-		 
-					  
+	 
+	  
+   
+   
+	   
+  
+	  
+	
+   
+	  
+	
 		
-						
-		  
-   
-				  
-		  
-					   
-					
-				 
-						
-		
+	 
+	 
+	  
+  
    
         #btn-fbs-toggle {
             flex: 0 0 34px !important; /* Verhindert, dass das Plus-Icon wächst */
@@ -645,6 +645,12 @@
             stroke-width: 4.5px !important;
             transition: stroke 0.1s, filter 0.1s, stroke-width 0.1s !important;
         }
+		.fbs-drag-invalid {
+            stroke: #ff1744 !important;
+            filter: drop-shadow(0 0 6px #ff1744) !important;
+            stroke-width: 4.5px !important;
+            transition: stroke 0.1s, filter 0.1s, stroke-width 0.1s !important;
+        }
         .tool-btn.drag-active-target {
             box-shadow: 0 0 15px #00e5ff, inset 0 0 10px rgba(0, 229, 255, 0.4) !important;
             border-color: #00e5ff !important;
@@ -694,7 +700,7 @@
         .f2d-v-solenoid::before { content: ''; position: absolute; width: 1px; height: 130%; background: #333; transform: rotate(45deg); transition: background 0.4s ease-out; }
         .f2d-v-solenoid.left { left: -14px; border-radius: 3px 0 0 3px; border-right: none; }
         .f2d-v-solenoid.right { right: -14px; border-radius: 0 3px 3px 0; border-left: none; }
-		
+  
         /* Spulen glühen Orange (Zündet sofort ohne Verzögerung!) */
         .f2d-v-solenoid.energized { background: #ff9800; border-color: #e65100; box-shadow: 0 0 10px #ff9800; z-index: 6; transition: none; }
         .f2d-v-solenoid.energized::before { background: #fff; transition: none; }
@@ -731,15 +737,24 @@
                 <span id="save-indicator">Gespeichert</span>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
-                <button id="btn-install-app" class="btn-export" onclick="installApp()" style="background: #e91e63; font-size: 11px; padding: 3px 8px; box-shadow: none; display: none;">📱 App installieren</button>
-              	<button class="btn-export" onclick="openHelpModal()" style="background: #17a2b8; font-size: 11px; padding: 3px 8px; box-shadow: none;">ℹ️ Hilfe / Tipps</button>
-                <button class="btn-export" onclick="openSaveLoadModal()" style="background: #2196f3; font-size: 11px; padding: 3px 8px; box-shadow: none;">💾 Speichern / Laden</button>
+                <button id="btn-install-app" class="btn-export" onclick="installApp()" style="background: #e91e63; font-size: 11px; padding: 3px 8px; box-shadow: none; display: none;" data-i18n="btn_install">📱 App installieren</button>
+                
+                <div class="tb-dropdown">
+                    <button class="btn-export" id="btn-lang-toggle" style="background: #333; font-size: 14px; padding: 1px 6px; box-shadow: none; cursor: pointer; border: 1px solid #555;">🇩🇪</button>
+                    <div class="tb-dropdown-content" style="right: 0; left: auto; min-width: 100px; text-align: left; z-index: 2000;">
+                        <div onclick="switchLanguage('de')">🇩🇪 Deutsch</div>
+                        <div onclick="switchLanguage('en')">🇬🇧 English</div>
+                    </div>
+                </div>
+
+                <button class="btn-export" onclick="openHelpModal()" style="background: #17a2b8; font-size: 11px; padding: 3px 8px; box-shadow: none;" data-i18n="btn_help">ℹ️ Hilfe / Tipps</button>
+                <button class="btn-export" onclick="openSaveLoadModal()" style="background: #2196f3; font-size: 11px; padding: 3px 8px; box-shadow: none;" data-i18n="btn_save_load">💾 Speichern / Laden</button>
                 <select class="btn-reset" onchange="loadExample(this.value)" style="background: #333; padding: 3px 5px; border-radius: 3px;">
-                    <option value="" disabled selected>Beispiele...</option>
-                    <option value="code">Reiner Code</option>
-                    <option value="comments">Mit Erklärungen</option>
-                    <option value="full_demo">Master-Anlage (Alle Bausteine)</option>
-                    <option value="portal_crane">Portalkran (Pick & Place)</option>
+                    <option value="" disabled selected data-i18n="opt_examples">Beispiele...</option>
+                    <option value="code" data-i18n="opt_code">Reiner Code</option>
+                    <option value="comments" data-i18n="opt_comments">Mit Erklärungen</option>
+                    <option value="full_demo" data-i18n="opt_full_demo">Master-Anlage (Alle Bausteine)</option>
+                    <option value="portal_crane" data-i18n="opt_portal_crane">Portalkran (Pick & Place)</option>
                 </select>
             </div>
         </div>
@@ -810,18 +825,18 @@
                 <button id="btn-view-fbs" class="btn-export view-btn active" onclick="toggleWorkspaceView('fbs-wrapper')">Logikplan</button>
                 <button id="btn-view-iec" class="btn-export view-btn" onclick="toggleWorkspaceView('circuit-wrapper')">Schaltplan</button>
                 <button id="btn-view-fac" class="btn-export view-btn" onclick="toggleWorkspaceView('factory-wrapper')">2D Anlage</button>
-																													 
-			  
-					 
-					 
-		  
-			   
-					  
-					 
-					 
-					  
-		  
+																																					  
+	 
+	  
+	  
+	
+	  
 	   
+	  
+	  
+	   
+	
+	
             </div>
             <div style="display: flex; gap: 5px; align-items: center; margin: 0 auto;">
                 <div class="tb-dropdown">
@@ -844,7 +859,7 @@
                 </div>
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
-                <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B;" onclick="toggleSimulation()">Simulation starten</button>
+                <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B;" onclick="toggleSimulation()" data-i18n="btn_sim_start">Simulation starten</button>
                 <button id="btn-toggle-sound" class="btn-export" style="background-color: #555;" onclick="toggleSound()">🔇 Ton: AUS</button>
                 <div class="tb-dropdown">
                     <button class="btn-export" style="background-color: #607d8b; cursor: pointer;">🛠️ Extras ▼</button>
@@ -1182,6 +1197,78 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         const saveIndicator = document.getElementById('save-indicator');
         const simInputsContainer = document.getElementById('sim-inputs');
         const simOutputsContainer = document.getElementById('sim-outputs');
+		
+		// ==========================================
+        // 🌟 NEU: i18n TRANSLATION ENGINE
+        // ==========================================
+        window.currentLang = localStorage.getItem('valisLang') || 'de';
+
+        window.i18n = {
+            de: {
+                "btn_install": "📱 App installieren",
+                "btn_help": "ℹ️ Hilfe / Tipps",
+                "btn_save_load": "💾 Speichern / Laden",
+                "opt_examples": "Beispiele...",
+                "opt_code": "Reiner Code",
+                "opt_comments": "Mit Erklärungen",
+                "opt_full_demo": "Master-Anlage (Alle Bausteine)",
+                "opt_portal_crane": "Portalkran (Pick & Place)",
+                "btn_sim_start": "Simulation starten",
+                "btn_sim_stop": "Simulation stoppen"
+            },
+            en: {
+                "btn_install": "📱 Install App",
+                "btn_help": "ℹ️ Help / Tips",
+                "btn_save_load": "💾 Save / Load",
+                "opt_examples": "Examples...",
+                "opt_code": "Pure Code",
+                "opt_comments": "With Explanations",
+                "opt_full_demo": "Master Factory (All Blocks)",
+                "opt_portal_crane": "Gantry Crane (Pick & Place)",
+                "btn_sim_start": "Start Simulation",
+                "btn_sim_stop": "Stop Simulation"
+            }
+        };
+
+        // Die magische Übersetzungs-Funktion (Holt Texte aus dem Wörterbuch)
+        window.t = function(key) {
+            if (window.i18n[window.currentLang] && window.i18n[window.currentLang][key]) {
+                return window.i18n[window.currentLang][key];
+            }
+            console.warn("Fehlende Übersetzung für:", key);
+            return `[${key}]`; // Fallback, damit das UI nicht kaputtgeht
+        };
+
+        // Scannt das gesamte HTML nach "data-i18n" Schildern und aktualisiert den Text
+        window.applyLanguage = function() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                let key = el.getAttribute('data-i18n');
+                el.textContent = window.t(key);
+            });
+            
+            // Flaggen-Button oben rechts aktualisieren
+            let btnLang = document.getElementById('btn-lang-toggle');
+            if (btnLang) {
+                btnLang.textContent = window.currentLang === 'de' ? '🇩🇪' : '🇬🇧';
+            }
+        };
+
+        // Umschalter für das HTML-Dropdown
+        window.switchLanguage = function(lang) {
+            window.currentLang = lang;
+            localStorage.setItem('valisLang', lang);
+            window.applyLanguage();
+            // Falls Simulation läuft, auch den dynamischen Button sofort refreshen
+            const simBtn = document.getElementById('btn-toggle-sim');
+            if (simBtn && typeof isSimulationActive !== 'undefined') {
+                simBtn.textContent = isSimulationActive ? window.t('btn_sim_stop') : window.t('btn_sim_start');
+            }
+        };
+
+        // Sofort beim Start einmal alles auf die richtige Sprache ziehen
+        window.applyLanguage();
+        // ==========================================
+		
         let panZoomInstance = null;
         let spsState = {};
 		// 🌟 NEU: Tastatur-Steuerung
@@ -1194,6 +1281,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
 		// 🌟 NEU: Permanentes Farb-Gedächtnis für den Logikplan
         window.fbsNodeColors = {};
         window.fbsColorCounter = 0;
+		
 		// ==========================================
         // NEU: WEB AUDIO API SYNTHESIZER (0 Bytes Audio-Dateien!)
         // ==========================================
@@ -1697,16 +1785,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         }
         function parseToGraph(text) {
             const graph = new LogicGraph();
+            graph.targetGateCounters = {}; // 🌟 NEU: Lokaler Counter pro Variable (Macht Gatter-IDs immun gegen F5-Disco!)
             const lines = text.split('\n');
             let jsCompiledCode = "";
             const definedOutputs = new Set();
             const allUsedInputs = new Set();
-            const rsBlocks = new Map(); // NEU: Map statt Set für RS/SR Unterscheidung
+            const rsBlocks = new Map(); 
             const exprCache = new Map();
+
             // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
-                // Explizite Input-Deklaration fängt Limbus-Variablen sicher und sauber auf!
+																							 
                 let inputMatch = cleanLine.match(/^INPUT\s+([a-zA-Z0-9_]+)$/i);
                 if (inputMatch) {
                     let varName = inputMatch[1].toUpperCase();
@@ -1716,8 +1806,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 }
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
-                // FIX: Hier registrieren wir alle RS/SR-Blöcke vorab, 
-                // damit Ausgänge (Q) auch gefunden werden, wenn sie weiter oben im Text stehen!
+																		
+																								 
                 let parts = cleanLine.split(':=');
                 let outputStr = parts[0].trim();
                 let rsMatch = outputStr.match(/^([SR])(\d+)(_(?:SR|RS))?$/i);
@@ -1727,18 +1817,26 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     rsBlocks.set(`${num}${suffix}`, suffix === '_SR' ? 'SR' : 'RS');
                 }
             });
+
+            // 🌟 NEU: Gatter bekommen stabile IDs basierend auf ihrem Ziel!
+            // 🌟 WIEDERHERGESTELLT: Globale Gatter-Erstellung ohne Target-Zwang
             function createGate(type, inputObjs) {
-                const gateId = (type === '&' ? 'AND_' : 'OR_') + graph.gateCounter++;
+                let gateId = (type === '&' ? 'AND_' : 'OR_') + graph.gateCounter++;
                 graph.addNode(gateId, 'GATE', type === '&' ? '&' : '>=1');
                 inputObjs.forEach(inp => graph.addEdge(inp.id, gateId, '', inp.inverted));
                 const operator = type === '&' ? '&&' : '||';
-                // FIX: Klammern um Variablen (state['VAR'] statt state.VAR), fängt kaputte Tipp-Zwischenzustände ab!
                 const jsInputs = inputObjs.map(inp => (inp.inverted ? '!' : '') + `state['${inp.id}']`).join(` ${operator} `);
                 jsCompiledCode += `    state['${gateId}'] = ${jsInputs || 'false'};\n`;
                 return gateId;
             }
+
             function evaluateFlat(expr) {
                 expr = String(expr).trim();
+                
+                // 🌟 DIE MAGIE IST ZURÜCK: Wenn exakt dieser Ausdruck schon mal berechnet wurde, 
+                // nehmen wir sofort das bestehende Gatter! (Visuelles Merging)
+                if (exprCache.has(expr)) return { id: exprCache.get(expr), inverted: false };
+
                 let orParts = expr.split('||').map(s => s.trim());
                 if (orParts.length > 1) { 
                     let resultId = createGate('||', orParts.map(p => evaluateFlat(p))); 
@@ -1751,22 +1849,25 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 }
+                
                 let inverted = false;
                 let cleanId = expr;
                 if (cleanId.startsWith('¬')) {
                     inverted = true;
                     cleanId = cleanId.substring(1).trim();
                 }
-                if (/^(AND_|OR_)\d+$/.test(cleanId)) return { id: cleanId, inverted }; 
+                
+                if (/^(AND_|OR_|GATE_)[a-zA-Z0-9_]+$/.test(cleanId)) return { id: cleanId, inverted }; 
+                
                 let canonicalKey = cleanId;
                 if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
-                // NEU: FALSE und TRUE sind geschützte Konstanten und keine Eingänge!
+                
                 if (cleanId === 'FALSE' || cleanId === 'TRUE') {
                     if (!graph.nodes.has(cleanId)) graph.addNode(cleanId, 'PURE_INPUT', cleanId);
                     return { id: cleanId, inverted };
                 }
+                
                 let resultId;
-                // Unterscheidung zwischen Standard Q, Q_RS und Q_SR
                 const qMatch = cleanId.match(/^Q(\d+)(_(?:SR|RS))?$/i);
                 if (qMatch) {
                     let suffix = qMatch[2] ? qMatch[2].toUpperCase() : '';
@@ -1783,9 +1884,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     allUsedInputs.add(cleanId);
                     resultId = cleanId;
                 }
+                
                 exprCache.set(canonicalKey, resultId);
                 return { id: resultId, inverted };
             }
+
             function parseExpression(expr) {
                 let parsed = expr;
                 let changed = true;
@@ -1799,6 +1902,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 }
                 return evaluateFlat(parsed);
             }
+
             lines.forEach(line => {
                 let cleanLine = line.split('//')[0].trim();
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
@@ -1812,25 +1916,22 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     .replace(/\bOR\b/gi, '||').replace(/\bODER\b/gi, '||').replace(/\bv\b/gi, '||').replace(/∨/g, '||');
                 expressionStr = expressionStr.replace(/&&/g, '##AND##').replace(/&/g, '&&').replace(/##AND##/g, '&&');
                 expressionStr = expressionStr.replace(/\|\|/g, '##OR##').replace(/\|/g, '||').replace(/##OR##/g, '||');
-                // ==========================================
-                // NEU: TIMER & ZÄHLER ERKENNUNG (Extrem tolerant gegen Tippfehler)
-                // ==========================================
+                
                 let timerMatch = expressionStr.match(/^(TON|TOF|TP)\s*\(\s*([a-zA-Z0-9_]+)\s*,\s*([\d\.]*)\s*(?:s|ms)?\s*\)$/i);
                 let counterMatch = expressionStr.match(/^CTU\s*\(\s*([a-zA-Z0-9_]+)\s*,\s*([a-zA-Z0-9_]+)\s*,\s*(\d*)\s*\)$/i);
+                
                 if (timerMatch) {
                     let funcType = timerMatch[1].toUpperCase(); let inVar = timerMatch[2]; 
-                    let ptVal = parseFloat(timerMatch[3]) || 0; // Sichert ab, falls Zahl gerade gelöscht wurde
+                    let ptVal = parseFloat(timerMatch[3]) || 0; 
                     let blockId = `${funcType}_${outputStr}`; 
                     graph.addNode(blockId, funcType, `${funcType} (${ptVal}s)`);
-                    let sourceObj = parseExpression(inVar);
+                    let sourceObj = parseExpression(inVar); // 🌟 Wieder Standard-Aufruf
                     graph.addEdge(sourceObj.id, blockId, 'IN', sourceObj.inverted);
                     graph.addNode(outputStr, 'OUTPUT', outputStr);
                     graph.addEdge(blockId, outputStr, 'Q', false);
                     definedOutputs.add(outputStr);
-                    // FIX: Intelligente Eingangsprüfung! Ist die Quelle ein anderer Timer/Zähler, müssen wir dessen .q abfragen!
                     let sourceIsTimer = sourceObj.id.startsWith('TON_') || sourceObj.id.startsWith('TOF_') || sourceObj.id.startsWith('TP_') || sourceObj.id.startsWith('CTU_');
                     let inVarQuery = sourceIsTimer ? `(timers['${sourceObj.id}'] ? timers['${sourceObj.id}'].q : false)` : `state['${sourceObj.id}']`;
-                    // SPS Code für Timer 
                     jsCompiledCode += `    if (!timers['${blockId}']) timers['${blockId}'] = { et: 0, q: false, active: false, lastIn: false };\n`;
                     jsCompiledCode += `    let in_${blockId} = ${sourceObj.inverted ? '!' : ''}${inVarQuery};\n`;
                     if (funcType === 'TON') {
@@ -1843,32 +1944,29 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         jsCompiledCode += `    else if (!in_${blockId}) { timers['${blockId}'].active = false; }\n`;
                     }
                     jsCompiledCode += `    state['${outputStr}'] = timers['${blockId}'].q;\n`;
-                    // NEU: Damit der Baustein selbst und seine Ausgangslinie im Plan auch aufleuchten!
                     jsCompiledCode += `    state['${blockId}'] = timers['${blockId}'].q;\n`;
                     return; 
                 }
+                
                 if (counterMatch) {
                     let funcType = 'CTU'; let cuVar = counterMatch[1]; let rVar = counterMatch[2]; 
-                    let pvVal = parseInt(counterMatch[3]) || 0; // Sichert ab, falls Zahl fehlt
+                    let pvVal = parseInt(counterMatch[3]) || 0; 
                     let blockId = `CTU_${outputStr}`;
                     graph.addNode(blockId, funcType, `CTU (${pvVal})`);
-                    let cuObj = parseExpression(cuVar); let rObj = parseExpression(rVar);
+                    let cuObj = parseExpression(cuVar); // 🌟 Wieder Standard-Aufruf
+                    let rObj = parseExpression(rVar);
                     graph.addEdge(cuObj.id, blockId, 'CU', cuObj.inverted); graph.addEdge(rObj.id, blockId, 'R', rObj.inverted);
                     graph.addNode(outputStr, 'OUTPUT', outputStr); graph.addEdge(blockId, outputStr, 'Q', false);
                     definedOutputs.add(outputStr);
-                    // SPS Code für Zähler (mit state['...'] statt state....)
                     jsCompiledCode += `    if (!timers['${blockId}']) timers['${blockId}'] = { cv: 0, q: false, lastCu: false };\n`;
                     jsCompiledCode += `    let cu_${blockId} = ${cuObj.inverted ? '!' : ''}state['${cuObj.id}']; let r_${blockId} = ${rObj.inverted ? '!' : ''}state['${rObj.id}'];\n`;
                     jsCompiledCode += `    if (r_${blockId}) { timers['${blockId}'].cv = 0; timers['${blockId}'].q = false; } else {\n`;
                     jsCompiledCode += `        if (cu_${blockId} && !timers['${blockId}'].lastCu) { timers['${blockId}'].cv++; if (timers['${blockId}'].cv >= ${pvVal}) timers['${blockId}'].q = true; }\n    }\n`;
                     jsCompiledCode += `    timers['${blockId}'].lastCu = cu_${blockId};\n    state['${outputStr}'] = timers['${blockId}'].q;\n`;
-                    // NEU: Damit der Zähler selbst und seine Ausgangslinie im Plan auch aufleuchten!
                     jsCompiledCode += `    state['${blockId}'] = timers['${blockId}'].q;\n`;
                     return; 
                 }
-                // ==========================================
-                // STANDARD LOGIK (Abgesichert)
-                // ==========================================
+
                 const rsMatch = outputStr.match(/^([SR])(\d+)(_(?:SR|RS))?$/i);
                 let targetId = outputStr;
                 let targetPin = '';
@@ -1887,7 +1985,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     graph.addNode(targetId, 'OUTPUT', outputStr);
                     definedOutputs.add(targetId);
                 }
-                const sourceObj = parseExpression(expressionStr);
+                
+                const sourceObj = parseExpression(expressionStr); // 🌟 Wieder Standard-Aufruf
+                
                 graph.addEdge(sourceObj.id, targetId, targetPin, sourceObj.inverted);
                 if (rsMatch) {
                     jsCompiledCode += `    state['${targetId}_${targetPin}'] = ${sourceObj.inverted ? '!' : ''}state['${sourceObj.id}'];\n`;
@@ -1913,9 +2013,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             });
 
             // ==========================================
-            // 🌟 NEU: KUGELSICHERE FARB- & ALIAS-ENGINE (V2)
+            // 🌟 NEU: KUGELSICHERE FARB- & ALIAS-ENGINE (V4)
             // ==========================================
-            // 1. Sicherheit: Initialisiere den Speicher, falls er fehlt
+																		
             if (!window.fbsNodeColors) window.fbsNodeColors = {};
             if (typeof window.fbsColorCounter === 'undefined') window.fbsColorCounter = 0;
 
@@ -1924,8 +2024,8 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     if (window.fbsColorCounter < palette.length) {
                         window.fbsNodeColors[id] = palette[window.fbsColorCounter];
                     } else {
-                        // 🌟 INFINITE COLORS: Wenn die 20 Standard-Farben aufgebraucht sind, 
-                        // generieren wir neue HSL-Farben per Goldenem Winkel (137.5°)!
+																								
+																						
                         let hue = (window.fbsColorCounter * 137.508) % 360;
                         window.fbsNodeColors[id] = `hsl(${hue}, 80%, 45%)`;
                     }
@@ -1934,18 +2034,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 return window.fbsNodeColors[id];
             };
 
-            // 2. Basis-Knoten einfärben
+            // 1. JEDER Knoten (auch Gatter!) bekommt sofort seine eigene, völlig stabile Farbe
             graph.nodes.forEach(n => {
-                if (n.type !== 'GATE') {
-                    n.color = getStableColor(n.id);
-                } else {
-                    n.color = '#333'; // Gatter starten neutral
-                }
+										
+                n.color = getStableColor(n.id);
+						
+															   
+				 
             });
 
-            // 3. Farben durch das Netz fließen lassen (Kaskade)
+            // 2. Vorwärts-Vererbung NUR noch für echte Aliase (OUTPUTs)
             let colorChanged = true;
-            let colorLoops = 50; // Schutz vor Endlosschleifen
+            let colorLoops = 50;
             while(colorChanged && colorLoops > 0) {
                 colorChanged = false;
                 colorLoops--;
@@ -1953,34 +2053,35 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     let src = graph.nodes.get(edge.sourceId);
                     let tgt = graph.nodes.get(edge.targetId);
                     if (src && tgt) {
-                        // 🌟 DER LOGIK-FIX: Gatter erben RÜCKWÄRTS von ihrem Ziel, 
-                        // ABER NICHT von komplexen Bausteinen (RS, Timer etc.), da dies eigene Eingangs-Stränge sind!
-                        if (src.type === 'GATE' && src.color === '#333') {
-                            if (['RS', 'SR', 'TON', 'TOF', 'TP', 'CTU'].includes(tgt.type)) {
-                                src.color = getStableColor(src.id); // Eigener, unabhängiger Netzstrang!
-                            } else if (tgt.color !== '#333') {
-                                src.color = tgt.color; // Erbt die Farbe vom reinen Output (Alias)
-                            }
-                            colorChanged = true;
-                        }
-                        // Outputs / Aliase erben VORWÄRTS von ihrer Quelle
-                        if (tgt.type === 'OUTPUT' && src.color !== '#333' && tgt.color !== src.color) {
+                        // Ein Alias (OUTPUT) ist logisch exakt dasselbe wie seine Quelle.
+                        // Gatter hingegen behalten stur ihre eigene Farbe, da sie neue Logik bilden!
+																		  
+																							 
+																										 
+															  
+																								  
+							 
+												
+						 
+																			
+                        if (tgt.type === 'OUTPUT' && tgt.color !== src.color) {
                             tgt.color = src.color;
-                            window.fbsNodeColors[tgt.id] = src.color; 
+																	  
                             colorChanged = true;
                         }
                     }
                 });
             }
 
-            // 4. Fallback für isolierte Knoten & Linien final färben
-            graph.nodes.forEach(n => { if (n.color === '#333') n.color = getStableColor(n.id); });
+																	   
+																								  
             graph.edges.forEach(edge => {
                 let src = graph.nodes.get(edge.sourceId);
                 if (src) edge.color = src.color;
             });
 
-            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_')), outputs: [...definedOutputs] };
+            // FIX: Filtere die neuen GATE_ Variablen aus der UI-Liste heraus!
+            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_') && !i.startsWith('GATE_')), outputs: [...definedOutputs] };
         }
         function calculateLayout(graph) {
             graph.nodes.forEach(node => { if (node.type === 'PURE_INPUT') node.level = 0; });
@@ -2194,14 +2295,25 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             }
             return startY; 
         }
-        function drawPath(d, color, sourceId) {
+        function drawPath(d, color, sourceId, edgeId = null, isTrunk = false) {
             const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
             halo.setAttribute("d", d);
-            halo.setAttribute("class", `fbs-line-halo net-source-${sourceId}`);
+            let cls = `fbs-line-halo net-source-${sourceId}`;
+            if (isTrunk) cls += ` fbs-trunk-${sourceId}`;
+            if (edgeId) cls += ` fbs-edge-${edgeId}`;
+            halo.setAttribute("class", cls);
+            if (edgeId) halo.setAttribute("data-edge-id", edgeId);
+            if (isTrunk) halo.setAttribute("data-trunk-source", sourceId);
             svgHalos.appendChild(halo);
+
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", d);
-            path.setAttribute("class", `fbs-line net-source-${sourceId}`);
+            let pcls = `fbs-line net-source-${sourceId}`;
+            if (isTrunk) pcls += ` fbs-trunk-${sourceId}`;
+            if (edgeId) pcls += ` fbs-edge-${edgeId}`;
+            path.setAttribute("class", pcls);
+            if (edgeId) path.setAttribute("data-edge-id", edgeId);
+            if (isTrunk) path.setAttribute("data-trunk-source", sourceId);
             path.setAttribute("stroke", color);
             svgLines.appendChild(path);
         }
@@ -2273,6 +2385,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             Object.values(nets).forEach(net => {
                 let startX = safe(net.source.x + net.source.width);
                 let colRightEdge = safe(levelRightEdges[net.source.level]);
+                
                 net.edges.forEach(edge => {
                     const target = graph.nodes.get(edge.targetId);
                     let endY = target.y + (target.height / 2);
@@ -2289,37 +2402,42 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     edge.calcEndY = safe(endY);
                     edge.calcEndX = safe(target.x);
                     if (!channelUsage[target.level]) channelUsage[target.level] = 0;
-                    // FIX: Fall-Linien am Ziel näher zusammenrücken (6px statt 8px)
+																					  
                     edge.calcMidX = safe(target.x - 12 - (channelUsage[target.level] * 6));
                     channelUsage[target.level]++;
                 });
+
                 let maxMidX = safe(Math.max(...net.edges.map(e => e.calcMidX)));
                 let minMidX = safe(Math.min(...net.edges.map(e => e.calcMidX))); 
-                // Vorab-Schätzung für den horizontalen Bereich
+																 
                 let tempDropX = safe(colRightEdge + 12);
                 let rightExtent = Math.max(tempDropX, maxMidX);
                 let leftExtent = Math.min(tempDropX, minMidX);
                 let trunkY = safe(net.startY);
                 let validEndYs = net.edges.map(e => e.calcEndY);
+                
                 if (rightExtent > leftExtent) {
                     trunkY = safe(findFreeY(net.startY, leftExtent, rightExtent, graph.nodes, horizontalUsage, validEndYs));
                     horizontalUsage.push({y: trunkY, x1: leftExtent, x2: rightExtent, isPinStub: false});
                 }
+                
                 let hasKnick = Math.abs(trunkY - net.startY) > 2;
-                // 🌟 DER MAGISCHE FIX: Wir verbrauchen NUR dann eine vertikale Spur am Start, 
-                // wenn die Linie wirklich abknicken muss!
+																								 
+														  
                 let dropX = tempDropX;
                 if (hasKnick) {
                     let lvl = net.source.level;
                     if (!sourceUsage[lvl]) sourceUsage[lvl] = 0;
-                    dropX = safe(colRightEdge + 12 + (sourceUsage[lvl] * 6)); // 6px Schritte
+                    dropX = safe(colRightEdge + 12 + (sourceUsage[lvl] * 6));
                     sourceUsage[lvl]++;
-                    // Extents mit dem finalen aufgefächerten dropX korrigieren
+																				
                     rightExtent = Math.max(dropX, maxMidX);
                     leftExtent = Math.min(dropX, minMidX);
                 }
+                
                 let drawLeft = hasKnick ? leftExtent : Math.min(startX, minMidX);
                 let drawRight = hasKnick ? rightExtent : Math.max(startX, maxMidX);
+                
                 if (net.edges.length > 0) {
                     let trunkD = "";
                     if (hasKnick) {
@@ -2327,8 +2445,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     } else {
                         trunkD = `M ${drawLeft} ${trunkY} L ${drawRight} ${trunkY}`; 
                     }
-                    drawPath(trunkD, net.color, net.source.id);
+                    drawPath(trunkD, net.color, net.source.id, null, true); // TRUNK (Stamm)
                 }
+                
                 const dots = new Set();
                 net.edges.forEach(edge => {
                     let actualEndX = edge.calcEndX;
@@ -2342,7 +2461,11 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     } else {
                         dropD = `M ${edge.calcMidX} ${trunkY} L ${edge.calcMidX} ${edge.calcEndY} L ${actualEndX} ${edge.calcEndY}`;
                     }
-                    drawPath(dropD, net.color, net.source.id);
+                    
+                    // 🌟 FIX: Neue, URL-sichere ID mit 3 Unterstrichen!
+                    let edgeId = `${edge.sourceId}___${edge.targetId}___${edge.targetPin}`; 
+                    drawPath(dropD, net.color, net.source.id, edgeId, false); // BRANCH (Abzweigung)
+                    
                     let X = edge.calcMidX;
                     let segments = 0;
                     if (drawLeft < X) segments++; 
@@ -2354,6 +2477,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     segments += uniqueYs.size; 
                     if (segments >= 3) dots.add(`${X},${trunkY}`);
                 });
+                
                 dots.forEach(d => {
                     const [dx, dy] = d.split(',').map(Number);
                     drawDot(dx, dy, net.color, net.source.id);
@@ -2752,16 +2876,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 // 2. 2D-Anlage in den Simulationsmodus versetzen (versteckt die Editor-Anfasser)
                 fw.classList.add('sim-active'); 
                 if (typeof window.clearSelection === 'function') window.clearSelection(); // Auswahl aufheben
-                btn.textContent = 'Simulation stoppen';
-                btn.style.backgroundColor = '#555'; 
+                btn.setAttribute('data-i18n', 'btn_sim_stop'); // Namensschild aktualisieren
+                btn.textContent = t('btn_sim_stop');           // Neuen Text aus dem Wörterbuch holen
+                btn.style.backgroundColor = '#555';
             } else {
                 // 1. Simulation beenden
                 customSvg.classList.remove('sim-running');
                 circuitSvg.classList.remove('sim-running');
                 // 2. 2D-Anlage wieder bearbeitbar machen
                 fw.classList.remove('sim-active'); 
-                btn.textContent = 'Simulation starten';
-                btn.style.backgroundColor = '#e6194B'; 
+                btn.setAttribute('data-i18n', 'btn_sim_start'); // Namensschild aktualisieren
+                btn.textContent = t('btn_sim_start');           // Neuen Text aus dem Wörterbuch holen
+                btn.style.backgroundColor = '#e6194B';
             }
         };
 		// --- BUNTE PFADE LOGIK ---
@@ -2797,15 +2923,15 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             const btn = getCircDoc().getElementById('btn-toggle-econ');
             if (btn) {
                 if (window.configEconMode) {
-					   
+		
                     btn.style.backgroundColor = '#4caf50'; btn.textContent = '💼 Modus: Direkt (Wirtschaftlich)';
                 } else {
-					
+	 
                     btn.style.backgroundColor = '#555'; btn.textContent = '💼 Modus: Relais (Klassisch)';
                 }
-		  
-					 
-		 
+	
+	  
+   
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2813,18 +2939,18 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             window.configDetails = (window.configDetails + 1) % 3; 
             const btn = getCircDoc().getElementById('btn-toggle-details');
             if(btn) {
-				 
-                if (window.configDetails === 2) { btn.style.backgroundColor = '#911eb4'; btn.textContent = '🏷️ Details: ALLE'; } 
-			 
-				 
-                else if (window.configDetails === 1) { btn.style.backgroundColor = '#007acc'; btn.textContent = '🏷️ Details: E/A'; } 
 	 
-				 
-                else { btn.style.backgroundColor = '#555'; btn.textContent = '🏷️ Details: AUS'; }
+                if (window.configDetails === 2) { btn.style.backgroundColor = '#911eb4'; btn.textContent = '🏷️ Details: ALLE'; } 
 	
-		  
-					 
-		 
+	 
+                else if (window.configDetails === 1) { btn.style.backgroundColor = '#007acc'; btn.textContent = '🏷️ Details: E/A'; } 
+  
+	 
+                else { btn.style.backgroundColor = '#555'; btn.textContent = '🏷️ Details: AUS'; }
+ 
+	
+	  
+   
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2834,10 +2960,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(btn){
                 btn.style.backgroundColor = window.configWechsler ? '#911eb4' : '#555';
                 btn.textContent = window.configWechsler ? '🔀 Wechslernummerierung: AN' : '🔀 Wechslernummerierung: AUS';
-		  
-						
-					 
-		  
+	
+	  
+	  
+	
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -2847,10 +2973,10 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(btn){
                 btn.style.backgroundColor = window.configSeqNum ? '#911eb4' : '#555';
                 btn.textContent = window.configSeqNum ? '🔢 Fortlaufende Nrn: AN' : '🔢 Fortlaufende Nrn: AUS';
-		  
-						
-					 
-		 
+	
+	  
+	  
+   
             }
             if (currentGraph) { drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true); runSimulationTick(); }
         };
@@ -4078,7 +4204,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     drawGraph(parsed.graph);
                 }
                 // 🌟 FIX: Schaltplan IMMER (auch unsichtbar) generieren, damit die IEC-Namen für die Anlage aktuell sind!
-	 
+  
                 drawCircuitPlan(parsed.graph, globalInputs, globalOutputs, true);
   
                 runSimulationTick();
@@ -4371,7 +4497,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 },
                 animate: function(obj, spsState) {
                     let isActive = false;
-					
+	 
                     let extVar = obj.linkedVarExt;
                     let retVar = obj.linkedVarRet;
                     if (obj.targetCylinderId) {
@@ -4416,7 +4542,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 lblR.innerHTML = retVar ? `${retVar}<br><span style="color:#03a9f4">${iecName}</span>` : '';
                             }
                         }
-						
+	  
                         // 3. Mechanische Logik (Reagiert SOFORT auf das echte Signal, nicht auf die Optik!)
                         if (extElec && !retElec) obj.valveState = 'ext';
                         if (retElec && !extElec) obj.valveState = 'ret';
@@ -4425,7 +4551,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         // Monostabil (Federrückstellung)
                         isActive = extElec;
                     }
-					
+	 
                     // 4. Optisches und akustisches Schalten des Schiebers
                     if (isActive !== obj.isActive) {
                         obj.isActive = isActive;
@@ -5225,7 +5351,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     obj.linkedVarY_Minus = null;
                     obj.posX = 0; obj.posY = 20;
                     obj.speed = 100;
-					
+	 
                     el.className = 'f2d-obj f2d-portal-crane';
                     el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
                     el.innerHTML = `
@@ -6132,7 +6258,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             // ==========================================
             if (!window.pneumaticZoneMemory) window.pneumaticZoneMemory = {};
             let currentZoneIds = factoryObjects.filter(o => o.type === 'pneumatic_zone').map(z => z.id);
-			
+   
             // Zerstörte Zonen erkennen und ihren Inhalt restlos löschen
             Object.keys(window.pneumaticZoneMemory).forEach(zoneId => {
                 if (!currentZoneIds.includes(zoneId)) {
@@ -6156,7 +6282,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 if (obj.type === 'pneumatic_zone') {
                     let insideIds = [];
                     let pneuTypes = ['compressor', 'manifold', 'valve_pneu', 'throttle'];
-					
+	 
                     // 1. Bewegung synchronisieren (Hat sich die Kiste bewegt?)
                     if (obj.lastX !== undefined && obj.lastY !== undefined) {
                         let dx = obj.x - obj.lastX;
@@ -6207,36 +6333,36 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if (isSimulationActive) {
                 // Wir nutzen jetzt die ECHTE verstrichene Zeit für die Timer, statt fest 16.666ms!
                 let deltaMs = (deltaTime * 1000) * window.simSpeed; 
-				
-																																										   
-			   
+	
+																																					  
+	  
                 factoryObjects.forEach(obj => {
-			 
-			 
-			
-					   
-					
-					  
-			   
-			   
-					 
-																																																														
-																														 
-		 
-		  
+	
+	
+   
+		
+	 
 	   
 	  
-			   
-			 
-				   
-																																					
-				  
+	  
+	  
+																																																																											 
+																																						  
+   
+	
+	
+   
+	  
+	
 	   
-		
-				   
-	 
+																														   
+	  
+	
+  
+	   
+  
 
-			 
+	
                     if (obj.type.startsWith('spawner_')) {
                         let isActive = obj.linkedVar ? !!spsState[obj.linkedVar] : true;
                         if (isActive) {
@@ -6276,7 +6402,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         let baseSpeed = obj.speed !== undefined ? obj.speed : 10;
                         let forceExt = false;
                         let forceRet = false;
-						
+	  
                         // 🌟 AUTO-HEAL: Prüfen, ob das Wegeventil auf dem Spielfeld gelöscht wurde!
                         if (obj.hasPneumatics) {
                             let valveExists = factoryObjects.some(o => o.type === 'valve_pneu' && o.targetCylinderId === obj.id);
@@ -6290,60 +6416,60 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 }
                             }
                         }
-						
+	  
                         // 🌟 ECHTE PNEUMATIK-STEUERUNG (Phase 3: Fluidik & Volumenstrom)
                         if (obj.hasPneumatics) {
                             let valve = factoryObjects.find(o => o.type === 'valve_pneu' && o.targetCylinderId === obj.id);
                             let tExt = factoryObjects.find(o => o.type === 'throttle' && o.targetCylinderId === obj.id && o.role === 'ext');
                             let tRet = factoryObjects.find(o => o.type === 'throttle' && o.targetCylinderId === obj.id && o.role === 'ret');
                             let comp = factoryObjects.find(o => o.type === 'compressor');
-							
+	   
                             // Zylinder ist komplett entkoppelt vom Strom und hört NUR NOCH auf das Ventil!
                             if (valve && comp) {
                                 // 1. Systemparameter abrufen
                                 let p_supply = comp.pressure || 6.0; // Bar
                                 let q_max_l_min = comp.maxFlow || 200; // l/min
-								
+		
                                 // 2. Volumenstrom-Umrechnung (l/min -> mm³/s)
                                 // ECHTE PHYSIK: 1 l/min = 16666.67 mm³/s (Keine magischen Konstanten mehr!)
                                 let q_max_mm3_s = q_max_l_min * 16666.67;
-								
+		
                                 // 3. Kolbenflächen berechnen (A = pi * r²) in mm²
                                 let dPiston = obj.pistonD || 20;
                                 let dRod = obj.rodD || 8;
                                 let stroke = obj.stroke || 100;
-								
+		
                                 let aExt = Math.PI * Math.pow(dPiston / 2, 2); // Volle Kolbenfläche (Ausfahren)
                                 let aRet = aExt - (Math.PI * Math.pow(dRod / 2, 2)); // Ringfläche (Einfahren)
-								
+		
                                 // Druckabfall bei geringerem Kompressordruck (linear genähert)
                                 let pressureFactor = p_supply / 6.0;
-								
+		
                                 if (valve.isActive) {
                                     forceExt = true; // Druckluft strömt in die Ausfahr-Kammer
                                     let opening = tExt ? (tExt.opening / 100) : 1.0;
                                     let q_eff = q_max_mm3_s * opening * pressureFactor;
-									
+		 
                                     // v = Q / A (Geschwindigkeit in mm/s)
                                     let v_mm_s = q_eff / aExt;
-									
+		 
                                     // Umrechnung für die Game-Engine (% der Hublänge pro Frame)
                                     baseSpeed = ((v_mm_s / stroke) * 100) / 60;
                                 } else {
                                     forceRet = true; // Druckluft strömt in die Einfahr-Kammer
                                     let opening = 1.0;
                                     if (tRet) opening = (tRet.opening / 100);
-	  
+   
                                     else if (obj.type === 'zylinder_single' && tExt) opening = (tExt.opening / 100);
-									
+		 
                                     let q_eff = q_max_mm3_s * opening * pressureFactor;
-									
+		 
                                     // 🌟 LEHRBUCH: Hier wird durch die kleinere Ringfläche geteilt!
                                     // v = Q / A_retract (Zylinder fährt bei gleicher Drossel schneller ein als aus!)
                                     let v_mm_s = q_eff / aRet;
-									
+		 
                                     baseSpeed = ((v_mm_s / stroke) * 100) / 60;
-	
+ 
                                 }
                             }
                         } else {
@@ -6556,7 +6682,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                         if(obj.type==='sensor_kap'){ lx=20; ly=10; lw=25; lh=20; }
                         if(obj.type==='sensor_opt'){ lx=20; ly=15; lw=80; lh=10; }
                         if(obj.type==='sensor_mag'){ lx=-5; ly=5; lw=30; lh=30; }
-	 
+  
                         factoryItems.forEach(item => {
                             if (isBlockInLocalRect(item, obj, lx, ly, lw, lh)) {
                                 if (obj.type === 'sensor_ind' && item.material === 'metall') isTriggered = true;
@@ -6564,7 +6690,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                 if (obj.type === 'sensor_kap') isTriggered = true; 
                             }
                         });
-	 
+  
                         if (!isTriggered && obj.type !== 'sensor_mag') {
                             let sRad = (obj.rotation || 0) * Math.PI / 180;
                             let steps = obj.type === 'sensor_opt' ? 5 : 2;
@@ -6618,9 +6744,9 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                     }
                 });
 
-			   
-					  
-			   
+	  
+	   
+	  
                 runSimulationTick();
             }
 			// 🌟 DER FIX: Schläuche IMMER live nachziehen (auch im Pause/Editor-Modus!)
@@ -6808,7 +6934,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         function getFactoryStateObj() {
             return {
                 globalViewMode: globalViewMode,
-																																					  
+																																  
                 items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid, meltTemp: i.meltTemp })),
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
@@ -7963,14 +8089,16 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 // Gatter existieren als '&&' oder '||' in der Formel. Wir flicken den Graph und berechnen die Formel neu.
                 if (node.type === 'GATE') {
                     let outEdges = currentGraph.edges.filter(e => e.sourceId === node.id);
+                    let inputEdges = currentGraph.edges.filter(e => e.targetId === node.id);
+                    let primaryInputEdge = inputEdges[0]; // 🌟 FIX: Das erste Eingangskabel VORHER merken!
+
                     if (outEdges.length > 0) {
                         outEdges.forEach(outEdge => {
                             let rootCtx = window.getRootContextGlobal(outEdge);
                             if (rootCtx) {
-                                let inputEdges = currentGraph.edges.filter(e => e.targetId === node.id);
-                                let primaryInputEdge = inputEdges[0]; // Das erste Eingangskabel ans Gatter
-                                // 1. Baustein aus den Verbindungen kappen
-                                currentGraph.edges = currentGraph.edges.filter(e => e !== outEdge && e.targetId !== node.id);
+                                // 1. Baustein aus dieser speziellen Ziel-Verbindung kappen
+                                currentGraph.edges = currentGraph.edges.filter(e => e !== outEdge);
+                                
                                 // 2. Lücke überbrücken
                                 if (primaryInputEdge) {
                                     currentGraph.edges.push({
@@ -7980,14 +8108,17 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                                         inverted: (primaryInputEdge.inverted !== outEdge.inverted) // Verhindert doppelte Invertierung
                                     });
                                 }
+                                
                                 // 3. Code für diesen Ziel-Ast sauber neu generieren
                                 let rootInEdges = currentGraph.edges.filter(e => e.targetId === rootCtx.targetNode.id && e.targetPin === rootCtx.targetPin);
                                 let newRHS = rootInEdges.length > 0 ? rebuildGraphExpr(rootInEdges[0]) : 'FALSE';
                                 code = updateRHS(code, rootCtx.targetNode, rootCtx.targetPin, newRHS);
                             }
                         });
+                        // 4. Zum Schluss die Eingangs-Kabel zum gelöschten Gatter kappen
+                        currentGraph.edges = currentGraph.edges.filter(e => e.targetId !== node.id);
                     }
-                } 
+                }
                 // --- METHODE 2: BLÖCKE LÖSCHEN (Text-Suchen & Ersetzen) ---
                 // Timer, Zähler und Speicherglieder haben feste Variablennamen. Hier ist Text-Splicing unschlagbar.
                 else if (['TON', 'TOF', 'TP', 'CTU', 'RS', 'SR'].includes(node.type)) {
@@ -8102,108 +8233,128 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         };
         window.confirmFbsAdd = function() {
             let type = document.getElementById('fbs-add-type').value;
-            let out = document.getElementById('fbs-add-out').value.trim().toUpperCase();
+            let outRaw = document.getElementById('fbs-add-out').value.trim().toUpperCase();
             let in1 = document.getElementById('fbs-add-in1').value.trim().toUpperCase();
             let in2 = document.getElementById('fbs-add-in2').value.trim().toUpperCase();
             let param = document.getElementById('fbs-add-param').value;
-            if (!out || !in1) { alert("Bitte mindestens Ziel und Eingang 1 ausfüllen!"); return; }
-            // ==========================================
-            // NEU: PERFEKTES SPLICING & ÜBERSCHREIBEN (V5 - RS-Glied Fix)
-            // ==========================================
+            if (!outRaw || !in1) { alert("Bitte mindestens Ziel und Eingang 1 ausfüllen!"); return; }
+
             let code = textarea.value;
             let lines = code.split('\n');
-            let allPossibleVars = [out, `S${out}`, `R${out}`, `S${out}_SR`, `R${out}_SR`];
-            // 1. Finde ALLE Zeilen, die zur Ziel-Variable gehören
-            let targetLines = [];
-            for (let i = 0; i < lines.length; i++) {
-                let cl = lines[i].split('//')[0].trim().replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
-                if (cl.includes(':=')) {
-                    let leftSide = cl.split(':=')[0].trim().toUpperCase();
-                    if (allPossibleVars.includes(leftSide)) {
-                        targetLines.push({ idx: i, left: leftSide, rhs: cl.split(':=')[1].trim() });
+            
+            // 🌟 ERLAUBT MEHRFACH-ZIELE! (z.B. "LED_BETRIEB, BAND")
+            let outArray = outRaw.split(',').map(s => s.trim()).filter(s => s);
+
+            // Robuste Regex für komplexe Logik in in1 (ohne Wortgrenzen bei Klammern)
+            let safeIn1 = in1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            let prefix = /^\w/.test(in1) ? '\\b' : '';
+            let suffix = /\w$/.test(in1) ? '\\b' : '';
+            let in1Regex = new RegExp(prefix + safeIn1 + suffix, 'g');
+
+            outArray.forEach(out => {
+                let allPossibleVars = [out, `S${out}`, `R${out}`, `S${out}_SR`, `R${out}_SR`];
+                let targetLines = [];
+                for (let i = 0; i < lines.length; i++) {
+                    let cl = lines[i].split('//')[0].trim().replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
+                    if (cl.includes(':=')) {
+                        let leftSide = cl.split(':=')[0].trim().toUpperCase();
+                        if (allPossibleVars.includes(leftSide)) {
+                            targetLines.push({ idx: i, left: leftSide, rhs: cl.split(':=')[1].trim() });
+                        }
                     }
                 }
-            }
-            let in1Regex = new RegExp(`\\b${in1}\\b`, 'g');
-            let matchLine = targetLines.find(t => in1Regex.test(t.rhs));
-            // --- NEU: RS-GLIED NUMMERIERUNGS-LOGIK ---
-            // Ein FlipFlop MUSS zwingend eine Zahl haben (S1, R1, Q1)
-            let rsNum = null;
-            if (type === 'RS') {
-                let outMatch = out.match(/^Q?(\d+)$/);
-                if (outMatch) {
-                    rsNum = outMatch[1]; // Der User hat explizit "1" oder "Q1" ins Feld getippt
-                } else {
-                    // Der User hat eine Variable wie "SYS_ON" gewählt. Wir suchen die nächste freie FlipFlop-Nummer!
-                    rsNum = 1;
-                    while (new RegExp(`\\b[SRQ]${rsNum}(?:_SR)?\\b`, 'i').test(code)) { rsNum++; }
-                }
-            }
-            if (matchLine) {
-                let isExactMatch = matchLine.rhs.trim() === in1;
-                if (['AND', 'OR'].includes(type)) {
-                    let op = type === 'AND' ? '&&' : '||';
-                    if (isExactMatch) {
-                        lines[matchLine.idx] = `${matchLine.left} := ${in1} ${op} ${in2 || 'FALSE'}`;
-                    } else {
-                        let newRHS = matchLine.rhs.replace(in1Regex, `(${in1} ${op} ${in2 || 'FALSE'})`);
-                        lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                
+                let matchLine = targetLines.find(t => in1Regex.test(t.rhs));
+                
+                let rsNum = null;
+                if (type === 'RS') {
+                    let outMatch = out.match(/^Q?(\d+)$/);
+                    if (outMatch) rsNum = outMatch[1]; 
+                    else {
+                        rsNum = 1;
+                        while (new RegExp(`\\b[SRQ]${rsNum}(?:_SR)?\\b`, 'i').test(lines.join('\n'))) { rsNum++; }
                     }
-                } else {
-                    if (isExactMatch) {
-                        // Bei direkten Verbindungen einfach sauber ersetzen
-                        if (type === 'RS') {
-                            lines[matchLine.idx] = `${matchLine.left} := Q${rsNum}`;
-                            lines.push(`S${rsNum} := ${in1}`);
-                            lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
-                        } else if (['TON', 'TOF', 'TP'].includes(type)) {
-                            lines[matchLine.idx] = `${matchLine.left} := ${type}(${in1}, ${param})`;
-                        } else if (type === 'CTU') {
-                            lines[matchLine.idx] = `${matchLine.left} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
+                }
+
+                if (matchLine) {
+                    // 🌟 NEU: Toleranter Vergleich ohne Klammern!
+                    let cleanRHS = matchLine.rhs.replace(/[()]/g, '').trim();
+                    let cleanIn1 = in1.replace(/[()]/g, '').trim();
+                    let isExactMatch = cleanRHS === cleanIn1;
+
+                    if (['AND', 'OR'].includes(type)) {
+                        let op = type === 'AND' ? '&&' : '||';
+                        // 🌟 FIX: Immer exakt denselben String mit festen Klammern erzeugen!
+                        let replacement = `(${in1} ${op} ${in2 || 'FALSE'})`;
+                        
+                        if (isExactMatch) {
+                            // Stamm ist identisch -> Wir ersetzen ihn komplett durch den perfekten String
+                            lines[matchLine.idx] = `${matchLine.left} := ${replacement}`;
+                        } else {
+                            // Es ist eine Abzweigung -> Wir betten den String in die bestehende Formel ein
+                            let newRHS = matchLine.rhs.replace(in1Regex, replacement);
+                            lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
                         }
                     } else {
-                        // Spleißen in komplexer Formel -> Helfer zwingend notwendig
-                        if (type === 'RS') {
-                            let newRHS = matchLine.rhs.replace(in1Regex, `Q${rsNum}`);
-                            lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
-                            lines.push(`S${rsNum} := ${in1}`);
-                            lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
-                        } else {
-                            let helperVar = `${type}_${in1}`;
-                            let counter = 1; while(code.includes(helperVar)) { helperVar = `${type}_${in1}_${counter++}`; }
-                            let newRHS = matchLine.rhs.replace(in1Regex, helperVar);
-                            lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
-                            if (['TON', 'TOF', 'TP'].includes(type)) {
-                                lines.push(`${helperVar} := ${type}(${in1}, ${param})`);
+                        if (isExactMatch) {
+                            if (type === 'RS') {
+                                lines[matchLine.idx] = `${matchLine.left} := Q${rsNum}`;
+                                lines.push(`S${rsNum} := ${matchLine.rhs}`);
+                                lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
+                            } else if (['TON', 'TOF', 'TP'].includes(type)) {
+                                lines[matchLine.idx] = `${matchLine.left} := ${type}(${matchLine.rhs}, ${param})`;
                             } else if (type === 'CTU') {
-                                lines.push(`${helperVar} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`);
+                                lines[matchLine.idx] = `${matchLine.left} := CTU(${matchLine.rhs}, ${in2 || 'FALSE'}, ${param})`;
+                            }
+                        } else {
+                            // 🌟 FIX: ZWINGENDE HILFSVARIABLEN FÜR KOMPLEXE BAUSTEINE IN ABZWEIGUNGEN!
+                            // Wenn ein Timer in "Q1 && S_METALL" eingefügt wird, MUSS er als Hilfsvariable ausgelagert werden.
+                            if (type === 'RS') {
+                                let newRHS = matchLine.rhs.replace(in1Regex, `Q${rsNum}`);
+                                lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                                lines.push(`S${rsNum} := ${in1}`);
+                                lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
+                            } else {
+                                // Sicheren, fortlaufenden Namen für die Hilfsvariable finden
+                                let helperVar = `${type}_${cleanIn1}`;
+                                let counter = 1; 
+                                while(lines.some(l => l.startsWith(helperVar + ' :='))) { 
+                                    helperVar = `${type}_${cleanIn1}_${counter++}`; 
+                                }
+                                
+                                // In die alte Formel den Namen der Hilfsvariable einsetzen
+                                let newRHS = matchLine.rhs.replace(in1Regex, helperVar);
+                                lines[matchLine.idx] = `${matchLine.left} := ${newRHS}`;
+                                
+                                // Hilfsvariable als eigenständige Zeile definieren
+                                if (['TON', 'TOF', 'TP'].includes(type)) {
+                                    lines.push(`${helperVar} := ${type}(${in1}, ${param})`);
+                                } else if (type === 'CTU') {
+                                    lines.push(`${helperVar} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`);
+                                }
                             }
                         }
                     }
-                }
-                textarea.value = lines.join('\n');
-            } else {
-                // 3. Klassisches Überschreiben (Die Leitung wurde komplett abgerissen und neu gezogen)
-                if (targetLines.length > 0) {
+                } else {
+                    // Neues Kabel (Abgerissen)
                     let targetIndices = targetLines.map(t => t.idx);
                     lines = lines.filter((_, i) => !targetIndices.includes(i));
-                }
-                let newCodeLine = "";
-                if (type === 'AND') newCodeLine = `${out} := ${in1} && ${in2 || 'FALSE'}`;
-                else if (type === 'OR') newCodeLine = `${out} := ${in1} || ${in2 || 'FALSE'}`;
-                else if (type === 'RS') {
-                    if (out.match(/^Q?\d+$/)) {
-                        newCodeLine = `S${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
-                    } else {
-                        // User will ein RS-Glied in eine benannte Variable (wie MOTOR) bauen
-                        newCodeLine = `${out} := Q${rsNum}\nS${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
+                    
+                    let newCodeLine = "";
+                    // 🌟 FIX: Auch neue Kabel bekommen den identischen Klammer-String!
+                    if (type === 'AND') newCodeLine = `${out} := (${in1} && ${in2 || 'FALSE'})`;
+                    else if (type === 'OR') newCodeLine = `${out} := (${in1} || ${in2 || 'FALSE'})`;
+                    else if (type === 'RS') {
+                        if (out.match(/^Q?\d+$/)) newCodeLine = `S${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
+                        else newCodeLine = `${out} := Q${rsNum}\nS${rsNum} := ${in1}\nR${rsNum} := ${in2 || 'FALSE'}`;
                     }
+                    else if (['TON', 'TOF', 'TP'].includes(type)) newCodeLine = `${out} := ${type}(${in1}, ${param})`;
+                    else if (type === 'CTU') newCodeLine = `${out} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
+                    lines.push(newCodeLine);
                 }
-                else if (['TON', 'TOF', 'TP'].includes(type)) newCodeLine = `${out} := ${type}(${in1}, ${param})`;
-                else if (type === 'CTU') newCodeLine = `${out} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`;
-                textarea.value = lines.join('\n') + (lines.length > 0 ? '\n' : '') + newCodeLine;
-            }
-            // ==========================================
+            });
+            
+            textarea.value = lines.join('\n');
             updateHighlighting(); updateEditor(); saveToStorage();
             if (typeof window.closeFbsModal === 'function') window.closeFbsModal();
             else document.getElementById('fbs-add-modal').style.display = 'none';
@@ -8274,6 +8425,33 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             e.dataTransfer.effectAllowed = 'copy';
             window.draggedFbsButton = e.target; 
         };
+		// 🌟 NEU: KUGELSICHERE HOVER-ERKENNUNG FÜR ABZWEIGUNGEN
+        window.currentHoveredEdge = null;
+        window.updateFbsHighlight = function(targetElement) {
+            document.querySelectorAll('.fbs-drag-target, .fbs-drag-invalid').forEach(el => el.classList.remove('fbs-drag-target', 'fbs-drag-invalid'));
+            window.currentHoveredEdge = null;
+
+            if (!targetElement || (!targetElement.classList.contains('fbs-line') && !targetElement.classList.contains('fbs-line-halo'))) return;
+
+            let edgeId = targetElement.getAttribute('data-edge-id');
+            let trunkSource = targetElement.getAttribute('data-trunk-source');
+
+            if (edgeId) {
+                // Ast getroffen
+                document.querySelectorAll(`.fbs-edge-${CSS.escape(edgeId)}`).forEach(el => el.classList.add('fbs-drag-target'));
+                window.currentHoveredEdge = edgeId;
+            } else if (trunkSource) {
+                // 🌟 FIX: Stamm IMMER erlauben! 
+                document.querySelectorAll(`.fbs-trunk-${CSS.escape(trunkSource)}`).forEach(el => el.classList.add('fbs-drag-target'));
+                window.currentHoveredEdge = `TRUNK___${trunkSource}`; // Eindeutige Stamm-ID
+            }
+
+            if (window.currentHoveredEdge && window.draggedFbsButton) {
+                window.draggedFbsButton.classList.add('drag-active-target');
+            } else if (window.draggedFbsButton) {
+                window.draggedFbsButton.classList.remove('drag-active-target');
+            }
+        };
 		// 🌟 NEU: TOUCH-DRAG ENGINE FÜR LOGIKPLAN (Smartphones / Tablets) 🌟
         let fbsTouchType = null;
         let fbsTouchGhost = null;
@@ -8306,73 +8484,89 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 // Geist dem Finger folgen lassen
                 fbsTouchGhost.style.left = touch.clientX + 'px';
                 fbsTouchGhost.style.top = touch.clientY + 'px';
-                // Prüfen, was exakt unter dem Finger liegt
+                
+                // 🌟 FIX: Prüfen, was exakt unter dem Finger liegt und die neue, zentrale Engine aufrufen!
                 let targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (targetElement && (targetElement.classList.contains('fbs-line') || targetElement.classList.contains('fbs-line-halo'))) {
-                    let match = Array.from(targetElement.classList).find(c => c.startsWith('net-source-'));
-                    if (match && lastHighlightedLine !== match) {
-                        if (lastHighlightedLine) document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target'));
-                        document.querySelectorAll('.' + match).forEach(el => el.classList.add('fbs-drag-target'));
-                        lastHighlightedLine = match;
-                    }
-                } else {
-                    if (lastHighlightedLine) { 
-                        document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); 
-                        lastHighlightedLine = null; 
-                    }
-                }
+																																		   
+                window.updateFbsHighlight(targetElement);
+																 
+																																							
+																												  
+													
             }
+						
+											   
+																																	
+													
+					 
+				 
+			 
         }, {passive: false});
+
         document.addEventListener('touchend', (e) => {
             if (fbsTouchGhost) {
-                // Geist löschen
-                fbsTouchGhost.remove();
-                fbsTouchGhost = null;
-                if (window.draggedFbsButton) {
-                    window.draggedFbsButton.classList.remove('drag-active-target');
-                    window.draggedFbsButton = null;
-                }
-                if (lastHighlightedLine) {
-                    // Extrahiere das Ziel
-                    let rawId = lastHighlightedLine.replace('net-source-', '').replace(/\\/g, '');
-                    // Optik aufräumen
-                    document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target'));
-                    lastHighlightedLine = null;
-                    // DROP LOGIK AUSFÜHREN!
-                    let prefillSource = window.getFbsVariableDisplay(rawId);
-                    let prefillTarget = "";
-                    let outEdges = currentGraph.edges.filter(ed => ed.sourceId === rawId);
-                    if (outEdges.length > 0) {
-                        let rootCtx = window.getRootContextGlobal(outEdges[0]);
-                        if (rootCtx) {
-                            let tNode = rootCtx.targetNode;
-                            if (tNode.type === 'OUTPUT') prefillTarget = tNode.id;
-                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) prefillTarget = tNode.id.substring(tNode.type.length + 1);
-                            else if (['RS', 'SR'].includes(tNode.type)) {
-                                let matchNum = tNode.id.match(/\d+/);
-                                if (matchNum) prefillTarget = matchNum[0]; 
+                fbsTouchGhost.remove(); fbsTouchGhost = null;
+                if (window.draggedFbsButton) { window.draggedFbsButton.classList.remove('drag-active-target'); window.draggedFbsButton = null; }
+                
+                if (window.currentHoveredEdge === 'INVALID') {
+                    alert("Bitte ziehe den Baustein auf eine konkrete Abzweigung, nicht auf den Hauptstrang!");
+                } else if (window.currentHoveredEdge) {
+                    let prefillSource = "";
+                    let targets = [];
+                    
+                    let parts = window.currentHoveredEdge.split('___');
+                    if (parts[0] === 'TRUNK') {
+                        let trunkId = parts[1];
+                        prefillSource = window.getFbsVariableDisplay(trunkId);
+                        let outEdges = currentGraph.edges.filter(ed => ed.sourceId === trunkId);
+                        outEdges.forEach(ed => {
+                            let rootCtx = window.getRootContextGlobal(ed);
+                            if (rootCtx) {
+                                let tNode = rootCtx.targetNode;
+                                if (tNode.type === 'OUTPUT') targets.push(tNode.id);
+                                else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) targets.push(tNode.id.substring(tNode.type.length + 1));
+                                else if (['RS', 'SR'].includes(tNode.type)) { 
+                                    // 🌟 FIX: Strikte S/R Pin Erkennung!
+                                    let matchNum = tNode.id.match(/\d+/); 
+                                    if (matchNum) targets.push((rootCtx.targetPin || 'S') + matchNum[0] + (tNode.type === 'SR' ? '_SR' : '')); 
+                                }
+                            }
+                        });
+                    } else {
+                        let [sId, tId, tPin] = parts;
+                        let exactEdge = currentGraph.edges.find(ed => ed.sourceId === sId && ed.targetId === tId && ed.targetPin === tPin);
+                        if (exactEdge) {
+                            prefillSource = window.getFbsVariableDisplay(sId);
+                            let rootCtx = window.getRootContextGlobal(exactEdge);
+                            if (rootCtx) {
+                                let tNode = rootCtx.targetNode;
+                                if (tNode.type === 'OUTPUT') targets.push(tNode.id);
+                                else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) targets.push(tNode.id.substring(tNode.type.length + 1));
+                                else if (['RS', 'SR'].includes(tNode.type)) { 
+                                    // 🌟 FIX: Strikte S/R Pin Erkennung!
+                                    let matchNum = tNode.id.match(/\d+/); 
+                                    if (matchNum) targets.push((rootCtx.targetPin || 'S') + matchNum[0] + (tNode.type === 'SR' ? '_SR' : '')); 
+                                }
                             }
                         }
                     }
+                    
+                    let prefillTarget = [...new Set(targets)].join(', ');
+                    
                     openFbsAddModal(fbsTouchType);
                     if (prefillSource) document.getElementById('fbs-add-in1').value = prefillSource;
                     if (prefillTarget) document.getElementById('fbs-add-out').value = prefillTarget;
-                    setTimeout(() => {
-                        if (!prefillTarget) {
-                            document.getElementById('fbs-add-out').focus();
-                        } else if (['AND', 'OR', 'CTU', 'RS'].includes(fbsTouchType)) {
-                            let in2 = document.getElementById('fbs-add-in2');
-                            if(in2) in2.focus();
-                        } else {
-                            let param = document.getElementById('fbs-add-param');
-                            if(param) param.focus();
-                        }
+                    
+                    setTimeout(() => { 
+                        if (!prefillTarget) document.getElementById('fbs-add-out').focus(); 
+                        else if (['AND', 'OR', 'CTU', 'RS'].includes(fbsTouchType)) { let in2 = document.getElementById('fbs-add-in2'); if(in2) in2.focus(); } 
                     }, 10);
                 } else {
-                    // Ins Leere fallen gelassen -> Normales Fenster öffnen
                     openFbsAddModal(fbsTouchType);
                 }
+                
                 fbsTouchType = null;
+                window.updateFbsHighlight(null);
             }
         });
         document.addEventListener('dragend', () => {
@@ -8381,67 +8575,86 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         });
         fbsWrapper.addEventListener('dragover', (e) => {
             e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-            let target = e.target;
-            if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
-                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
-                if (match && lastHighlightedLine !== match) {
-                    if (lastHighlightedLine) document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target'));
-                    document.querySelectorAll('.' + match).forEach(el => el.classList.add('fbs-drag-target'));
-                    lastHighlightedLine = match;
-                    if (window.draggedFbsButton) window.draggedFbsButton.classList.add('drag-active-target');
-                }
-            } else {
-                if (lastHighlightedLine) { document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); lastHighlightedLine = null; }
-                if (window.draggedFbsButton) window.draggedFbsButton.classList.remove('drag-active-target');
-            }
+            // Die zentrale Engine übernimmt jetzt das Hover-Leuchten (Rot oder Cyan)
+            window.updateFbsHighlight(e.target);
+																								
+															 
+																																						
+																											  
+												
+																											 
+				 
+					
+																																													
+																											
+			 
         });
+
         fbsWrapper.addEventListener('drop', (e) => {
             e.preventDefault();
-            if (lastHighlightedLine) { document.querySelectorAll('.' + lastHighlightedLine).forEach(el => el.classList.remove('fbs-drag-target')); lastHighlightedLine = null; }
+            
+            let hoveredEdge = window.currentHoveredEdge;
+            window.updateFbsHighlight(null);
             if (window.draggedFbsButton) { window.draggedFbsButton.classList.remove('drag-active-target'); window.draggedFbsButton = null; }
+            
             const type = e.dataTransfer.getData('text/plain');
             if (!type || !['AND','OR','RS','TON','CTU'].includes(type)) return;
+
+            if (hoveredEdge === 'INVALID') {
+                alert("Bitte ziehe den Baustein auf eine konkrete Abzweigung (nach der Verzweigung), nicht auf den Hauptstrang!");
+                return;
+            }
+            
             let prefillSource = "";
-            let prefillTarget = "";
-            let target = e.target;
-            if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
-                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
-                if (match) {
-                    let rawId = match.replace('net-source-', '').replace(/\\/g, '');
-                    prefillSource = window.getFbsVariableDisplay(rawId);
-                    // FIX: Nutzt jetzt die globale Such-Funktion
-                    let outEdges = currentGraph.edges.filter(ed => ed.sourceId === rawId);
-                    if (outEdges.length > 0) {
-                        let rootCtx = window.getRootContextGlobal(outEdges[0]);
+            let targets = [];
+            
+            if (hoveredEdge) {
+                let parts = hoveredEdge.split('___');
+                if (parts[0] === 'TRUNK') {
+                    let trunkId = parts[1];
+                    prefillSource = window.getFbsVariableDisplay(trunkId);
+                    let outEdges = currentGraph.edges.filter(ed => ed.sourceId === trunkId);
+                    outEdges.forEach(ed => {
+                        let rootCtx = window.getRootContextGlobal(ed);
                         if (rootCtx) {
                             let tNode = rootCtx.targetNode;
-                            if (tNode.type === 'OUTPUT') prefillTarget = tNode.id;
-                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) prefillTarget = tNode.id.substring(tNode.type.length + 1);
-                            else if (['RS', 'SR'].includes(tNode.type)) {
-                                let matchNum = tNode.id.match(/\d+/);
-                                if (matchNum) prefillTarget = matchNum[0]; 
+                            if (tNode.type === 'OUTPUT') targets.push(tNode.id);
+                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) targets.push(tNode.id.substring(tNode.type.length + 1));
+                            else if (['RS', 'SR'].includes(tNode.type)) { 
+                                let matchNum = tNode.id.match(/\d+/); 
+                                if (matchNum) targets.push((rootCtx.targetPin || 'S') + matchNum[0] + (tNode.type === 'SR' ? '_SR' : '')); 
+                            }
+                        }
+                    });
+                } else {
+                    let [sId, tId, tPin] = parts;
+                    let exactEdge = currentGraph.edges.find(ed => ed.sourceId === sId && ed.targetId === tId && ed.targetPin === tPin);
+                    if (exactEdge) {
+                        prefillSource = window.getFbsVariableDisplay(sId);
+                        let rootCtx = window.getRootContextGlobal(exactEdge);
+                        if (rootCtx) {
+                            let tNode = rootCtx.targetNode;
+                            if (tNode.type === 'OUTPUT') targets.push(tNode.id);
+                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) targets.push(tNode.id.substring(tNode.type.length + 1));
+                            else if (['RS', 'SR'].includes(tNode.type)) { 
+                                let matchNum = tNode.id.match(/\d+/); 
+                                if (matchNum) targets.push((rootCtx.targetPin || 'S') + matchNum[0] + (tNode.type === 'SR' ? '_SR' : '')); 
                             }
                         }
                     }
                 }
             }
+            
+            let prefillTarget = [...new Set(targets)].join(', ');
+            
             openFbsAddModal(type);
             if (prefillSource) document.getElementById('fbs-add-in1').value = prefillSource;
             if (prefillTarget) document.getElementById('fbs-add-out').value = prefillTarget;
-            if (prefillSource) {
-                setTimeout(() => {
-                    // Fokus schlau setzen
-                    if (!prefillTarget) {
-                        document.getElementById('fbs-add-out').focus();
-                    } else if (['AND', 'OR', 'CTU', 'RS'].includes(type)) {
-                        let in2 = document.getElementById('fbs-add-in2');
-                        if(in2) in2.focus();
-                    } else {
-                        let param = document.getElementById('fbs-add-param');
-                        if(param) param.focus();
-                    }
-                }, 10);
-            }
+            
+            setTimeout(() => { 
+                if (!prefillTarget) document.getElementById('fbs-add-out').focus(); 
+                else if (['AND', 'OR', 'CTU', 'RS'].includes(type)) { let in2 = document.getElementById('fbs-add-in2'); if(in2) in2.focus(); } 
+            }, 10);
         });
         // --- 2. CLICK-TO-FILL IM MODAL (Mit Ziel-Erkennung) ---
         document.getElementById('custom-svg').addEventListener('click', (e) => {
@@ -8450,14 +8663,22 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             let target = e.target;
             let clickedVar = null;
             let rawId = null;
-            let clickedType = null; 
+            let exactEdgeForClick = null;
+            
             if (target.classList.contains('fbs-line') || target.classList.contains('fbs-line-halo')) {
-                let match = Array.from(target.classList).find(c => c.startsWith('net-source-'));
-                if (match) {
-                    rawId = match.replace('net-source-', '').replace(/\\/g, '');
+                window.updateFbsHighlight(target);
+                if (window.currentHoveredEdge === 'INVALID') {
+                    alert("Bitte klicke auf eine konkrete Abzweigung, nicht auf den Hauptstrang!");
+                    window.updateFbsHighlight(null);
+                    return;
+                } else if (window.currentHoveredEdge) {
+                    let [sId, tId, tPin] = window.currentHoveredEdge.split('___');
+                    exactEdgeForClick = currentGraph.edges.find(ed => ed.sourceId === sId && ed.targetId === tId && ed.targetPin === tPin);
+                    rawId = sId;
                     clickedVar = window.getFbsVariableDisplay(rawId);
                     clickedType = 'line';
                 }
+                window.updateFbsHighlight(null); // Optik aufräumen
             } else {
                 let group = target.closest('g');
                 if (group) {
@@ -8486,24 +8707,27 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 visualFlash(window.activeFbsInput);
             } 
             else if (inputId === 'fbs-add-out') {
-                let finalTarget = clickedVar;
-                // Wenn Linie oder Gatter angeklickt wird, extrahieren wir das WAHRE Ziel (Output) am Ende der Leitung
+                let targets = [];
                 if (clickedType === 'line' || clickedType === 'gate') {
                     let outEdges = currentGraph.edges.filter(ed => ed.sourceId === rawId);
-                    if(outEdges.length > 0) {
-                        // FIX: Nutzt jetzt die globale Such-Funktion
-                        let rootCtx = window.getRootContextGlobal(outEdges[0]);
+                    let edgesToTrace = exactEdgeForClick ? [exactEdgeForClick] : outEdges;
+                    
+                    edgesToTrace.forEach(ed => {
+                        let rootCtx = window.getRootContextGlobal(ed);
                         if (rootCtx) {
                             let tNode = rootCtx.targetNode;
-                            if (tNode.type === 'OUTPUT') finalTarget = tNode.id;
-                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) finalTarget = tNode.id.substring(tNode.type.length + 1);
+                            if (tNode.type === 'OUTPUT') targets.push(tNode.id);
+                            else if (['TON', 'TOF', 'TP', 'CTU'].includes(tNode.type)) targets.push(tNode.id.substring(tNode.type.length + 1));
                             else if (['RS', 'SR'].includes(tNode.type)) {
                                 let matchNum = tNode.id.match(/\d+/);
-                                if (matchNum) finalTarget = matchNum[0]; 
+                                if (matchNum) targets.push((rootCtx.targetPin || 'S') + matchNum[0] + (tNode.type === 'SR' ? '_SR' : '')); 
                             }
                         }
-                    }
+                    });
                 }
+                let finalTarget = [...new Set(targets)].join(', ');
+                if (!finalTarget) finalTarget = clickedVar; // Fallback
+                
                 if (finalTarget && !finalTarget.startsWith('(')) {
                     window.activeFbsInput.value = finalTarget;
                     visualFlash(window.activeFbsInput);
@@ -8548,7 +8772,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if(!group || !btn) return;
             group.classList.toggle('expanded');
             btn.classList.toggle('expanded');
-				   
+	   
             if (typeof SoundEngine !== 'undefined') SoundEngine.click();
         };
         window.toggleIecToolbar = function() {
@@ -8661,33 +8885,33 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
         window.generatePneumaticSetup = function(cylObj) {
             let zone = factoryObjects.find(o => o.type === 'pneumatic_zone');
             if (!zone) { zone = createFactoryObject('pneumatic_zone', ''); zone.x = 20; zone.y = 600; }
-			
+   
             let comp = factoryObjects.find(o => o.type === 'compressor');
             let manifold = factoryObjects.find(o => o.type === 'manifold');
-			
+   
             if (!comp) {
                 comp = createFactoryObject('compressor', ''); comp.x = zone.x + 20; comp.y = zone.y + zone.height - 80;
                 manifold = createFactoryObject('manifold', ''); manifold.x = comp.x + 140; manifold.y = comp.y + 45;
-				
+	
                 // 🌟 NORM-UPDATE (DIN EN 81346-2): Kompressor (GQA) und Wartungseinheit/Verteiler (GQ)
                 comp.normLabel = '-GQA1';
                 let cLbl = document.createElement('div'); cLbl.className = 'f2d-label f2d-norm-label'; 
                 cLbl.style.top = '-20px'; cLbl.innerHTML = `Kompressor<br><span style="color:#03a9f4; font-size:10px;">[${comp.normLabel}]</span>`; 
                 comp.el.appendChild(cLbl);
-				
+	
                 manifold.normLabel = '-GQ1';
                 let mLbl = document.createElement('div'); mLbl.className = 'f2d-label f2d-norm-label'; 
                 mLbl.style.top = '-25px'; mLbl.innerHTML = `Wartungseinheit<br><span style="color:#03a9f4; font-size:10px;">[${manifold.normLabel}]</span>`; 
                 manifold.el.appendChild(mLbl);
             }
-			
+   
             let isDouble = cylObj.type === 'zylinder_double';
-	   
+	
             let existingValves = factoryObjects.filter(o => o.type === 'valve_pneu');
-			
+   
             // 🌟 NORM-LOGIK (DIN EN 81346-2)
             let groupNum = existingValves.length + 1;
-			
+   
             // Zylinder: MM (Linearer Antrieb)
             cylObj.normLabel = '-MM' + groupNum;
             let cLbl = cylObj.el.querySelector('.f2d-label'); 
@@ -8700,36 +8924,36 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             // Wegeventil: QM (Steuern von Energieflüssen)
             valve.normLabel = '-QM' + groupNum;
             let vLbl = valve.el.querySelector('.f2d-norm-label'); if(vLbl) vLbl.textContent = valve.normLabel;
-			
+   
             valve.x = comp.x + 140 + ((existingValves.length) * 130); 
             valve.y = comp.y - 10;
-			
+   
             valve.linkedVarExt = cylObj.linkedVarExt; valve.linkedVarRet = cylObj.linkedVarRet; valve.targetCylinderId = cylObj.id;
-			
+   
             // 🌟 REINE PHYSIK: Den alten Speed in die exakt nötigen Öffnungswinkel (%) umrechnen
             let targetSpeed = cylObj.speed !== undefined ? cylObj.speed : 10;
             let stroke = cylObj.stroke || 100;
             let target_v_mm_s = (targetSpeed * 60 * stroke) / 100;
-			
+   
             // 1. Beide Flächen berechnen (Die Ringfläche beim Einfahren ist kleiner!)
             let pistonD = cylObj.pistonD || 20;
             let rodD = cylObj.rodD || 8;
             let aExt = Math.PI * Math.pow(pistonD / 2, 2);
             let aRet = aExt - (Math.PI * Math.pow(rodD / 2, 2));
-			
+   
             // 2. Benötigte Volumenströme berechnen (Q = v * A)
             let target_Q_ext = target_v_mm_s * aExt;
             let target_Q_ret = target_v_mm_s * aRet; // 🌟 Korrekt: Braucht WENIGER Luft für dasselbe Tempo!
-			
+   
             // 3. Was liefert der Kompressor maximal?
             let compPressure = comp.pressure || 6.0;
             let compFlow = comp.maxFlow || 200;
             let max_Q_mm3_s = compFlow * 16666.67 * (compPressure / 6.0);
-			
+   
             // 4. Öffnungswinkel SEPARAT berechnen
             let reqOpenExt = Math.round((target_Q_ext / max_Q_mm3_s) * 100);
             let reqOpenRet = Math.round((target_Q_ret / max_Q_mm3_s) * 100);
-			
+   
             reqOpenExt = Math.max(1, Math.min(100, reqOpenExt));
             reqOpenRet = Math.max(1, Math.min(100, reqOpenRet));
 
@@ -8767,7 +8991,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
             if (manifold) updateObjTransform(manifold);
             updateObjTransform(valve); updateObjTransform(tExt);
             if (tRet) updateObjTransform(tRet);
-			
+   
             const scrollArea = document.getElementById('factory-canvas-area');
             scrollArea.scrollTo({ left: zone.x * factoryScale - 50, top: zone.y * factoryScale - 50, behavior: 'smooth' });
         };
