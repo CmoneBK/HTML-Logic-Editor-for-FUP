@@ -1050,6 +1050,57 @@
             <h3 style="margin-top:0; color:#fff; border-bottom: 1px solid #555; padding-bottom: 10px;" data-i18n="ai_title">🤖 KI-Prompt Generator</h3>
             <p style="color: #aaa; font-size: 11px; margin-bottom: 10px;" data-i18n="ai_desc">Kopiere diesen Text, füge ganz unten deine Aufgabe ein und gib ihn einer KI (ChatGPT, Claude, Gemini). Füge die JSON-Antwort dann in das VALIS Raw-Code Feld ein!</p>
             <textarea id="ai-prompt-text" data-i18n="ai_prompt_text" readonly style="width: 100%; height: 350px; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; border-radius: 3px; font-family: monospace; font-size: 11px; padding: 10px; box-sizing: border-box; resize: vertical; white-space: pre;"></textarea>
+																																																																																			
+								 
+																																																																																										
+																																										   
+																																														   
+									  
+			   
+						   
+					
+					 
+												  
+											
+								 
+																				
+																																						
+															  
+													   
+							  
+								 
+								 
+									
+									
+									 
+								  
+								   
+									  
+					
+					  
+												  
+								  
+																																								
+				   
+ 
+				   
+																					
+			
+					  
+						
+						 
+					 
+				   
+	
+			  
+							 
+				
+				 
+   
+ 
+			   
+						  
+																																																																																																																																	 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                 <span id="ai-copy-indicator" style="color: #4caf50; font-size: 12px; font-weight: bold; opacity: 0; transition: opacity 0.3s;" data-i18n="ai_copy_ind">📋 Prompt kopiert!</span>
                 <div style="display: flex; gap: 10px;">
@@ -1695,6 +1746,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 [INSERT YOUR CONTROL ENGINEERING SCENARIO HERE. E.g.: A motor should be turned on via a start button (NO) and turned off via a stop button (NC). Turning off has priority. A green LED lights up when the motor is running.]`
             }
         };
+																			   
         window.t = function(key) {
             if (window.i18n[window.currentLang] && window.i18n[window.currentLang][key]) {
                 return window.i18n[window.currentLang][key];
@@ -1702,6 +1754,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             console.warn("Fehlende Übersetzung für:", key);
             return `[${key}]`; 
         };
+																																																   
         window.applyLanguage = function() {
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 let key = el.getAttribute('data-i18n');
@@ -1712,6 +1765,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     el.innerHTML = window.t(key);
                 }
             });
+													   
             let btnLang = document.getElementById('btn-lang-toggle');
             if (btnLang) {
                 btnLang.textContent = window.currentLang === 'de' ? '🇩🇪' : '🇬🇧';
@@ -1722,10 +1776,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                 layoutBtn.textContent = `${window.t('layout_prefix')} ${currentIcon}`;
             }
         };
+											
         window.switchLanguage = function(lang) {
             window.currentLang = lang;
             localStorage.setItem('valisLang', lang);
             window.applyLanguage();
+																					
             const simBtn = document.getElementById('btn-toggle-sim');
             if (simBtn && typeof isSimulationActive !== 'undefined') {
                 simBtn.textContent = isSimulationActive ? window.t('btn_sim_stop') : window.t('btn_sim_start');
@@ -1749,6 +1805,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 updateEditor();
             }
         };
+																		 
         window.applyLanguage();
         // ==========================================
         let panZoomInstance = null;
@@ -3127,6 +3184,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             // 🌟 i18n Übersetzung für Header und Hinweis
             simInputsContainer.innerHTML = `<h3>${window.t('sim_inputs')}</h3><div class="sim-hint">${window.t('sim_hint')}</div>`;
             inputs.forEach(name => {
+								  
                 if (!componentTypes[name]) {
                     const isNotHalt = name === 'NH' || name === 'NA' || name.startsWith('NH_') || name.startsWith('NA_');
                     const isSchalter = name.includes('_SCHALTER');
@@ -3134,11 +3192,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
                 let cType = componentTypes[name];
                 let isNCContact = cType === 'nothalt' || cType === 'taster_nc' || cType === 'schalter_nc' || cType === 'light_curtain';
+																																																					 
                 if (oldState.hasOwnProperty(name)) {
                     spsState[name] = oldState[name];
                 } else {
                     spsState[name] = isNCContact ? true : false;
                 }
+																				 
                 let isActuated = isNCContact ? !spsState[name] : spsState[name];
                 let isSwitchUI = (cType === 'schalter' || cType === 'schalter_nc' || cType === 'nothalt' || cType === 'key_switch' || cType === 'light_curtain' || cType.startsWith('sensor_'));
                 // 🌟 i18n Übersetzung für das Eingänge-Dropdown
@@ -3159,6 +3219,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let controlHTML = isSwitchUI 
                     ? `<label class="switch"><input type="checkbox" id="sim_in_${name}" ${isActuated ? 'checked' : ''} onchange="toggleInput('${name}')"><span class="slider"></span></label>`
                     : `<button class="taster-btn ${isActuated ? 'pressed' : ''}" id="sim_taster_${name}" onmousedown="setTaster('${name}', true, event)" onmouseup="setTaster('${name}', false, event)" onmouseleave="setTaster('${name}', false, event)" ontouchstart="setTaster('${name}', true, event)" ontouchend="setTaster('${name}', false, event)">${window.t('btn_pushbutton')}</button>`;
+															  
                 let boundKey = window.inputKeyBindings[name] ? `[${window.inputKeyBindings[name].toUpperCase()}]` : '⌨️';
                 let keyBtnHTML = `<button id="btn_key_${name}" class="key-bind-btn" onclick="assignKey('${name}')" title="Klicken, um Taste zuzuweisen (Entf zum Löschen)">${boundKey}</button>`;
                 simInputsContainer.innerHTML += `<div class="switch-row flex-col">
@@ -3304,6 +3365,7 @@ You must output exactly this JSON format. The logic code goes as a single string
         };
 		// --- BUNTE PFADE LOGIK ---
         window.toggleCircuitColors = function() {
+															 
             let doc = (window.popOutWindows && window.popOutWindows['circuit-wrapper'] && !window.popOutWindows['circuit-wrapper'].closed) 
                       ? window.popOutWindows['circuit-wrapper'].document : document;
             const wrapper = doc.getElementById('circuit-wrapper');
@@ -4978,6 +5040,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 },
                 meta: { icon: '🔄' }, // Icon bleibt für das Plugin-Modal erhalten
                 modalConfig: { t: 'Drehtisch (Nur für Draufsicht):', l1: 'Aktivieren (90° Weiche)', out: true },
+														
                 menuTarget: '#menu-aktoren', 
                 insertBefore: 'div[onclick*="zylinder_single"]',
                 menuHtml: `<div onclick="addFactoryDevice('turntable')">🔄 <span data-i18n="plug_turntable_name">Drehtisch</span></div>`,
@@ -5034,6 +5097,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 },
                 meta: { icon: '🚦' },
                 modalConfig: { t: 'Signal-Säule (3 Farben):', l1: 'Rot', l2: 'Gelb', l3: 'Grün', out: true },
+									  
                 menuTarget: '#menu-bedienpult',
                 menuHtml: `<div onclick="addFactoryDevice('stacklight')">🚦 <span data-i18n="plug_stacklight_name">Signal-Säule</span></div>`,
                 css: `
@@ -5092,6 +5156,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 },
                 meta: { icon: '🚪' },
                 directSpawn: true, hasHeight: true,
+																																																			
                 menuTarget: '#menu-anbauteile',
                 menuHtml: `<div onclick="addFactoryDevice('window')">🚪 <span data-i18n="plug_window_name">Schutztür (Alu/Glas)</span></div>`,
                 css: `
@@ -6370,6 +6435,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                 }
                 if (obj.type === 'display') addVarSelect(window.t('ctx_fac_timer'), obj.linkedVar, 'timers', 'linkedVar');
+														 
                 if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenu) {
                     ComponentRegistry[obj.type].contextMenu(obj, ctxMenu, saveFactoryState);
                 }
@@ -6448,6 +6514,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                 };
                 intWrapper.appendChild(intInput); ctxMenu.appendChild(intWrapper);
+												
+													 
                 let meltWrapper = document.createElement('div'); meltWrapper.style.padding = '5px 15px';
                 meltWrapper.onclick = (e) => e.stopPropagation(); 
                 meltWrapper.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">${window.t('ctx_fac_melt')}</div>`;
@@ -6460,8 +6528,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (newVal > 0) { obj.meltTemp = newVal; saveFactoryState(); }
                 };
                 meltWrapper.appendChild(meltInput); ctxMenu.appendChild(meltWrapper);
+												 
             }
             if (obj.type && obj.type.startsWith('zylinder')) {
+														  
+																					
                 let associatedValve = factoryObjects.find(o => o.type === 'valve_pneu' && o.targetCylinderId === obj.id);
                 if (!associatedValve) {
                     obj.hasPneumatics = false;
@@ -6544,6 +6615,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }; 
                 ctxMenu.appendChild(btnDetach);
             } else if (obj.type !== 'item' && obj.type !== 'sensor_mag' && !obj.type.startsWith('zylinder') && !obj.type.startsWith('spawner') && obj.type !== 'despawner' && !obj.type.startsWith('zone')) {
+													 
                 let nearestCyl = null; let minDist = 800; 
                 let objCx = obj.x + obj.width/2; let objCy = obj.y + (obj.height||obj.width)/2;
                 factoryObjects.forEach(cyl => {
@@ -6571,6 +6643,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     ctxMenu.appendChild(btnAttach);
                 }
             }
+														   
             let makesSound = false;
             if (['zylinder_single', 'zylinder_double', 'conveyor'].includes(obj.type)) makesSound = true;
             if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].playSound) makesSound = true;
@@ -7456,6 +7529,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             const promptInput = document.getElementById('ai-prompt-text');
             promptInput.select();
             document.execCommand("copy");
+								 
             const ind = document.getElementById('ai-copy-indicator');
             // 🌟 FIX: Den kopiert-Text dynamisch auslesen, falls er im Modal noch nicht gesynct wurde
             ind.textContent = window.t('ai_copy_ind');
@@ -7472,9 +7546,10 @@ You must output exactly this JSON format. The logic code goes as a single string
             const qrContainer = document.getElementById('qr-code-container');
             const saveData = {
                 version: "1.0",
+                layout: currentLayout, // 🌟 NEU: Aktuelles Layout speichern!
                 code: textarea.value,
                 types: componentTypes,
-                keyBindings: window.inputKeyBindings, // 🌟 FIX: Tasten speichern
+                keyBindings: window.inputKeyBindings,
                 factory: getFactoryStateObj(),
                 plugins: activePlugins 
             };
@@ -7572,6 +7647,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                 // Versucht das JSON aus dem Textfeld zu parsen
                 const data = JSON.parse(document.getElementById('saveload-text').value);
                 if (data.code !== undefined) textarea.value = data.code;
+				// 🌟 NEU: Layout auslesen und anwenden
+                if (data.layout) {
+                    const layoutIcons = { 'flex-row': '◫', 'flex-col': '⬒', 'grid-sim-bottom': '🗗', 'grid-sim-top': '🗒', 'grid-sim-right': '◧', 'grid-sim-left': '◨' };
+                    let icon = layoutIcons[data.layout] || '◫';
+                    window.selectLayout(data.layout, icon);
+                }
                 if (data.types !== undefined) componentTypes = data.types;
                 // 🌟 FIX: Tasten laden
                 if (data.keyBindings !== undefined) {
@@ -7628,7 +7709,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let data = JSON.parse(jsonString);
                     // URL oben im Browser bereinigen, damit man sie beim normalen Aktualisieren nicht nochmal lädt
                     history.replaceState(null, null, ' ');
+                    
                     if (data.code !== undefined) textarea.value = data.code;
+                    
+                    // 🌟 NEU: Layout aus URL-Link laden
+                    if (data.layout) {
+                        const layoutIcons = { 'flex-row': '◫', 'flex-col': '⬒', 'grid-sim-bottom': '🗗', 'grid-sim-top': '🗒', 'grid-sim-right': '◧', 'grid-sim-left': '◨' };
+                        let icon = layoutIcons[data.layout] || '◫';
+                        window.selectLayout(data.layout, icon);
+                    }
+
                     if (data.types !== undefined) componentTypes = data.types;
                     localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
                     // 🌟 NEU: Plugin-Konfiguration aus dem Link laden
@@ -8125,6 +8215,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             styleSheet.innerText = pluginStyles;
             document.head.appendChild(styleSheet);
         }
+																  
         updateMenuVisibility();
         // INITIALISIERUNG
         // 1. Zuerst prüfen, ob wir von einem Link kommen
@@ -8604,9 +8695,18 @@ You must output exactly this JSON format. The logic code goes as a single string
             document.getElementById('fbs-add-out').placeholder = window.t('dyn_ph_out');
             document.getElementById('fbs-add-in2').placeholder = window.t('dyn_ph_opt');
             const title = document.getElementById('fbs-add-title');
+																	  
+																		  
             const lbl1 = document.getElementById('fbs-add-in1-lbl');
             const lbl2 = document.getElementById('fbs-add-in2-lbl');
             const lblParam = document.getElementById('fbs-add-param-lbl');
+					
+															   
+															  
+															  
+										   
+											
+																																																				   
             if (type === 'AND' || type === 'OR') {
                 title.textContent = `${window.t('dyn_add_gate')} (${type})`;
                 lbl1.textContent = window.t('fbs_add_lbl_in1');
@@ -8619,13 +8719,22 @@ You must output exactly this JSON format. The logic code goes as a single string
             } else if (type === 'TON') {
                 title.textContent = window.t('dyn_add_timer');
                 lbl1.textContent = window.t('dyn_timer_in');
+											  
+												 
                 lblParam.textContent = window.t('dyn_timer_pt');
+																	  
+																	   
             } else if (type === 'CTU') {
                 title.textContent = window.t('dyn_add_counter');
                 lbl1.textContent = window.t('dyn_ctu_cu');
                 lbl2.textContent = window.t('dyn_ctu_r');
+												 
                 lblParam.textContent = window.t('dyn_ctu_pv');
+																	
+																	 
             }
+																			 
+														   
         };
         window.confirmFbsAdd = function() {
             let type = document.getElementById('fbs-add-type').value;
