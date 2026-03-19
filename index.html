@@ -110,13 +110,14 @@
             pointer-events: none; 
         }
         .circuit-btn-container button {
-            pointer-events: auto; 
-            font-size: clamp(8px, 0.9vw, 12px); 
+            pointer-events: auto;
+            font-size: clamp(8px, 0.9vw, 12px);
             padding: 3px 6px;
             flex-shrink: 1; min-width: 0;
             white-space: normal; /* NEU: Textumbruch erlaubt */
             line-height: 1.1; text-align: center;
         }
+        .circuit-btn-container select { pointer-events: auto; }
 		/* ===================================================================== */
         /* 🌟 NEU: ANIMATIONEN FÜR BEIDE EINKLAPPBAREN LEISTEN (LOGIK & IEC) 🌟 */
         /* ===================================================================== */
@@ -338,6 +339,24 @@
         .circ-moving-contact.is-nc.open { transform: rotate(40deg); }
         .circ-static { transition: stroke 0.3s, fill 0.3s, filter 0.3s !important; }
         .circ-wire { transition: stroke 0.3s, filter 0.3s !important; }
+        /* Circuit Drag-and-Drop Palette */
+        .circ-dropzone { pointer-events: none; }
+        body.circ-dragging .circ-dropzone { pointer-events: all !important; cursor: copy; }
+        .circ-drop-highlight { fill: rgba(76,175,80,0.2) !important; stroke: #4caf50 !important; stroke-width: 2 !important; stroke-dasharray: 5,3 !important; }
+        .circ-drop-new-highlight { fill: rgba(76,175,80,0.35) !important; stroke: #4caf50 !important; stroke-width: 2 !important; }
+        #circ-palette-panel { display: none; flex-direction: row; align-items: flex-start; flex-wrap: nowrap; gap: 0; padding: 4px 0; border-top: 1px solid #444; margin-top: 4px; }
+        #circ-palette-panel .circ-pal-col { display: flex; flex-direction: column; gap: 4px; padding: 4px 10px; border-right: 1px solid #555; }
+        #circ-palette-panel .circ-pal-col:last-child { border-right: none; }
+        #circ-palette-panel .circ-pal-section { font-size: 10px; color: #888; font-weight: bold; white-space: nowrap; }
+        #circ-palette-panel .circ-pal-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+        #circ-palette-panel select { padding: 3px 4px; background: #1e1e1e; color: #ccc; border: 1px solid #555; border-radius: 3px; font-size: 10px; cursor: pointer; }
+        #circ-palette-panel button { padding: 4px 8px; background: #444; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; cursor: grab; white-space: nowrap; }
+        #circ-palette-panel button:active { cursor: grabbing; }
+        #circ-palette-panel button.drag-active-circ { background: #4caf50; border-color: #4caf50; }
+        #btn-circ-palette { flex: 0 0 34px !important; width: 34px; height: 34px !important; border-radius: 50% !important; padding: 0 !important; font-size: 16px !important; line-height: 1 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: none !important; background: #607d8b; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background-color 0.2s; }
+        #btn-circ-palette.active { background: #4caf50 !important; transform: rotate(45deg); }
+        .circ-del-rung-btn { cursor: pointer; }
+        .circ-del-rung-btn:hover rect { opacity: 1 !important; }
         /* Hier wurde die stroke Transition ergänzt, damit das Umfärben weich passiert */
         .circ-component { transition: fill 0.3s, stroke 0.3s, filter 0.3s !important; fill: #fff; }
         /* Wenn Strom fließt, zündet das CSS ohne Verzögerung und wirft einen Glow (Leuchten) */
@@ -858,6 +877,7 @@
             <div class="workspace-resizer" id="ws-resizer-1" style="grid-area: r1;"></div>
             <div id="circuit-wrapper" class="workspace-panel" style="display: none; grid-area: iec; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
                 <div class="circuit-btn-container" style="align-items: center;">
+                    <button id="btn-circ-palette" class="tool-btn" title="Bearbeiten (Drag &amp; Drop)" onclick="toggleCircPalette()">✏️</button>
                     <button id="btn-iec-toggle" class="btn-export" style="background-color: #607d8b; border: 1px solid #455a64;" onclick="toggleIecToolbar()" data-i18n="iec_options">⚙️ Optionen</button>
                     <div id="iec-button-group">
                         <button id="btn-toggle-strict" class="btn-export" style="background-color: #4caf50; border: 1px solid #333;" onclick="toggleStrictHardware()">♾️ Hardware-Limit: MULTI</button>
@@ -867,6 +887,103 @@
                         <button id="btn-toggle-seq" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="toggleSeqNum()" data-i18n="iec_seq_off">🔢 Fortlaufende Nrn: AUS</button>
                         <button id="btn-toggle-dual" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="toggleDualCircuit()" data-i18n="iec_dual_off">⚡ Getrennte Stromkreise: AUS</button>
                         <button id="btn-toggle-details" class="btn-export" style="background-color: #911eb4; border: 1px solid #333;" onclick="toggleDetails()" data-i18n="iec_det_all">🏷️ Details: ALLE</button>
+                    </div>
+                    <div id="circ-palette-panel">
+                        <!-- Spalte 1: Kontakte -->
+                        <div class="circ-pal-col">
+                            <span class="circ-pal-section" data-i18n="circ_pal_contacts">Kontakte:</span>
+                            <div class="circ-pal-row">
+                                <select id="circ-pal-ctype">
+                                    <option value="taster" data-i18n="type_taster">Taster (NO)</option>
+                                    <option value="taster_nc" data-i18n="type_taster_nc">Taster (NC)</option>
+                                    <option value="schalter" data-i18n="type_schalter">Schalter (NO)</option>
+                                    <option value="schalter_nc" data-i18n="type_schalter_nc">Schalter (NC)</option>
+                                    <option value="nothalt" data-i18n="type_nothalt">Not-Halt (NC)</option>
+                                    <option value="key_switch" data-i18n="type_key_switch">Schlüssel (NO)</option>
+                                    <option value="sensor_ind" data-i18n="type_sensor_ind">Sensor (Ind.)</option>
+                                    <option value="sensor_kap" data-i18n="type_sensor_kap">Sensor (Kap.)</option>
+                                    <option value="sensor_opt" data-i18n="type_sensor_opt">Sensor (Opt.)</option>
+                                    <option value="sensor_mag" data-i18n="type_sensor_mag">Sensor (Mag.)</option>
+                                    <option value="mech_sensor" data-i18n="type_mech_sensor">Pos.-Schalter</option>
+                                    <option value="light_curtain" data-i18n="type_light_curtain">Lichtgitter (NC)</option>
+                                </select>
+                            </div>
+                            <div class="circ-pal-row">
+                                <button draggable="true" ondragstart="startCircDrag(event,'CONTACT')" data-i18n="circ_pal_contact_btn">⊣⊢ Kontakt</button>
+                                <button draggable="true" ondragstart="startCircDrag(event,'RELAY_CONTACT')" data-i18n="circ_pal_relay_contact_btn">⊣K⊢ Relais</button>
+                            </div>
+                        </div>
+                        <!-- Spalte 2: Spulen -->
+                        <div class="circ-pal-col">
+                            <span class="circ-pal-section" data-i18n="circ_pal_coils">Spulen:</span>
+                            <div class="circ-pal-row">
+                                <select id="circ-pal-coiltype">
+                                    <option value="relais" data-i18n="type_led">Relais (-KF)</option>
+                                    <option value="valve" data-i18n="type_valve">Ventil (-MB)</option>
+                                    <option value="motor" data-i18n="type_motor">Motor (-M)</option>
+                                    <option value="led" data-i18n="type_led">LED (-P)</option>
+                                    <option value="siren" data-i18n="type_siren">Sirene (-H)</option>
+                                    <option value="heater" data-i18n="type_heater">Heizung (-E)</option>
+                                </select>
+                            </div>
+                            <div class="circ-pal-row">
+                                <button draggable="true" ondragstart="startCircDrag(event,'COIL')" data-i18n="circ_pal_coil_btn">( ) Spule</button>
+                            </div>
+                        </div>
+                        <!-- Spalte 3: Sonderelemente -->
+                        <div class="circ-pal-col">
+                            <span class="circ-pal-section" data-i18n="circ_pal_specials">Sonderelemente:</span>
+                            <div class="circ-pal-row">
+                                <button draggable="true" ondragstart="startCircDrag(event,'SPECIAL:RS')" style="background:#4363d8;">⟳ RS</button>
+                                <button draggable="true" ondragstart="startCircDrag(event,'SPECIAL:TON')" style="background:#911eb4;">⏱ TON</button>
+                                <button draggable="true" ondragstart="startCircDrag(event,'SPECIAL:TOF')" style="background:#911eb4;">⏱ TOF</button>
+                                <button draggable="true" ondragstart="startCircDrag(event,'SPECIAL:TP')" style="background:#911eb4;">⏱ TP</button>
+                                <button draggable="true" ondragstart="startCircDrag(event,'SPECIAL:CTU')" style="background:#f58231;"># CTU</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Circuit Add Modal -->
+                <div id="circ-add-modal" style="display:none; position:absolute; top:15%; left:35%; background:#2d2d30; padding:20px; border:1px solid #444; border-radius:5px; box-shadow:0 4px 25px rgba(0,0,0,0.8); z-index:3000; width:340px; font-family:sans-serif;">
+                    <h3 id="circ-add-title" style="margin-top:0; font-size:14px; color:#fff; border-bottom:1px solid #555; padding-bottom:8px;"></h3>
+                    <input type="hidden" id="circ-add-type">
+                    <input type="hidden" id="circ-add-zone-type">
+                    <input type="hidden" id="circ-add-zone-id">
+                    <div id="circ-add-target-grp" style="margin-bottom:10px; display:none;">
+                        <label style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;" data-i18n="circ_add_target_lbl">Ziel-Strang</label>
+                        <input type="text" id="circ-add-target" readonly style="width:100%; padding:6px; background:#333; color:#9CDCFE; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;">
+                    </div>
+                    <div id="circ-add-var1-grp" style="margin-bottom:10px;">
+                        <label id="circ-add-var1-lbl" style="color:#9CDCFE; font-size:11px; display:block; margin-bottom:3px; font-weight:bold;"></label>
+                        <input type="text" id="circ-add-var1" list="fbs-var-list" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;">
+                        <select id="circ-add-relay-sel" style="display:none; width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px;"></select>
+                    </div>
+                    <div id="circ-add-var2-grp" style="margin-bottom:10px; display:none;">
+                        <label id="circ-add-var2-lbl" style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;"></label>
+                        <input type="text" id="circ-add-var2" list="fbs-var-list" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;">
+                    </div>
+                    <div id="circ-add-param-grp" style="margin-bottom:10px; display:none;">
+                        <label id="circ-add-param-lbl" style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;"></label>
+                        <input type="number" id="circ-add-param" step="0.1" min="0.1" value="2.0" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;">
+                    </div>
+                    <div id="circ-add-subtype-grp" style="margin-bottom:10px; display:none;">
+                        <label id="circ-add-subtype-lbl" style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;"></label>
+                        <select id="circ-add-subtype" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px;"></select>
+                    </div>
+                    <div id="circ-add-link-grp" style="margin-bottom:12px; display:none;">
+                        <label style="color:#aaa; font-size:11px; display:block; margin-bottom:5px;" data-i18n="circ_add_link_lbl">Verknüpfung im Strang</label>
+                        <div style="display:flex; gap:12px;">
+                            <label style="color:#fff; font-size:12px; cursor:pointer;"><input type="radio" name="circ-link" value="AND" checked> In Reihe (AND)</label>
+                            <label style="color:#fff; font-size:12px; cursor:pointer;"><input type="radio" name="circ-link" value="OR"> Parallel (OR)</label>
+                        </div>
+                    </div>
+                    <div id="circ-add-out-grp" style="margin-bottom:10px; display:none;">
+                        <label id="circ-add-out-lbl" style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;" data-i18n="circ_add_out_lbl">Ausgangs-Variable</label>
+                        <input type="text" id="circ-add-out" list="fbs-var-list" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;">
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                        <button onclick="document.getElementById('circ-add-modal').style.display='none'" style="background:#555; color:white; border:none; padding:6px 12px; border-radius:3px; cursor:pointer;" data-i18n="btn_cancel">Abbrechen</button>
+                        <button onclick="confirmCircAdd()" style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:3px; cursor:pointer; font-weight:bold;" data-i18n="circ_add_btn">Hinzufügen</button>
                     </div>
                 </div>
                 <svg id="circuit-svg" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
@@ -1277,6 +1394,37 @@
                 "ctx_iec_hw_swap": "⚙️ <b>Anlagen-Hardware</b> umbauen (NO ↔ NC)",
                 "ctx_iec_sensor_type": "Sensor-Typ ändern:",
                 "ctx_iec_hw_type": "Hardware-Typ wechseln:",
+                "circ_palette_toggle": "🔧 Bearbeiten: AUS",
+                "circ_palette_toggle_on": "🔧 Bearbeiten: AN",
+                "circ_pal_contacts": "Kontakte:",
+                "circ_pal_coils": "Spulen:",
+                "circ_pal_specials": "Sonderelemente:",
+                "circ_pal_contact_btn": "⊣⊢ Kontakt",
+                "circ_pal_relay_contact_btn": "⊣K⊢ Relais-Kontakt",
+                "circ_pal_coil_btn": "( ) Spule",
+                "circ_pal_new_zone_lbl": "+ Neuer Strang",
+                "circ_add_target_lbl": "Ziel-Strang",
+                "circ_add_var1_contact": "Kontakt-Variable",
+                "circ_add_var1_s": "Einschaltsignal (S)",
+                "circ_add_var2_r": "Ausschaltsignal (R)",
+                "circ_add_var1_cu": "Zählsignal (CU)",
+                "circ_add_var2_reset": "Reset-Signal (R)",
+                "circ_add_var1_in": "Eingangs-Signal",
+                "circ_add_param_delay": "Verzögerung (Sekunden)",
+                "circ_add_param_pv": "Zielwert (PV)",
+                "circ_add_relay_lbl": "Relais wählen:",
+                "circ_add_subtype_ff": "Typ:",
+                "circ_add_link_lbl": "Verknüpfung im Strang",
+                "circ_add_out_lbl": "Ausgangs-Variable",
+                "circ_add_btn": "Hinzufügen",
+                "circ_add_title_contact": "Kontakt hinzufügen",
+                "circ_add_title_relay": "Relais-Kontakt hinzufügen",
+                "circ_add_title_coil": "Neue Spule",
+                "circ_add_title_ff": "Selbsthaltung (RS/SR)",
+                "circ_add_title_timer": "Zeitglied",
+                "circ_add_title_counter": "Zähler (CTU)",
+                "circ_add_new_rung": "Neuer Strang",
+                "circ_add_extend": "In bestehenden Strang einfügen",
                 "ctx_iec_del_component": "🗑️ Komplettes Bauteil ausbauen",
                 "ctx_iec_del_contact": "Kontakt löschen:",
                 "ctx_iec_bridge": "➖ Drahtbrücke setzen (Dauerstrom)",
@@ -1590,6 +1738,37 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 "ctx_iec_hw_swap": "⚙️ <b>Rebuild Hardware</b> (NO ↔ NC)",
                 "ctx_iec_sensor_type": "Change sensor type:",
                 "ctx_iec_hw_type": "Change hardware type:",
+                "circ_palette_toggle": "🔧 Edit: OFF",
+                "circ_palette_toggle_on": "🔧 Edit: ON",
+                "circ_pal_contacts": "Contacts:",
+                "circ_pal_coils": "Coils:",
+                "circ_pal_specials": "Special Elements:",
+                "circ_pal_contact_btn": "⊣⊢ Contact",
+                "circ_pal_relay_contact_btn": "⊣K⊢ Relay Contact",
+                "circ_pal_coil_btn": "( ) Coil",
+                "circ_pal_new_zone_lbl": "+ New Rung",
+                "circ_add_target_lbl": "Target Rung",
+                "circ_add_var1_contact": "Contact Variable",
+                "circ_add_var1_s": "Set Signal (S)",
+                "circ_add_var2_r": "Reset Signal (R)",
+                "circ_add_var1_cu": "Count Signal (CU)",
+                "circ_add_var2_reset": "Reset Signal (R)",
+                "circ_add_var1_in": "Input Signal",
+                "circ_add_param_delay": "Delay (Seconds)",
+                "circ_add_param_pv": "Target Value (PV)",
+                "circ_add_relay_lbl": "Choose Relay:",
+                "circ_add_subtype_ff": "Type:",
+                "circ_add_link_lbl": "Connection in Rung",
+                "circ_add_out_lbl": "Output Variable",
+                "circ_add_btn": "Add",
+                "circ_add_title_contact": "Add Contact",
+                "circ_add_title_relay": "Add Relay Contact",
+                "circ_add_title_coil": "New Coil",
+                "circ_add_title_ff": "Self-Hold (RS/SR)",
+                "circ_add_title_timer": "Timer",
+                "circ_add_title_counter": "Counter (CTU)",
+                "circ_add_new_rung": "New Rung",
+                "circ_add_extend": "Insert into existing rung",
                 "ctx_iec_del_component": "🗑️ Remove complete component",
                 "ctx_iec_del_contact": "Delete contact:",
                 "ctx_iec_bridge": "➖ Insert wire bridge (permanent ON)",
@@ -2327,8 +2506,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             const lines = text.split('\n');
             let jsCompiledCode = "";
             const definedOutputs = new Set();
+            const duplicateOutputs = new Set();
             const allUsedInputs = new Set();
-            const rsBlocks = new Map(); 
+            const rsBlocks = new Map();
             const exprCache = new Map();
             // Pre-Scan: Alle RS und SR-Glieder vorab sammeln
             lines.forEach(line => {
@@ -2450,6 +2630,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     graph.addEdge(sourceObj.id, blockId, 'IN', sourceObj.inverted);
                     graph.addNode(outputStr, 'OUTPUT', outputStr);
                     graph.addEdge(blockId, outputStr, 'Q', false);
+                    if (definedOutputs.has(outputStr)) duplicateOutputs.add(outputStr);
                     definedOutputs.add(outputStr);
                     let sourceIsTimer = sourceObj.id.startsWith('TON_') || sourceObj.id.startsWith('TOF_') || sourceObj.id.startsWith('TP_') || sourceObj.id.startsWith('CTU_');
                     let inVarQuery = sourceIsTimer ? `(timers['${sourceObj.id}'] ? timers['${sourceObj.id}'].q : false)` : `state['${sourceObj.id}']`;
@@ -2477,6 +2658,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let rObj = parseExpression(rVar);
                     graph.addEdge(cuObj.id, blockId, 'CU', cuObj.inverted); graph.addEdge(rObj.id, blockId, 'R', rObj.inverted);
                     graph.addNode(outputStr, 'OUTPUT', outputStr); graph.addEdge(blockId, outputStr, 'Q', false);
+                    if (definedOutputs.has(outputStr)) duplicateOutputs.add(outputStr);
                     definedOutputs.add(outputStr);
                     jsCompiledCode += `    if (!timers['${blockId}']) timers['${blockId}'] = { cv: 0, q: false, lastCu: false };\n`;
                     jsCompiledCode += `    let cu_${blockId} = ${cuObj.inverted ? '!' : ''}state['${cuObj.id}']; let r_${blockId} = ${rObj.inverted ? '!' : ''}state['${rObj.id}'];\n`;
@@ -2502,6 +2684,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     definedOutputs.add(`Q${num}${suffix}`);
                 } else {
                     graph.addNode(targetId, 'OUTPUT', outputStr);
+                    if (definedOutputs.has(targetId)) duplicateOutputs.add(targetId);
                     definedOutputs.add(targetId);
                 }
                 const sourceObj = parseExpression(expressionStr); // 🌟 Wieder Standard-Aufruf
@@ -2573,7 +2756,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if (src) edge.color = src.color;
             });
             // FIX: Filtere die neuen GATE_ Variablen aus der UI-Liste heraus!
-            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_') && !i.startsWith('GATE_')), outputs: [...definedOutputs] };
+            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_') && !i.startsWith('GATE_')), outputs: [...definedOutputs], duplicates: [...duplicateOutputs] };
         }
         function calculateLayout(graph) {
             graph.nodes.forEach(node => { if (node.type === 'PURE_INPUT') node.level = 0; });
@@ -4086,7 +4269,14 @@ You must output exactly this JSON format. The logic code goes as a single string
         function drawCircuitPlan(graph, inputsList, outputsList, keepView = false) {
             let isFirstRun = !panZoomCircuitInstance;
             circuitContent.innerHTML = '';
-            let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1, hCount = 1, mCount = 1, kCount = 1, eCount = 1; 
+            // ⚠️ Warnung bei doppelten Ausgangszuweisungen
+            const _dups = window.circDuplicateOutputs || [];
+            if (_dups.length > 0) {
+                let warn = createSvgElement('text', { x: 20, y: 25, 'font-size': '13', fill: '#ff5252', 'font-weight': 'bold', 'font-family': 'sans-serif' });
+                warn.textContent = `⚠️ Fehler: Variable(n) mehrfach zugewiesen: ${_dups.join(', ')} — jede Variable darf nur einmal links stehen!`;
+                circuitContent.appendChild(warn);
+            }
+            let sfCount = 1, kfCount = 1, bgCount = 1, mbCount = 1, pCount = 1, hCount = 1, mCount = 1, kCount = 1, eCount = 1;
             let symMap = {};
             window.iecSymMap = symMap; 
             let contactTypeMap = {};
@@ -4278,6 +4468,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             const drawCoil = (x, y, label, id, type='relais', color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
                 g.setAttribute('data-ctype', type); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-line-prefix', id);
                 g.style.cursor = 'context-menu';
                 g.appendChild(createSvgElement('rect', {x: x - 30, y: y - 20, width: 60, height: 40, fill: 'transparent'}));
                 if (color) g.style.setProperty('--logic-color', color);
@@ -4310,7 +4501,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
             const drawLED = (x, y, label, id, color, pathNum) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
-                g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-ctype', 'led'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-line-prefix', id);
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 15, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
@@ -4326,7 +4518,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
             const drawSiren = (x, y, label, id, color) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
-                g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-ctype', 'siren'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-line-prefix', id);
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
@@ -4340,7 +4533,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
             const drawMotor = (x, y, label, id, color) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
-                g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-ctype', 'motor'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-line-prefix', id);
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 15, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
@@ -4356,7 +4550,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
             const drawHeater = (x, y, label, id, color) => {
                 let g = createSvgElement('g', {class: `circ-colored-group circ-var-${id}`});
-                g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-ctype', 'heater'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
+                g.setAttribute('data-line-prefix', id);
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
@@ -4594,6 +4789,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (dualPass === 1 && dualLoadNodeIds.has(node.id)) return;
                     if (dualPass === 2 && !dualLoadNodeIds.has(node.id)) return;
                 }
+                let _rungStartX = currX; // für Drop-Zone
                 if (node.type === 'GATE') {
                     if (window.configEconMode) return; 
                     let p = pathCounter++;
@@ -4720,6 +4916,29 @@ You must output exactly this JSON format. The logic code goes as a single string
                         setPower(drawLine(startX, 470, startX, yBot, 2, node.id, col), qCond);
                     }
                     currX = parX + (w2 > 90 ? (w2-90)/2 : 0) + 80;
+                    // Drop-Zonen für RS/SR-Eingänge (S und R Strang)
+                    if (dualPass === 1 && window.configCircPalette) {
+                        let rsNum = node.id.match(/\d+/)?.[0] || '1';
+                        let sfx = node.type === 'SR' ? '_SR' : '';
+                        const mkZone = (zoneX, zoneY, zoneH, zoneVarId) => {
+                            let dz = createSvgElement('rect', { x: zoneX - 20, y: zoneY, width: 60, height: zoneH, fill: 'transparent', rx: 4, class: 'circ-dropzone circ-extend-zone', 'data-zone-type': 'extend', 'data-zone-id': zoneVarId, style: 'pointer-events: none;' });
+                            circuitContent.appendChild(dz);
+                            let dg = createSvgElement('g', { class: 'circ-del-rung-btn', 'data-rung-id': zoneVarId });
+                            let db = createSvgElement('rect', { x: zoneX - 18, y: zoneY + 2, width: 18, height: 16, rx: 3, fill: '#c0392b', opacity: '0.8' });
+                            let dt = createSvgElement('text', { x: zoneX - 9, y: zoneY + 14, 'font-size': '12', fill: '#fff', 'text-anchor': 'middle', 'font-weight': 'bold', 'font-family': 'sans-serif', style: 'pointer-events: none; user-select: none;' });
+                            dt.textContent = '✕'; dg.appendChild(db); dg.appendChild(dt);
+                            circuitContent.appendChild(dg);
+                        };
+                        if (node.type === 'RS') {
+                            // RS: S-Eingang oben (yTop→235), R-Eingang unten (235→yBot)
+                            mkZone(startX, yTop + 5, 180, `S${rsNum}${sfx}`);
+                            mkZone(startX, yTop + 185, yBot - yTop - 195, `R${rsNum}${sfx}`);
+                        } else {
+                            // SR: R-Eingang links (startX), S-Eingang rechts (parX), beide full-height
+                            mkZone(startX, yTop + 5, yBot - yTop - 10, `R${rsNum}${sfx}`);
+                            mkZone(parX, yTop + 5, yBot - yTop - 10, `S${rsNum}${sfx}`);
+                        }
+                    }
                 }
                 else if (node.type === 'CTU') {
                     let p1 = pathCounter++; let p2 = pathCounter++;
@@ -4769,6 +4988,27 @@ You must output exactly this JSON format. The logic code goes as a single string
                     setPower(drawLine(currX, 470, currX, yBot, 2, node.id, col), pCond); 
                     currX += (w1 > 90 ? (w1-90)/2 : 0) + 130;
                 }
+                // Drop-Zone für diesen Strang (nur in Pass 1, nur wenn Palette aktiv)
+                if (dualPass === 1 && window.configCircPalette && node.type === 'OUTPUT') {
+                    let dzX = Math.max(60, _rungStartX - 15);
+                    let dz = createSvgElement('rect', {
+                        x: dzX, y: yTop + 5,
+                        width: Math.max(80, currX - _rungStartX + 10), height: yBot - yTop - 10,
+                        fill: 'transparent', rx: 6,
+                        class: 'circ-dropzone circ-extend-zone',
+                        'data-zone-type': 'extend',
+                        'data-zone-id': node.id,
+                        style: 'pointer-events: none;'
+                    });
+                    circuitContent.appendChild(dz);
+                    // ✕ Strang löschen Button
+                    let delG = createSvgElement('g', { class: 'circ-del-rung-btn', 'data-rung-id': node.id });
+                    let delBg = createSvgElement('rect', { x: dzX + 2, y: yTop + 7, width: 18, height: 16, rx: 3, fill: '#c0392b', opacity: '0.8' });
+                    let delTx = createSvgElement('text', { x: dzX + 11, y: yTop + 19, 'font-size': '12', fill: '#fff', 'text-anchor': 'middle', 'font-weight': 'bold', 'font-family': 'sans-serif', style: 'pointer-events: none; user-select: none;' });
+                    delTx.textContent = '✕';
+                    delG.appendChild(delBg); delG.appendChild(delTx);
+                    circuitContent.appendChild(delG);
+                }
             };
             nodesToDraw.forEach(n => processNode(n, 1));
             // 🌟 FIX: Koppelrelais Strompfade am Ende des Plans anhängen!
@@ -4798,6 +5038,26 @@ You must output exactly this JSON format. The logic code goes as a single string
             let mMinus = drawLine(20, yBot, totalWidth - 20, yBot, 3);
             mMinus.setAttribute('stroke', '#4363d8'); mMinus.classList.remove('circ-wire');
             drawText(25, yBot + 20, 'M (0V DC)', true);
+            // "Neuer Strang" Drop-Zone am rechten Ende der L+-Schiene
+            if (window.configCircPalette) {
+                let dzNew = createSvgElement('rect', {
+                    x: totalWidth - 15, y: yTop,
+                    width: 80, height: yBot - yTop,
+                    fill: 'rgba(76,175,80,0.08)', rx: 6,
+                    class: 'circ-dropzone circ-new-zone',
+                    'data-zone-type': 'new',
+                    style: 'pointer-events: none;'
+                });
+                circuitContent.appendChild(dzNew);
+                let dzNewLbl = createSvgElement('text', {
+                    x: totalWidth + 25, y: (yTop + yBot) / 2,
+                    'font-size': '13', fill: '#4caf50', 'text-anchor': 'middle',
+                    'font-family': 'Segoe UI, Tahoma, sans-serif',
+                    style: 'pointer-events: none;'
+                });
+                dzNewLbl.textContent = '+ Strang';
+                circuitContent.appendChild(dzNewLbl);
+            }
             Object.keys(relayContacts).forEach(id => {
                 let rc = relayContacts[id];
                 if (rc.coilX) {
@@ -4904,7 +5164,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                 buildSimulatorUI(parsed.inputs, parsed.outputs, parsed.graph);
                 globalInputs = parsed.inputs;
                 globalOutputs = parsed.outputs;
-                currentGraph = parsed.graph; 
+                window.circDuplicateOutputs = parsed.duplicates || [];
+                currentGraph = parsed.graph;
                 calculateLayout(parsed.graph);
                 let pFbs = customSvg.closest('.workspace-panel') || document.getElementById('fbs-wrapper');
                 if (pFbs && pFbs.style.display !== 'none') {
@@ -9385,6 +9646,379 @@ You must output exactly this JSON format. The logic code goes as a single string
             updateHighlighting(); updateEditor(); saveToStorage();
             if (typeof window.closeFbsModal === 'function') window.closeFbsModal();
             else document.getElementById('fbs-add-modal').style.display = 'none';
+        };
+        // ==========================================
+        // NEU: IEC SCHALTPLAN – DRAG & DROP PALETTE
+        // ==========================================
+        window.configCircPalette = false;
+        window.currentCircZone = null;
+        window.draggedCircBtn = null;
+
+        window.toggleCircPalette = function() {
+            window.configCircPalette = !window.configCircPalette;
+            const btn = getCircDoc().getElementById('btn-circ-palette');
+            const panel = getCircDoc().getElementById('circ-palette-panel');
+            if (btn) btn.classList.toggle('active', window.configCircPalette);
+            if (panel) panel.style.display = window.configCircPalette ? 'flex' : 'none';
+            if (currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true);
+        };
+
+        window.startCircDrag = function(e, type) {
+            let dragType = type;
+            if (type === 'CONTACT') {
+                let sel = document.getElementById('circ-pal-ctype');
+                dragType = `CONTACT:${sel ? sel.value : 'taster'}`;
+            } else if (type === 'COIL') {
+                let sel = document.getElementById('circ-pal-coiltype');
+                dragType = `COIL:${sel ? sel.value : 'led'}`;
+            }
+            e.dataTransfer.setData('text/plain', dragType);
+            e.dataTransfer.effectAllowed = 'copy';
+            window.draggedCircBtn = e.target;
+            e.target.classList.add('drag-active-circ');
+            document.body.classList.add('circ-dragging');
+        };
+
+        // dragover + drop auf circuitSvg
+        circuitSvg.addEventListener('dragover', (e) => {
+            if (!window.configCircPalette) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            let el = document.elementFromPoint(e.clientX, e.clientY);
+            let zone = el ? el.closest('.circ-dropzone') : null;
+            if (zone !== window.currentCircZone) {
+                if (window.currentCircZone) {
+                    window.currentCircZone.classList.remove('circ-drop-highlight', 'circ-drop-new-highlight');
+                }
+                window.currentCircZone = zone;
+                if (zone) {
+                    zone.classList.add(zone.dataset.zoneType === 'new' ? 'circ-drop-new-highlight' : 'circ-drop-highlight');
+                }
+            }
+        });
+
+        circuitSvg.addEventListener('dragleave', (e) => {
+            if (!e.relatedTarget || !circuitSvg.contains(e.relatedTarget)) {
+                if (window.currentCircZone) {
+                    window.currentCircZone.classList.remove('circ-drop-highlight', 'circ-drop-new-highlight');
+                    window.currentCircZone = null;
+                }
+            }
+        });
+
+        circuitSvg.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.body.classList.remove('circ-dragging');
+            if (window.draggedCircBtn) { window.draggedCircBtn.classList.remove('drag-active-circ'); window.draggedCircBtn = null; }
+            let zone = window.currentCircZone;
+            if (zone) { zone.classList.remove('circ-drop-highlight', 'circ-drop-new-highlight'); window.currentCircZone = null; }
+            if (!window.configCircPalette) return;
+            let dragType = e.dataTransfer.getData('text/plain');
+            if (!dragType || !zone) return;
+            openCircAddModal(dragType, zone);
+        });
+
+        circuitSvg.addEventListener('click', (e) => {
+            if (!window.configCircPalette) return;
+            // ✕ Strang löschen
+            let delBtn = e.target.closest('.circ-del-rung-btn');
+            if (delBtn) {
+                e.stopPropagation();
+                let rungId = delBtn.getAttribute('data-rung-id');
+                if (rungId && confirm(`Strang "${rungId}" komplett löschen?`)) {
+                    let lines = textarea.value.split('\n');
+                    let safe = rungId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    let re = new RegExp(`^\\s*${safe}\\s*(?::=|=|<-)`, 'i');
+                    lines = lines.filter(l => !re.test(l.split('//')[0]));
+                    textarea.value = lines.join('\n');
+                    updateHighlighting(); updateEditor(); saveToStorage();
+                }
+                return;
+            }
+            // Klick auf Element → Variable in fokussiertes Modal-Feld einfügen
+            const modal = document.getElementById('circ-add-modal');
+            if (!modal || modal.style.display === 'none') return;
+            let focusedInput = window._circModalFocusedInput;
+            if (!focusedInput || !modal.contains(focusedInput)) return;
+            let target = e.target.closest('.circ-colored-group');
+            if (!target) return;
+            e.stopPropagation();
+            let iecId = target.getAttribute('data-iec-id');
+            if (!iecId || iecId === 'NONE') return;
+            // RS_1 → Q1, TON_0 → Ausgangsvariable usw. über getFbsVariableDisplay
+            let displayName = (window.getFbsVariableDisplay ? window.getFbsVariableDisplay(iecId) : iecId);
+            // getFbsVariableDisplay gibt für GATE-Knoten komplexe Ausdrücke zurück – dann lieber iecId nutzen
+            if (displayName.startsWith('(') || displayName.includes(' && ') || displayName.includes(' || ')) displayName = iecId;
+            focusedInput.value = displayName;
+            focusedInput.dispatchEvent(new Event('input', { bubbles: true }));
+            // Nächstes leeres Textfeld fokussieren
+            let inputs = Array.from(modal.querySelectorAll('input[type="text"]:not([readonly])'));
+            let idx = inputs.indexOf(focusedInput);
+            let nextEmpty = inputs.slice(idx + 1).find(i => !i.value);
+            if (nextEmpty) nextEmpty.focus(); else focusedInput.focus();
+        });
+
+        document.addEventListener('dragend', (e) => {
+            document.body.classList.remove('circ-dragging');
+            if (window.currentCircZone) {
+                window.currentCircZone.classList.remove('circ-drop-highlight', 'circ-drop-new-highlight');
+                window.currentCircZone = null;
+            }
+            if (window.draggedCircBtn) { window.draggedCircBtn.classList.remove('drag-active-circ'); window.draggedCircBtn = null; }
+        });
+
+        window.openCircAddModal = function(dragType, zone) {
+            const modal = document.getElementById('circ-add-modal');
+            if (!modal) return;
+            modal.innerHTML = ''; // Reset
+
+            let zoneType = zone.dataset.zoneType || 'new';
+            let zoneId   = zone.dataset.zoneId || '';
+            let [cat, subtype] = dragType.split(':');
+
+            // Hidden fields
+            modal.insertAdjacentHTML('afterbegin', `
+                <h3 id="circ-add-title" style="margin-top:0; font-size:14px; color:#fff; border-bottom:1px solid #555; padding-bottom:8px; margin-bottom:12px;"></h3>
+                <input type="hidden" id="circ-add-type" value="${dragType}">
+                <input type="hidden" id="circ-add-zone-type" value="${zoneType}">
+                <input type="hidden" id="circ-add-zone-id" value="${zoneId}">
+            `);
+
+            const add = (html) => { modal.insertAdjacentHTML('beforeend', html); };
+            const inp = (id, lbl, type='text', val='', placeholder='') =>
+                `<div style="margin-bottom:10px;"><label style="color:#9CDCFE; font-size:11px; display:block; margin-bottom:3px; font-weight:bold;">${lbl}</label>
+                 <input type="${type}" id="${id}" value="${val}" placeholder="${placeholder}" list="fbs-var-list"
+                   step="${type==='number'?'0.1':''}" min="${type==='number'?'0':''}"
+                   style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;"></div>`;
+            const sel = (id, lbl, opts) =>
+                `<div style="margin-bottom:10px;"><label style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;">${lbl}</label>
+                 <select id="${id}" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #555; border-radius:3px; font-size:12px;">${opts}</select></div>`;
+
+            // Title
+            const titles = { CONTACT: t('circ_add_title_contact'), RELAY_CONTACT: t('circ_add_title_relay'),
+                COIL: t('circ_add_title_coil'), 'SPECIAL:RS': t('circ_add_title_ff'),
+                'SPECIAL:TON': t('circ_add_title_timer'), 'SPECIAL:TOF': t('circ_add_title_timer'),
+                'SPECIAL:TP': t('circ_add_title_timer'), 'SPECIAL:CTU': t('circ_add_title_counter') };
+            const subtitle = zoneType === 'extend' ? ` – ${t('circ_add_extend')}` : ` – ${t('circ_add_new_rung')}`;
+            modal.querySelector('#circ-add-title').textContent = (titles[dragType] || titles[cat] || dragType) + subtitle;
+
+            // Ziel-Strang (extend only) — Spezial-Stränge sperren
+            if (zoneType === 'extend' && zoneId) {
+                // Prüfen ob RHS einen Funktionsaufruf enthält (TON, CTU etc.) → nicht erweiterbar
+                let existingRhs = '';
+                try {
+                    let safe = zoneId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    let re = new RegExp(`^\\s*${safe}\\s*(?::=|=|<-)\\s*(.+)`, 'i');
+                    for (const l of textarea.value.split('\n')) {
+                        let m = l.split('//')[0].match(re);
+                        if (m) { existingRhs = m[1].trim(); break; }
+                    }
+                } catch(e) {}
+                let isSpecialRhs = /\b(TON|TOF|TP|CTU)\s*\(/.test(existingRhs);
+                if (isSpecialRhs) {
+                    add(`<div style="padding:8px 10px; background:#1a2a1a; border:1px solid #4caf50; border-radius:4px; color:#81c784; font-size:11px; margin-bottom:8px;">
+                        ℹ️ Kontakt wird in den <b>Eingang des Timers/Zählers</b> eingefügt.</div>`);
+                }
+                add(`<div style="margin-bottom:10px;"><label style="color:#aaa; font-size:11px; display:block; margin-bottom:3px;">${t('circ_add_target_lbl')}</label>
+                     <input type="text" id="circ-add-target" readonly value="${window.getFbsVariableDisplay ? window.getFbsVariableDisplay(zoneId) : zoneId}"
+                       style="width:100%; padding:6px; background:#333; color:#9CDCFE; border:1px solid #555; border-radius:3px; font-size:12px; box-sizing:border-box;"></div>`);
+            }
+
+            if (cat === 'CONTACT') {
+                add(inp('circ-add-var1', t('circ_add_var1_contact'), 'text', '', 'z.B. START'));
+                if (zoneType === 'extend') add(`<div style="margin-bottom:12px;"><label style="color:#aaa; font-size:11px; display:block; margin-bottom:5px;">${t('circ_add_link_lbl')}</label>
+                    <label style="color:#fff; font-size:12px; cursor:pointer; margin-right:12px;"><input type="radio" name="circ-link" value="AND" checked> In Reihe (AND)</label>
+                    <label style="color:#fff; font-size:12px; cursor:pointer;"><input type="radio" name="circ-link" value="OR"> Parallel (OR)</label></div>`);
+                else add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. MOTOR_1'));
+
+            } else if (cat === 'RELAY_CONTACT') {
+                let relayOpts = (globalOutputs || []).map(v => `<option value="${v}">${v}</option>`).join('');
+                add(sel('circ-add-relay-sel', t('circ_add_relay_lbl'), relayOpts));
+                if (zoneType === 'extend') add(`<div style="margin-bottom:12px;"><label style="color:#aaa; font-size:11px; display:block; margin-bottom:5px;">${t('circ_add_link_lbl')}</label>
+                    <label style="color:#fff; font-size:12px; cursor:pointer; margin-right:12px;"><input type="radio" name="circ-link" value="AND" checked> In Reihe (AND)</label>
+                    <label style="color:#fff; font-size:12px; cursor:pointer;"><input type="radio" name="circ-link" value="OR"> Parallel (OR)</label></div>`);
+                else add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. MOTOR_1'));
+
+            } else if (cat === 'COIL') {
+                add(inp('circ-add-var1', t('circ_add_var1_contact'), 'text', '', 'z.B. START'));
+                add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. MOTOR_1'));
+
+            } else if (cat === 'SPECIAL') {
+                if (subtype === 'RS') {
+                    add(sel('circ-add-subtype', t('circ_add_subtype_ff'),
+                        '<option value="RS">RS – Set-Dominant (S setzt, R löscht)</option><option value="SR">SR – Reset-Dominant (R löscht, S setzt)</option>'));
+                    add(inp('circ-add-var1', t('circ_add_var1_s'), 'text', '', 'z.B. START'));
+                    add(inp('circ-add-var2', t('circ_add_var2_r'), 'text', '', 'z.B. STOP'));
+                    add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. MOTOR_1'));
+                } else if (['TON','TOF','TP'].includes(subtype)) {
+                    add(inp('circ-add-var1', t('circ_add_var1_in'), 'text', '', 'z.B. START'));
+                    add(inp('circ-add-param', t('circ_add_param_delay'), 'number', '2.0', ''));
+                    add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. TIMER_OUT'));
+                } else if (subtype === 'CTU') {
+                    add(inp('circ-add-var1', t('circ_add_var1_cu'), 'text', '', 'z.B. SENSOR'));
+                    add(inp('circ-add-var2', t('circ_add_var2_reset'), 'text', '', 'z.B. RESET'));
+                    add(inp('circ-add-param', t('circ_add_param_pv'), 'number', '5', ''));
+                    add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. ZAEHLER_OUT'));
+                }
+            }
+
+            add(`<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button onclick="document.getElementById('circ-add-modal').style.display='none'"
+                  style="background:#555; color:white; border:none; padding:6px 12px; border-radius:3px; cursor:pointer;">${t('btn_cancel')}</button>
+                <button onclick="confirmCircAdd()"
+                  style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:3px; cursor:pointer; font-weight:bold;">${t('circ_add_btn')}</button>
+            </div>`);
+
+            modal.style.display = 'block';
+            // Enter-Taste bestätigt Dialog; Klick-to-Fill: fokussiertes Feld merken
+            modal.querySelectorAll('input[type="text"], input[type="number"]').forEach(inp => {
+                inp.addEventListener('focus', () => { window._circModalFocusedInput = inp; });
+                inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCircAdd(); } });
+                inp.addEventListener('input', () => { if (inp.type === 'text') inp.value = inp.value.replace(/\s/g, ''); });
+            });
+            setTimeout(() => {
+                let firstInput = modal.querySelector('input[type="text"]:not([readonly])') || modal.querySelector('select');
+                if (firstInput) firstInput.focus();
+            }, 10);
+        };
+
+        window.confirmCircAdd = function() {
+            const gv = (id) => { let el = document.getElementById(id); return el ? el.value.trim().toUpperCase() : ''; };
+            let dragType  = gv('circ-add-type');
+            let zoneType  = document.getElementById('circ-add-zone-type')?.value || 'new';
+            let zoneId    = gv('circ-add-zone-id');
+            let [cat, subtype] = dragType.split(':');
+
+            let code  = textarea.value;
+            let lines = code.split('\n');
+
+            const circFindLine = (varName) => {
+                let safe = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                let re = new RegExp(`^\\s*${safe}\\s*(?::=|=|<-)`, 'i');
+                return lines.findIndex(l => re.test(l.split('//')[0]));
+            };
+            const circDupCheck = (outVar) => {
+                if (circFindLine(outVar) !== -1) {
+                    alert(`❌ "${outVar}" ist bereits als Ausgang vergeben!\n\nMehrfache Zuweisungen sind ungültig. Stattdessen:\n• Bestehenden Strang durch Drag & Drop auf den Strang erweitern (AND / OR)\n• Oder einen anderen Variablennamen wählen.`);
+                    return true;
+                }
+                return false;
+            };
+            const circSplitAssign = (line) => {
+                let cl = line.split('//')[0].replace(/(:=|=|<-)/i, ':=');
+                let parts = cl.split(':=');
+                return [parts[0].trim(), parts.slice(1).join(':=').trim()];
+            };
+            // Splits 'TON(Q1, 2.0)' → ['TON', 'Q1', ', 2.0)'] to extend first arg
+            const circExtendFnArg = (rhs, op, varName) => {
+                let m = rhs.match(/^(\w+)\(/i);
+                if (!m) return null;
+                let fnName = m[1];
+                let inner = rhs.slice(fnName.length + 1); // everything after '('
+                // find first top-level comma
+                let depth = 0, ci = -1;
+                for (let i = 0; i < inner.length; i++) {
+                    if (inner[i] === '(') depth++;
+                    else if (inner[i] === ')') { if (depth === 0) { ci = i; break; } depth--; }
+                    else if (inner[i] === ',' && depth === 0) { ci = i; break; }
+                }
+                if (ci === -1) return null;
+                let firstArg = inner.slice(0, ci).trim();
+                let rest = inner.slice(ci); // ', rest...' or ')'
+                return `${fnName}((${firstArg}) ${op} ${varName}${rest}`;
+            };
+
+            if (cat === 'CONTACT' || cat === 'RELAY_CONTACT') {
+                let varName = cat === 'RELAY_CONTACT'
+                    ? (document.getElementById('circ-add-relay-sel')?.value || '')
+                    : gv('circ-add-var1');
+                if (!varName) { alert('Bitte Variable ausfüllen!'); return; }
+                let link = document.querySelector('input[name="circ-link"]:checked')?.value || 'AND';
+                let op   = link === 'AND' ? '&&' : '||';
+
+                if (zoneType === 'extend') {
+                    let idx = circFindLine(zoneId);
+                    if (idx === -1) {
+                        // Sonderfall: RS/SR-Pin-Zeile wurde gelöscht → neu anlegen
+                        if (/^[SR]\d+(_SR)?$/i.test(zoneId)) {
+                            lines.push(`${zoneId} := ${varName}`);
+                        } else {
+                            alert('Strang-Zeile nicht gefunden!'); return;
+                        }
+                    } else {
+                        let [lhs, rhs] = circSplitAssign(lines[idx]);
+                        let extended = circExtendFnArg(rhs, op, varName);
+                        lines[idx] = extended ? `${lhs} := ${extended}` : `${lhs} := (${rhs}) ${op} ${varName}`;
+                    }
+                } else {
+                    let outVar = gv('circ-add-out');
+                    if (!outVar) { alert('Bitte Ausgangs-Variable ausfüllen!'); return; }
+                    if (circDupCheck(outVar)) return;
+                    lines.push(`${outVar} := ${varName}`);
+                    // RS/SR Auto-Vervollständigung: fehlenden S/R-Eingang auf TRUE setzen
+                    let rsAuto = outVar.match(/^([SR])(\d+)(_SR)?$/i);
+                    if (rsAuto) {
+                        let otherPin = rsAuto[1].toUpperCase() === 'S' ? 'R' : 'S';
+                        let otherVar = `${otherPin}${rsAuto[2]}${rsAuto[3] ? rsAuto[3].toUpperCase() : ''}`;
+                        if (circFindLine(otherVar) === -1) lines.push(`${otherVar} := TRUE`);
+                    }
+                }
+                if (cat === 'CONTACT' && !componentTypes[varName]) {
+                    componentTypes[varName] = subtype || 'taster';
+                    localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
+                }
+
+            } else if (cat === 'COIL') {
+                let contactVar = gv('circ-add-var1');
+                let outVar     = gv('circ-add-out');
+                if (!contactVar || !outVar) { alert('Bitte alle Felder ausfüllen!'); return; }
+                if (circDupCheck(outVar)) return;
+                lines.push(`${outVar} := ${contactVar}`);
+                // RS/SR Auto-Vervollständigung
+                let rsAutoC = outVar.match(/^([SR])(\d+)(_SR)?$/i);
+                if (rsAutoC) {
+                    let otherPin = rsAutoC[1].toUpperCase() === 'S' ? 'R' : 'S';
+                    let otherVar = `${otherPin}${rsAutoC[2]}${rsAutoC[3] ? rsAutoC[3].toUpperCase() : ''}`;
+                    if (circFindLine(otherVar) === -1) lines.push(`${otherVar} := TRUE`);
+                }
+                if (!componentTypes[outVar]) {
+                    componentTypes[outVar] = subtype || 'led';
+                    localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
+                }
+
+            } else if (cat === 'SPECIAL') {
+                let type   = document.getElementById('circ-add-subtype')?.value || subtype;
+                let in1    = gv('circ-add-var1');
+                let in2    = gv('circ-add-var2');
+                let param  = document.getElementById('circ-add-param')?.value || '2.0';
+                let outVar = gv('circ-add-out');
+                if (!in1 || !outVar) { alert('Bitte alle Pflichtfelder (Eingang + Ausgang) ausfüllen!'); return; }
+                if (circDupCheck(outVar)) return;
+
+                if (type === 'RS' || type === 'SR') {
+                    let rsNum = 1;
+                    while (new RegExp(`\\b[SRQ]${rsNum}(?:_SR)?\\b`, 'i').test(lines.join('\n'))) rsNum++;
+                    if (type === 'SR') {
+                        lines.push(`${outVar} := Q${rsNum}_SR`);
+                        lines.push(`S${rsNum}_SR := ${in1}`);
+                        lines.push(`R${rsNum}_SR := ${in2 || 'FALSE'}`);
+                    } else {
+                        lines.push(`${outVar} := Q${rsNum}`);
+                        lines.push(`S${rsNum} := ${in1}`);
+                        lines.push(`R${rsNum} := ${in2 || 'FALSE'}`);
+                    }
+                } else if (['TON','TOF','TP'].includes(type)) {
+                    lines.push(`${outVar} := ${type}(${in1}, ${param})`);
+                } else if (type === 'CTU') {
+                    lines.push(`${outVar} := CTU(${in1}, ${in2 || 'FALSE'}, ${param})`);
+                }
+            } else {
+                return;
+            }
+
+            textarea.value = lines.join('\n');
+            updateHighlighting(); updateEditor(); saveToStorage();
+            document.getElementById('circ-add-modal').style.display = 'none';
         };
 		// ==========================================
         // NEU: VISUAL EDITOR AUSBAUSTUFE 2 (Drag & Drop + Click to Fill)
