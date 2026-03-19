@@ -1316,6 +1316,20 @@
                 "fac_btn_view_side": "🌍 Global: Seitenansicht",
                 "fac_btn_plugins": "🧩 Plugins",
                 "fac_btn_clear": "🗑️ Alles löschen",
+				// Rechtsklick-Menü Schaltplan (IEC)
+                "ctx_iec_internal_contact": "Interne Bausteine und Gruppen-Kontakte können nur direkt im Code bearbeitet werden.",
+                "ctx_iec_gate_invert": "🔀 <b>Gatter invertieren</b> (NAND / NOR)",
+                "ctx_iec_contact_swap": "🔀 <b>Kontakt-Belegung</b> wechseln (NO ↔ NC)",
+                "ctx_iec_hw_swap": "⚙️ <b>Anlagen-Hardware</b> umbauen (NO ↔ NC)",
+                "ctx_iec_sensor_type": "Sensor-Typ ändern:",
+                "ctx_iec_del_component": "🗑️ Komplettes Bauteil ausbauen",
+                "ctx_iec_del_contact": "Kontakt löschen:",
+                "ctx_iec_bridge": "➖ Drahtbrücke setzen (Dauerstrom)",
+                "ctx_iec_break": "✂️ Kontakt ausbauen (Leitung offen)",
+                "ctx_iec_internal_coil": "Hilfsrelais für Gatter und System-Bausteine werden automatisch generiert und können nicht direkt gelöscht werden.",
+                "ctx_iec_coil_type": "Bauteil-Typ ändern:",
+                "ctx_iec_rename": "Variable umbenennen:",
+                "ctx_iec_del_rung": "🗑️ Gesamten Strompfad löschen",
 				// Rechtsklick-Menüs (Logik & Anlage)
                 "ctx_fbs_edit": "🛠️ Edit:",
                 "ctx_fbs_rename": "✏️ Variable umbenennen",
@@ -1610,6 +1624,20 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 "fac_btn_view_side": "🌍 Global: Side View",
                 "fac_btn_plugins": "🧩 Plugins",
                 "fac_btn_clear": "🗑️ Clear All",
+				// Circuit Plan Context Menu (IEC)
+                "ctx_iec_internal_contact": "Internal blocks and group contacts can only be edited directly in the code.",
+                "ctx_iec_gate_invert": "🔀 <b>Invert Gate</b> (NAND / NOR)",
+                "ctx_iec_contact_swap": "🔀 <b>Contact Type</b> toggle (NO ↔ NC)",
+                "ctx_iec_hw_swap": "⚙️ <b>Rebuild Hardware</b> (NO ↔ NC)",
+                "ctx_iec_sensor_type": "Change sensor type:",
+                "ctx_iec_del_component": "🗑️ Remove complete component",
+                "ctx_iec_del_contact": "Delete contact:",
+                "ctx_iec_bridge": "➖ Insert wire bridge (permanent ON)",
+                "ctx_iec_break": "✂️ Remove contact (open circuit)",
+                "ctx_iec_internal_coil": "Auxiliary relays for gates and system blocks are generated automatically and cannot be deleted directly.",
+                "ctx_iec_coil_type": "Change component type:",
+                "ctx_iec_rename": "Rename variable:",
+                "ctx_iec_del_rung": "🗑️ Delete entire rung",
 				// Context Menus (Logic & Factory)
                 "ctx_fbs_edit": "🛠️ Edit:",
                 "ctx_fbs_rename": "✏️ Rename Variable",
@@ -9176,24 +9204,46 @@ You must output exactly this JSON format. The logic code goes as a single string
 
             // Kategorisierung der Variablen
             let isTimerOrCounter = iecId.startsWith('TON_') || iecId.startsWith('TOF_') || iecId.startsWith('TP_') || iecId.startsWith('CTU_');
-            // 🌟 FIX: Jetzt werden auch die echten Spulen (RS_1, SR_2) als intern erkannt, nicht nur die Signale (Q1, S1)!
-            let isFlipFlop = iecId.startsWith('RS_') || iecId.startsWith('SR_') || iecId.match(/^[RSQ]\d+(_SR)?$/i) !== null;
-            let isInternal = isTimerOrCounter || isFlipFlop;
+            let isFlipFlopBlock = iecId.startsWith('RS_') || iecId.startsWith('SR_');
+            let isFlipFlopSignal = !isFlipFlopBlock && iecId.match(/^[RSQ]\d+(_SR)?$/i) !== null;
+            // Für Spulen (coil): RS/SR-Blöcke und Signale sperren
+            let isInternal = isTimerOrCounter || isFlipFlopBlock || isFlipFlopSignal;
+            // Für Kontakte: RS/SR-Blöcke erscheinen als Q-Ausgänge auf fremden Leitungen → editierbar!
+            // Der Unterschied zu "intern" ist allein die role (contact vs. coil).
+            let isInternalContact = isTimerOrCounter;
             let isGate = iecId.startsWith('AND_') || iecId.startsWith('OR_') || iecId.startsWith('GATE_');
 
             let title = document.createElement('div');
             title.style.cssText = 'padding: 6px 15px; color: #ffeb3b; font-size: 11px; border-bottom: 1px solid #555; font-weight: bold; cursor: default;';
-            title.textContent = `🛠️ Edit: ${textVar}`;
+            title.textContent = `${t('ctx_fbs_edit')} ${textVar}`;
             menu.appendChild(title);
 
             // ==========================================
             // KONTAKTE & SENSOREN (AUF DER LEITUNG)
             // ==========================================
             if (role === 'contact' || role === 'sensor-box') {
-                if (isInternal) {
+                // Q-Kontakt im EIGENEN Strompfad sperren:
+                let isOwnFlipFlopContact = false;
+                if (isFlipFlopBlock) {
+                    // linePrefix === iecId: der Q-Kontakt innerhalb des RS-Blocks selbst (node.id als prefix)
+                    // ownPrefixes: Q-Feedback auf S1/R1-Rungs des gleichen Blocks
+                    let numMatch = iecId.match(/\d+/);
+                    if (numMatch) {
+                        let n = numMatch[0];
+                        let isSR = iecId.startsWith('SR_');
+                        let ownPrefixes = isSR
+                            ? [`S${n}_SR`, `R${n}_SR`, `Q${n}_SR`]
+                            : [`S${n}`, `R${n}`, `Q${n}`];
+                        isOwnFlipFlopContact = linePrefix === iecId || ownPrefixes.includes(linePrefix);
+                    }
+                } else if (isFlipFlopSignal) {
+                    // Einfache Selbsthaltung (Q1 := Q1 || START): linePrefix === iecId
+                    isOwnFlipFlopContact = linePrefix === iecId;
+                }
+                if (isInternalContact || isOwnFlipFlopContact) {
                     let msg = document.createElement('div');
                     msg.style.cssText = 'padding: 10px 15px; color: #aaa; font-size: 10px; font-style: italic; text-align: center; line-height: 1.4;';
-                    msg.textContent = "Interne Bausteine und Gruppen-Kontakte können nur direkt im Code bearbeitet werden.";
+                    msg.textContent = t('ctx_iec_internal_contact');
                     menu.appendChild(msg);
                     menu.style.display = 'block';
                     return;
@@ -9212,7 +9262,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if ((!window.configStrictHardware || !isHardwareInput || isGate) && !isPhysicalHardwareBox && !isNotHalt) {
                     let btnLogic = document.createElement('div');
                     btnLogic.className = 'ctx-item';
-                    btnLogic.innerHTML = isGate ? `🔀 <b>Gatter invertieren</b> (NAND / NOR)` : `🔀 <b>Kontakt-Belegung</b> wechseln (NO ↔ NC)`;
+                    btnLogic.innerHTML = isGate ? t('ctx_iec_gate_invert') : t('ctx_iec_contact_swap');
                     btnLogic.onclick = () => {
                         let code = textarea.value;
                         let lines = code.split('\n');
@@ -9255,7 +9305,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if (canSwapHardware) {
                     let btnHard = document.createElement('div');
                     btnHard.className = 'ctx-item';
-                    btnHard.innerHTML = `⚙️ <b>Anlagen-Hardware</b> umbauen (NO ↔ NC)`;
+                    btnHard.innerHTML = t('ctx_iec_hw_swap');
                     btnHard.onclick = () => {
                         if (currentType.endsWith('_nc')) componentTypes[iecId] = currentType.replace('_nc', '');
                         else if (currentType === 'nothalt') componentTypes[iecId] = 'taster'; 
@@ -9272,7 +9322,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 // 3. Sensor-Typ umbauen
                 if (isSensor) {
                     let typeWrap = document.createElement('div'); typeWrap.style.padding = '5px 15px'; typeWrap.onclick = e => e.stopPropagation();
-                    typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Sensor-Typ ändern:</div>`;
+                    typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">${t('ctx_iec_sensor_type')}</div>`;
                     let selType = document.createElement('select');
                     selType.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; cursor: pointer;";
                     ['sensor_ind', 'sensor_kap', 'sensor_opt', 'sensor_mag', 'mech_sensor', 'light_curtain'].forEach(t => {
@@ -9295,7 +9345,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if (isPhysicalHardwareBox) {
                     let btnDelPre = document.createElement('div');
                     btnDelPre.className = 'ctx-item';
-                    btnDelPre.innerHTML = `<span style="color: #ff5252;">🗑️ Komplettes Bauteil ausbauen</span>`;
+                    btnDelPre.innerHTML = `<span style="color: #ff5252;">${t('ctx_iec_del_component')}</span>`;
                     btnDelPre.onclick = () => {
                         let code = textarea.value;
                         let lines = code.split('\n');
@@ -9324,7 +9374,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     };
                     menu.appendChild(btnDelPre);
                 } else {
-                    let titleDel = document.createElement('div'); titleDel.style.padding = '0 10px'; titleDel.style.color = '#ff5252'; titleDel.style.fontSize = '10px'; titleDel.textContent = 'Kontakt löschen:'; menu.appendChild(titleDel);
+                    let titleDel = document.createElement('div'); titleDel.style.padding = '0 10px'; titleDel.style.color = '#ff5252'; titleDel.style.fontSize = '10px'; titleDel.textContent = t('ctx_iec_del_contact'); menu.appendChild(titleDel);
 
                     const deleteContact = (replaceWith) => {
                         let code = textarea.value;
@@ -9360,13 +9410,13 @@ You must output exactly this JSON format. The logic code goes as a single string
 
                     let btnDelBridge = document.createElement('div');
                     btnDelBridge.className = 'ctx-item';
-                    btnDelBridge.innerHTML = `➖ Drahtbrücke setzen (Dauerstrom)`;
+                    btnDelBridge.innerHTML = t('ctx_iec_bridge');
                     btnDelBridge.onclick = () => deleteContact('TRUE');
                     menu.appendChild(btnDelBridge);
 
                     let btnDelBreak = document.createElement('div');
                     btnDelBreak.className = 'ctx-item';
-                    btnDelBreak.innerHTML = `✂️ Kontakt ausbauen (Leitung offen)`;
+                    btnDelBreak.innerHTML = t('ctx_iec_break');
                     btnDelBreak.onclick = () => deleteContact('FALSE');
                     menu.appendChild(btnDelBreak);
                 }
@@ -9382,7 +9432,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 								 
                     let msg = document.createElement('div');
                     msg.style.cssText = 'padding: 10px 15px; color: #aaa; font-size: 10px; font-style: italic; line-height: 1.4; text-align: center;';
-                    msg.textContent = "Hilfsrelais für Gatter und System-Bausteine werden automatisch generiert und können nicht direkt gelöscht werden.";
+                    msg.textContent = t('ctx_iec_internal_coil');
                     menu.appendChild(msg);
                     menu.style.display = 'block';
                     return;
@@ -9392,7 +9442,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 
                 if (isOutput) {
                     let typeWrap = document.createElement('div'); typeWrap.style.padding = '5px 15px'; typeWrap.onclick = e => e.stopPropagation();
-                    typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Bauteil-Typ ändern:</div>`;
+                    typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">${t('ctx_iec_coil_type')}</div>`;
                     let selType = document.createElement('select');
                     selType.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; cursor: pointer;";
                     ['led', 'valve', 'contactor', 'motor', 'heater', 'siren'].forEach(t => {
@@ -9411,7 +9461,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 
 								  
                 let renameWrap = document.createElement('div'); renameWrap.style.padding = '5px 15px'; renameWrap.onclick = e => e.stopPropagation();
-                renameWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Variable umbenennen:</div>`;
+                renameWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">${t('ctx_iec_rename')}</div>`;
                 let inpRename = document.createElement('input'); inpRename.type = 'text'; inpRename.value = iecId;
                 inpRename.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; box-sizing: border-box;";
                 let doRename = () => { renameSpsVariable(iecId, inpRename.value.trim().toUpperCase()); menu.style.display = 'none'; };
@@ -9423,7 +9473,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; menu.appendChild(sep);
                 let btnDelRung = document.createElement('div');
                 btnDelRung.className = 'ctx-item';
-                btnDelRung.innerHTML = `<span style="color: #ff5252;">🗑️ Gesamten Strompfad löschen</span>`;
+                btnDelRung.innerHTML = `<span style="color: #ff5252;">${t('ctx_iec_del_rung')}</span>`;
                 btnDelRung.onclick = () => {
                     let code = textarea.value;
                     let lines = code.split('\n');
