@@ -3926,6 +3926,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let cRole = el.getAttribute('data-iec-role');
                     let isRelayContact = ['relais', 'ton', 'tof', 'tp', 'ctu'].includes(cType);
                     
+						
                     // Stromfluss prüfen (Ist der Pfad von L+ bis hier intakt?)
                     let hasPower = el._checkPower ? el._checkPower(spsState) : true;
                     
@@ -4031,18 +4032,20 @@ You must output exactly this JSON format. The logic code goes as a single string
 
             inputsList.forEach(i => { 
                 let cType = componentTypes[i] || 'taster';
-                if (cType.startsWith('sensor_') || cType === 'nothalt') {
+                // 🌟 FIX: Lichtgitter ist ein aktiver Sensor (mit Kasten), mech_sensor bleibt ein passiver Kontakt!
+                if (cType.startsWith('sensor_') || cType === 'light_curtain' || cType === 'nothalt') {
                     let deviceName = cType === 'nothalt' ? `-SF${sfCount++}` : `-BG${bgCount++}`;
                     let kfName = `-KF${kfCount++}` + (window.configDetails >= 1 ? ` (${deviceName})` : ''); 
-                    symMap[i] = kfName; 
                     contactTypeMap[i] = 'relais';
                     preRungsToDraw.push({ id: i, cType: cType, kfName: kfName, deviceName: deviceName });
                 } else {
+	 
                     symMap[i] = `-SF${sfCount++}` + (window.configDetails >= 1 ? ` (${i})` : ''); 
                     contactTypeMap[i] = cType.replace('_nc', ''); 
                 }
             });
 
+	   
             let sortedNodes = Array.from(graph.nodes.values()).sort((a,b) => a.level - b.level);
             sortedNodes.forEach(n => {
                 if (n.type === 'GATE') { 
@@ -4053,6 +4056,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     });
                     let op = n.label === '&' ? '&&' : '||';
                     let detail = exprParts.join(` ${op} `);
+	 
                     symMap[n.id] = `-KF${kfCount++}` + (window.configDetails === 2 ? ` (${detail})` : '');
                     contactTypeMap[n.id] = 'relais';
                 } else if (n.type === 'RS' || n.type === 'SR' || ['TON', 'TOF', 'TP', 'CTU'].includes(n.type)) { 
@@ -4062,13 +4066,17 @@ You must output exactly this JSON format. The logic code goes as a single string
                         let numMatch = n.id.match(/\d+(_(?:SR|RS))?/);
                         qName = numMatch ? `Q${numMatch[0]}` : n.id;
                     }
+	 
                     symMap[n.id] = `-KF${kfCount++}` + (window.configDetails === 2 ? ` (${qName})` : '');
+																														 
                     contactTypeMap[n.id] = isTimer ? n.type.toLowerCase() : 'relais';
                 } else if (n.type === 'OUTPUT') {
                     let cType = componentTypes[n.id] || 'led';
                     if (usedAsSource.has(n.id)) {
+	  
                         symMap[n.id] = `-KF${kfCount++}` + (window.configDetails >= 1 ? ` (${n.label})` : '');
                         n.isRelay = true;
+	
                         let inEdge = graph.edges.find(e => e.targetId === n.id);
                         let srcType = 'relais';
                         if (inEdge) {
@@ -4079,6 +4087,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                         contactTypeMap[n.id] = srcType;
                     } else {
+	  
                         let prefix = "";
                         if (cType === 'valve') prefix = `-MB${mbCount++}`;
                         else if (cType === 'siren') prefix = `-H${hCount++}`;
@@ -4097,6 +4106,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let l = createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width});
                 if (varName && varName !== 'NONE') {
                     l.classList.add('circ-wire', `circ-var-${varName}`);
+	  
                     if (isNCLine) l.classList.add('is-nc-wire');
                     if (color) l.style.setProperty('--logic-color', color);
                 }
@@ -4136,11 +4146,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                 g.setAttribute('data-ctype', type);
                 g.setAttribute('data-iec-id', varName);
                 g.setAttribute('data-iec-role', 'contact');
+						
                 g.setAttribute('data-line-prefix', targetLinePrefix || varName);
                 g.style.cursor = 'context-menu';
                 g.appendChild(createSvgElement('rect', {x: x - 20, y: y - 20, width: 40, height: 40, fill: 'transparent'}));
                 
                 if (color) g.style.setProperty('--logic-color', color);
+	 
                 if (varName && varName !== 'NONE') {
                     if (!relayContacts[varName]) relayContacts[varName] = { contacts: [] };
                     relayContacts[varName].contacts.push({ isNC: isNC, path: pathNum });
@@ -4157,26 +4169,33 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let movingGroup = createSvgElement('g', { class: `circ-moving-contact ${isNC ? 'is-nc' : 'is-no'}`, stroke: '#000' });
                 movingGroup.style.transformOrigin = `${x}px ${y + 15}px`; 
                 if (!isNC) movingGroup.classList.add('open');
+	   
                 movingGroup.appendChild(createSvgElement('line', { x1: x, y1: y - 6, x2: x, y2: y + 15, 'stroke-width': 2 }));
                 
                 if (type === 'ton') {
+	  
                     let arc = isNC ? `M ${x} ${y} C ${x+7} ${y-3}, ${x+7} ${y+3}, ${x} ${y+6}` : `M ${x} ${y} C ${x-7} ${y-3}, ${x-7} ${y+3}, ${x} ${y+6}`;
                     movingGroup.appendChild(createSvgElement('path', { d: arc, fill: 'none', 'stroke-width': 1.5 }));
                 } else if (type === 'tof') {
+	  
                     let arc = isNC ? `M ${x} ${y} C ${x-7} ${y-3}, ${x-7} ${y+3}, ${x} ${y+6}` : `M ${x} ${y} C ${x+7} ${y-3}, ${x+7} ${y+3}, ${x} ${y+6}`;
                     movingGroup.appendChild(createSvgElement('path', { d: arc, fill: 'none', 'stroke-width': 1.5 }));
                 } else if (type === 'tp') {
+	 
                     movingGroup.appendChild(createSvgElement('path', { d: `M ${x} ${y} C ${x-6} ${y-3}, ${x-6} ${y+3}, ${x} ${y+6}`, fill: 'none', 'stroke-width': 1.5 }));
                     movingGroup.appendChild(createSvgElement('path', { d: `M ${x} ${y} C ${x+6} ${y-3}, ${x+6} ${y+3}, ${x} ${y+6}`, fill: 'none', 'stroke-width': 1.5 }));
                 }
                 g.appendChild(movingGroup);               
                 
                 if (isNC) g.appendChild(createSvgElement('line', {x1: x, y1: y - 5, x2: x + 8, y2: y - 5, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+	   
                 let pinTop, pinBot;
                 if (window.configWechsler) {
                     pinTop = prefix + '1'; pinBot = isNC ? prefix + '2' : prefix + '4';
+	
                 } else {
                     pinTop = isNC ? prefix + '1' : prefix + '3'; pinBot = isNC ? prefix + '2' : prefix + '4';
+	
                 }
                 drawSmallText(g, x - 5, y - 10, pinTop, 'end'); drawSmallText(g, x - 5, y + 15, pinBot, 'end');
                 
@@ -4191,6 +4210,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         g.appendChild(createSvgElement('circle', {cx: x - 21, cy: y + 2.5, r: 3, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
                         g.appendChild(createSvgElement('line', {x1: x - 24, y1: y - 2.5, x2: x - 24, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
                     } else if (type === 'key_switch') {
+		
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 14, y2: y - 2.5, stroke: '#000', 'stroke-width': 1.5})); 
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y + 7.5, x2: x - 14, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
@@ -4198,8 +4218,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                         g.appendChild(createSvgElement('rect', {x: x - 20.5, y: y - 4, width: 5, height: 7, fill: '#fff', stroke: '#000', 'stroke-width': 1})); 
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2, x2: x - 18, y2: y + 1, stroke: '#000', 'stroke-width': 1})); 
                     } else if (type === 'light_curtain') {
+	   
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
+	  
                         g.appendChild(createSvgElement('rect', {x: x - 24, y: y - 1.5, width: 6, height: 8, fill: 'none', stroke: '#000', 'stroke-width': 1}));
+	  
                         g.appendChild(createSvgElement('line', {x1: x - 30, y1: y, x2: x - 25, y2: y, stroke: '#000', 'stroke-width': 1}));
                         g.appendChild(createSvgElement('line', {x1: x - 30, y1: y + 2.5, x2: x - 25, y2: y + 2.5, stroke: '#000', 'stroke-width': 1}));
                         g.appendChild(createSvgElement('line', {x1: x - 30, y1: y + 5, x2: x - 25, y2: y + 5, stroke: '#000', 'stroke-width': 1}));
@@ -4226,6 +4249,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     relayContacts[id].coilX = x;
                 }
                 if (type === 'valve') g.appendChild(createSvgElement('line', {x1: x - 20, y1: y + 10, x2: x + 20, y2: y - 10, stroke: '#000', 'stroke-width': 2}));
+	  
                 if (type === 'ton') {
                     g.appendChild(createSvgElement('line', {x1: x-20, y1: y-10, x2: x-10, y2: y+10, stroke: '#000', 'stroke-width': 1.5}));
                     g.appendChild(createSvgElement('line', {x1: x-10, y1: y-10, x2: x-20, y2: y+10, stroke: '#000', 'stroke-width': 1.5}));
@@ -4246,6 +4270,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let pinTop = type === 'valve' ? '1' : (label.includes('(R)') ? 'A3' : 'A1');
                 let pinBot = type === 'valve' ? '2' : (label.includes('(R)') ? 'A4' : 'A2');
                 drawSmallText(g, x - 5, y - 15, pinTop, 'end'); drawSmallText(g, x - 5, y + 20, pinBot, 'end');
+	  
                 circuitContent.appendChild(g);
                 return g;
             };
@@ -4263,6 +4288,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 g.appendChild(createSvgElement('line', {x1: x - 10.6, y1: y + 10.6, x2: x + 10.6, y2: y - 10.6, stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 25, y, label, true);
                 drawSmallText(g, x - 5, y - 18, 'X1', 'end'); drawSmallText(g, x - 5, y + 24, 'X2', 'end');
+	
                 circuitContent.appendChild(g);
                 return g;
             };
@@ -4272,12 +4298,15 @@ You must output exactly this JSON format. The logic code goes as a single string
                 g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
+  
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 10, x2: x, y2: y + 20, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+	
                 let sirenPath = `M ${x-10} ${y-10} A 10 10 0 0 0 ${x-10} ${y+10} L ${x+10} ${y+15} L ${x+10} ${y-15} Z`;
                 g.appendChild(createSvgElement('path', {d: sirenPath, class: 'circ-component', fill: '#fff', stroke: '#000', 'stroke-width': 2}));
                 addLabelText(g, x + 20, y, label, true);
                 drawSmallText(g, x - 5, y - 12, 'X1', 'end'); drawSmallText(g, x - 5, y + 18, 'X2', 'end');
+	
                 circuitContent.appendChild(g);
                 return g;
             };
@@ -4287,14 +4316,18 @@ You must output exactly this JSON format. The logic code goes as a single string
                 g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
+   
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 15, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 15, x2: x, y2: y + 20, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+  
                 let circle = createSvgElement('circle', {cx: x, cy: y, r: 15, class: 'circ-component', fill: '#fff', stroke: '#000', 'stroke-width': 2});
                 g.appendChild(circle);
+  
                 let txt = createSvgElement('text', {x: x, y: y + 5, 'font-size': '14px', 'font-weight': '900', 'text-anchor': 'middle', 'font-family': 'Arial'});
                 txt.textContent = 'M'; g.appendChild(txt);
                 addLabelText(g, x + 25, y, label, true);
                 drawSmallText(g, x - 5, y - 18, 'U1', 'end'); drawSmallText(g, x - 5, y + 24, 'U2', 'end');
+	
                 circuitContent.appendChild(g);
                 return g;
             };
@@ -4304,15 +4337,19 @@ You must output exactly this JSON format. The logic code goes as a single string
                 g.setAttribute('data-ctype', 'coil'); g.setAttribute('data-iec-id', id); g.setAttribute('data-iec-role', 'coil');
                 g.style.cursor = 'context-menu';
                 if (color) g.style.setProperty('--logic-color', color);
+   
                 g.appendChild(createSvgElement('line', {x1: x, y1: y - 20, x2: x, y2: y - 10, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
                 g.appendChild(createSvgElement('line', {x1: x, y1: y + 10, x2: x, y2: y + 20, stroke: '#000', 'stroke-width': 2, class: 'circ-static'}));
+	
                 let rect = createSvgElement('rect', {x: x - 15, y: y - 10, width: 30, height: 20, class: 'circ-component', fill: '#fff', stroke: '#000', 'stroke-width': 2});
                 g.appendChild(rect);
+	 
                 g.appendChild(createSvgElement('path', {d: `M ${x-8} ${y-4} Q ${x-5} ${y-8} ${x-2} ${y-4} T ${x+4} ${y-4} T ${x+10} ${y-4}`, fill: 'none', stroke: '#000', 'stroke-width': 1}));
                 g.appendChild(createSvgElement('path', {d: `M ${x-8} ${y+1} Q ${x-5} ${y-3} ${x-2} ${y+1} T ${x+4} ${y+1} T ${x+10} ${y+1}`, fill: 'none', stroke: '#000', 'stroke-width': 1}));
                 g.appendChild(createSvgElement('path', {d: `M ${x-8} ${y+6} Q ${x-5} ${y+2} ${x-2} ${y+6} T ${x+4} ${y+6} T ${x+10} ${y+6}`, fill: 'none', stroke: '#000', 'stroke-width': 1}));
                 addLabelText(g, x + 25, y, label, true);
                 drawSmallText(g, x - 5, y - 12, 'X1', 'end'); drawSmallText(g, x - 5, y + 18, 'X2', 'end');
+	
                 circuitContent.appendChild(g);
                 return g;
             };
@@ -4323,10 +4360,49 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
             const getCond = (edge) => edge ? ((edge.inverted ? "!" : "") + `state['${edge.sourceId}']`) : "false";
             
+				   
+	 
+   
+		 
+	 
+	
+	  
+		
+																																					  
+	   
+	   
+	   
+	
+   
+	   
+																																				
+   
+																														 
+																																				
+																																										   
+																																  
+																																  
+																																																																																											 
+																																																																																																																																																																															
+																																																																																																																																																																																																													  
+																																																																							
+		 
+		
+	   
+	   
+		 
+		 
+		
+   
+  
+   
+	  
             const getContactNC = (edge) => {
                 if (!edge) return false;
                 let t = contactTypeMap[edge.sourceId] || 'relais';
+	  
                 if (['relais', 'ton', 'tof', 'tp', 'ctu'].includes(t)) return edge.inverted;
+	   
                 let cT = componentTypes[edge.sourceId];
                 let pNC = cT === 'nothalt' || cT === 'taster_nc' || cT === 'schalter_nc' || cT === 'light_curtain';
                 return pNC ? !edge.inverted : edge.inverted;
@@ -4346,6 +4422,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             function drawTree(nodeId, cx, y, w, isTargetInverted, basePathNum, baseCond, edgeObjForPrefix = null) {
                 let targetLinePrefix = window.getLinePrefixForEdge(edgeObjForPrefix);
                 
+					 
                 if (nodeId === 'TRUE') {
                     setPower(drawLine(cx, y, cx, y + 60, 2, 'TRUE', '#000'), baseCond);
                     return { bottomY: y + 60, cond: baseCond };
@@ -4361,6 +4438,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let mockEdge = { sourceId: nodeId, inverted: isTargetInverted };
                     let logicalIsNC = getContactNC(mockEdge);
                     
+			 
+			   
                     let isHardwareInput = globalInputs.includes(nodeId);
                     let cT = componentTypes[nodeId] || 'taster';
                     let pNC = cT === 'nothalt' || cT === 'taster_nc' || cT === 'schalter_nc' || cT === 'light_curtain';
@@ -4372,6 +4451,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let name = symMap[nodeId] || nodeId;
                     let type = contactTypeMap[nodeId] || 'relais';
 
+						 
                     if (requiresAux) {
                         requiredAuxRelays.add(nodeId);
                         if (!auxRelayNames[nodeId]) auxRelayNames[nodeId] = `-KF${kfCount++}` + (window.configDetails >= 1 ? ` (AUX_${nodeId})` : '');
@@ -4386,6 +4466,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     setPower(drawLine(cx, y, cx, y + 15, 2, nodeId, col, logicalIsNC), baseCond);
                     
                     let g = drawContact(cx, y + 30, name, logicalIsNC, type, nodeId, col, basePathNum, targetLinePrefix); 
+		  
                     setPower(g, baseCond); 
                     setPower(drawLine(cx, y + 45, cx, y + 60, 2, nodeId, col, logicalIsNC), totalCond);
                     return { bottomY: y + 60, cond: totalCond };
@@ -4394,22 +4475,30 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let col = node.color;
                 if (node.label === '&') { 
                     let currY = y; let currCond = baseCond;
+		   
                     inEdges.forEach(edge => {
                         let res = drawTree(edge.sourceId, cx, currY, w, edge.inverted, basePathNum, currCond, edge);
                         currY = res.bottomY; currCond = res.cond;
+		   
                     });
                     return { bottomY: currY, cond: currCond };
                 } else if (node.label === '>=1') { 
                     let branches = inEdges.length;
                     let startXArray = []; let totalW = getTreeW(nodeId);
                     let startX = cx - totalW/2; let currX = startX;
+			  
+			
                     inEdges.forEach(edge => {
                         let bw = getTreeW(edge.sourceId); startXArray.push(currX + bw/2); currX += bw;
+				
+		 
                     });
                     let firstX = startXArray[0]; let lastX = startXArray[branches - 1];
                     setPower(drawLine(cx, y, cx, y + 10, 2, nodeId, col), baseCond);
                     setPower(drawLine(firstX, y + 10, lastX, y + 10, 2, nodeId, col), baseCond);
                     let maxBottomY = y + 10; let outConds = []; let branchResults = [];
+		   
+			 
                     inEdges.forEach((edge, idx) => {
                         let bx = startXArray[idx]; let bw = getTreeW(edge.sourceId);
                         setPower(drawLine(bx, y + 10, bx, y + 20, 2, edge.sourceId, getNodeColor(edge.sourceId)), baseCond);
@@ -4437,6 +4526,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 
                 let targetLinePrefix = window.getLinePrefixForEdge(edge);
 
+				   
                 if (edge.sourceId === 'TRUE') {
                     let col = getNodeColor(edge.sourceId);
                     setPower(drawLine(cx, yStart, cx, yEnd, 2, 'TRUE', col), baseCond);
@@ -4518,17 +4608,38 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let p1 = pathCounter++; let p2 = pathCounter++;
                     drawText(currX, yTop - 25, p1.toString(), true); drawText(currX + 60, yTop - 25, p2.toString(), true); 
                     let sBoxY = 150;
-                    circuitContent.appendChild(createSvgElement('rect', {x: currX - 15, y: sBoxY, width: 30, height: 30, fill: '#fff', stroke: '#000', 'stroke-width': 2}));
+                    
+                    // 🌟 FIX: Sensor als anklickbare Gruppe (g) kapseln!
+                    let gSens = createSvgElement('g', {
+                        class: `circ-contact-group circ-colored-group circ-var-${item.id}`,
+                        'data-ctype': item.cType,
+                        'data-iec-id': item.id,
+                        'data-iec-role': 'sensor-box', // Eindeutige Rolle für das Menü!
+                        'data-line-prefix': item.id
+                    });
+                    gSens.style.cursor = 'context-menu';
+                    
+                    gSens.appendChild(createSvgElement('rect', {x: currX - 15, y: sBoxY, width: 30, height: 30, fill: '#fff', stroke: '#000', 'stroke-width': 2, class: 'circ-component'}));
                     let diamondPts = `${currX},${sBoxY+3} ${currX+7},${sBoxY+10} ${currX},${sBoxY+17} ${currX-7},${sBoxY+10}`;
-                    circuitContent.appendChild(createSvgElement('polygon', {points: diamondPts, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
-                    circuitContent.appendChild(createSvgElement('line', {x1: currX - 2.5, y1: sBoxY+5.5, x2: currX - 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
-                    circuitContent.appendChild(createSvgElement('line', {x1: currX + 2.5, y1: sBoxY+5.5, x2: currX + 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5}));
-                    if (item.cType === 'sensor_ind') { circuitContent.appendChild(createSvgElement('path', {d: `M ${currX-9} ${sBoxY+26} L ${currX-9} ${sBoxY+23} A 3 3 0 0 1 ${currX-3} ${sBoxY+23} A 3 3 0 0 1 ${currX+3} ${sBoxY+23} A 3 3 0 0 1 ${currX+9} ${sBoxY+23} L ${currX+9} ${sBoxY+26}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5})); } 
-                    else if (item.cType === 'sensor_kap') { circuitContent.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+18, x2: currX, y2: sBoxY+22, stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('line', {x1: currX-6, y1: sBoxY+22, x2: currX+6, y2: sBoxY+22, stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('line', {x1: currX-6, y1: sBoxY+25, x2: currX+6, y2: sBoxY+25, stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+25, x2: currX, y2: sBoxY+29, stroke: '#000', 'stroke-width': 1.5})); } 
-                    else if (item.cType === 'sensor_opt') { circuitContent.appendChild(createSvgElement('line', {x1: currX-7, y1: sBoxY+27, x2: currX-1, y2: sBoxY+21, stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('polyline', {points: `${currX-4},${sBoxY+21} ${currX-1},${sBoxY+21} ${currX-1},${sBoxY+24}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+27, x2: currX+6, y2: sBoxY+21, stroke: '#000', 'stroke-width': 1.5})); circuitContent.appendChild(createSvgElement('polyline', {points: `${currX+3},${sBoxY+21} ${currX+6},${sBoxY+21} ${currX+6},${sBoxY+24}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5})); } 
-                    else if (item.cType === 'sensor_mag') { circuitContent.appendChild(createSvgElement('rect', {x: currX-6, y: sBoxY+22, width: 12, height: 6, fill: '#000'})); circuitContent.appendChild(createSvgElement('rect', {x: currX-3, y: sBoxY+22, width: 6, height: 3.5, fill: '#fff'})); }
-                    addLabelText(circuitContent, currX + 20, sBoxY - 5, `${item.deviceName} (${item.id})`, false);
-                    setPower(drawLine(currX, yTop, currX, sBoxY, 2, item.id, col), "true"); 
+                    gSens.appendChild(createSvgElement('polygon', {points: diamondPts, fill: 'none', stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'}));
+                    gSens.appendChild(createSvgElement('line', {x1: currX - 2.5, y1: sBoxY+5.5, x2: currX - 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'}));
+                    gSens.appendChild(createSvgElement('line', {x1: currX + 2.5, y1: sBoxY+5.5, x2: currX + 2.5, y2: sBoxY+14.5, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'}));
+                    
+                    if (item.cType === 'sensor_ind') { gSens.appendChild(createSvgElement('path', {d: `M ${currX-9} ${sBoxY+26} L ${currX-9} ${sBoxY+23} A 3 3 0 0 1 ${currX-3} ${sBoxY+23} A 3 3 0 0 1 ${currX+3} ${sBoxY+23} A 3 3 0 0 1 ${currX+9} ${sBoxY+23} L ${currX+9} ${sBoxY+26}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); } 
+                    else if (item.cType === 'sensor_kap') { gSens.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+18, x2: currX, y2: sBoxY+22, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('line', {x1: currX-6, y1: sBoxY+22, x2: currX+6, y2: sBoxY+22, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('line', {x1: currX-6, y1: sBoxY+25, x2: currX+6, y2: sBoxY+25, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+25, x2: currX, y2: sBoxY+29, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); } 
+                    else if (item.cType === 'sensor_opt') { gSens.appendChild(createSvgElement('line', {x1: currX-7, y1: sBoxY+27, x2: currX-1, y2: sBoxY+21, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('polyline', {points: `${currX-4},${sBoxY+21} ${currX-1},${sBoxY+21} ${currX-1},${sBoxY+24}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('line', {x1: currX, y1: sBoxY+27, x2: currX+6, y2: sBoxY+21, stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); gSens.appendChild(createSvgElement('polyline', {points: `${currX+3},${sBoxY+21} ${currX+6},${sBoxY+21} ${currX+6},${sBoxY+24}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'})); } 
+                    else if (item.cType === 'sensor_mag') { gSens.appendChild(createSvgElement('rect', {x: currX-6, y: sBoxY+22, width: 12, height: 6, fill: '#000', class: 'circ-static'})); gSens.appendChild(createSvgElement('rect', {x: currX-3, y: sBoxY+22, width: 6, height: 3.5, fill: '#fff', class: 'circ-component'})); }
+                    else if (item.cType === 'light_curtain') { 
+                        gSens.appendChild(createSvgElement('rect', {x: currX-6, y: sBoxY+20, width: 4, height: 8, fill: 'none', stroke: '#000', 'stroke-width': 1, class: 'circ-static'})); 
+                        gSens.appendChild(createSvgElement('rect', {x: currX+2, y: sBoxY+20, width: 4, height: 8, fill: 'none', stroke: '#000', 'stroke-width': 1, class: 'circ-static'})); 
+                        gSens.appendChild(createSvgElement('line', {x1: currX-2, y1: sBoxY+22, x2: currX+2, y2: sBoxY+22, stroke: '#000', 'stroke-width': 1, class: 'circ-static'})); 
+                        gSens.appendChild(createSvgElement('line', {x1: currX-2, y1: sBoxY+26, x2: currX+2, y2: sBoxY+26, stroke: '#000', 'stroke-width': 1, class: 'circ-static'})); 
+                    }
+                    
+                    addLabelText(gSens, currX + 20, sBoxY - 5, `${item.deviceName} (${item.id})`, false);
+                    circuitContent.appendChild(gSens);
+                    
+                    setPower(drawLine(currX, yTop, currX, sBoxY, 2, item.id, col), "true");
                     setPower(drawLine(currX, sBoxY + 30, currX, yBot, 2, item.id, col), "true"); 
                     setPower(drawLine(currX + 15, sBoxY + 15, currX + 60, sBoxY + 15, 2, item.id, col), pCond); 
                     setPower(drawLine(currX + 60, sBoxY + 15, currX + 60, 430, 2, item.id, col), pCond); 
@@ -4553,6 +4664,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         inEdges.forEach((edge, idx) => {
                             let prefix = window.getLinePrefixForEdge(edge);
                             
+						  
                             if (edge.sourceId === 'TRUE') {
                                 setPower(drawLine(currX, y - 15, currX, y + 15, 2, 'TRUE', col), pCond);
                             } else if (edge.sourceId === 'FALSE') {
@@ -4560,6 +4672,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                                 setPower(drawLine(currX, y + 2, currX, y + 15, 2, 'FALSE', col), "false");
                                 pCond = "false";
                             } else {
+					
                                 let isHardwareInput = globalInputs.includes(edge.sourceId);
                                 let cT = componentTypes[edge.sourceId] || 'taster';
                                 let pNC = cT === 'nothalt' || cT === 'taster_nc' || cT === 'schalter_nc' || cT === 'light_curtain';
@@ -4611,6 +4724,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                                     setPower(drawLine(bx, 90, bx, 215, 2, 'FALSE', col), "true");
                                     setPower(drawLine(bx, 225, bx, 350, 2, 'FALSE', col), "false");
                                 } else {
+					  
                                     let isHardwareInput = globalInputs.includes(edge.sourceId);
                                     let cT = componentTypes[edge.sourceId] || 'taster';
                                     let pNC = cT === 'nothalt' || cT === 'taster_nc' || cT === 'schalter_nc' || cT === 'light_curtain';
@@ -4702,12 +4816,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let p = pathCounter++;
                     let edge = inEdges[0]; 
                     let w1 = calcPinW(edge);
+	  
                     currX += (w1 > 90 ? (w1-90)/2 : 0);
                     drawText(currX, yTop - 25, p.toString(), true);
                     let pCond = "false";
+	
                     if (edge) pCond = drawInputPin(edge, currX, yTop, 430, p, "true", false);
+	
                     else setPower(drawLine(currX, yTop, currX, 430, 2, node.id, col), "false"); 
                     
+	
                     if (node.isRelay) setPower(drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p), pCond);
                     else if (node.outType === 'valve') setPower(drawCoil(currX, 450, symMap[node.id], node.id, 'valve', col, p), pCond);
                     else if (node.outType === 'siren') setPower(drawSiren(currX, 450, symMap[node.id], node.id, col), pCond);
@@ -4715,7 +4833,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                     else if (node.outType === 'heater') setPower(drawHeater(currX, 450, symMap[node.id], node.id, col), pCond);
                     else if (node.outType === 'contactor') setPower(drawCoil(currX, 450, symMap[node.id], node.id, 'relais', col, p), pCond);
                     else setPower(drawLED(currX, 450, symMap[node.id], node.id, col, p), pCond);
+	  
                     setPower(drawLine(currX, 470, currX, yBot, 2, node.id, col), pCond); 
+	   
+	  
                     currX += Math.max(130, w1 + 40); 
                 }
                 else if (['TON', 'TOF', 'TP'].includes(node.type)) { 
@@ -4765,12 +4886,15 @@ You must output exactly this JSON format. The logic code goes as a single string
             mMinus.setAttribute('stroke', '#4363d8'); mMinus.classList.remove('circ-wire');
             drawText(25, yBot + 20, 'M (0V DC)', true);
             
+	 
+	 
             Object.keys(relayContacts).forEach(id => {
                 let rc = relayContacts[id];
                 if (rc.coilX) {
                     let mirrorY = yBot + 35;
                     let g = createSvgElement('g', {});
                     let tTitle = createSvgElement('text', {x: rc.coilX, y: mirrorY, 'font-size': '11px', 'font-weight': 'bold', fill: '#000', 'text-anchor': 'middle', 'font-family': 'Segoe UI, Tahoma, sans-serif'});
+	 
                     let fullName = symMap[id] || id;
                     tTitle.textContent = fullName.split(' ')[0];
                     g.appendChild(tTitle);
@@ -4786,15 +4910,19 @@ You must output exactly this JSON format. The logic code goes as a single string
                         g.appendChild(createSvgElement('line', {x1: rc.coilX - 16, y1: top + 18, x2: rc.coilX + 16, y2: top + 18, stroke: '#000', 'stroke-width': 1}));
                         g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top, x2: rc.coilX, y2: bottom, stroke: '#000', 'stroke-width': 1}));
                         if (window.configWechsler) {
+	   
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 13, x2: rc.coilX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rc.coilX, y1: top + 13, x2: rightX - 1, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX - 3, y1: top + 6, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                         } else {
+		
+   
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 3, x2: leftX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX - 4, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: leftX, y1: top + 13, x2: leftX, y2: top + 16, stroke: '#000', 'stroke-width': 1})); 
+	
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 3, x2: rightX, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 6, x2: rightX + 3, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
                             g.appendChild(createSvgElement('line', {x1: rightX, y1: top + 13, x2: rightX + 2.5, y2: top + 6, stroke: '#000', 'stroke-width': 1})); 
@@ -4803,10 +4931,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                         noPaths.forEach((p, idx) => {
                             let text = createSvgElement('text', {x: leftX, y: top + 30 + idx * 13, 'font-size': '10px', fill: '#333', 'text-anchor': 'middle', 'font-family': 'monospace'});
                             text.textContent = p.toString(); g.appendChild(text);
+   
                         });
                         ncPaths.forEach((p, idx) => {
                             let text = createSvgElement('text', {x: rightX, y: top + 30 + idx * 13, 'font-size': '10px', fill: '#333', 'text-anchor': 'middle', 'font-family': 'monospace'});
                             text.textContent = p.toString(); g.appendChild(text);
+   
                         });
                     }
                     circuitContent.appendChild(g);
@@ -4818,8 +4948,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (isFirstRun || !panZoomCircuitInstance) {
                         panZoomCircuitInstance = svgPanZoom(circuitSvg, svgPanZoomOptions);
                     } else {
+	  
                         panZoomCircuitInstance.updateBBox(); panZoomCircuitInstance.resize();
+	 
+	
+	  
                         if (!keepView) { panZoomCircuitInstance.fit(); panZoomCircuitInstance.center(); }
+	
                     }
                 }
             }, 15);
@@ -8550,11 +8685,12 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             else if (node.type === 'GATE') {
                 let wrap = document.createElement('div'); wrap.style.padding = '5px 15px'; wrap.onclick = e => e.stopPropagation();
-                wrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">${window.t('ctx_fbs_swap_gate')}</div>`;
+                wrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Gatter bearbeiten:</div>`;
+                
                 let btn = document.createElement('button');
                 let isAnd = node.label === '&';
                 btn.textContent = isAnd ? window.t('ctx_fbs_to_or') : window.t('ctx_fbs_to_and');
-                btn.style.cssText = "width: 100%; padding: 4px; background: #e6194B; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold;";
+                btn.style.cssText = "width: 100%; padding: 4px; background: #e6194B; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold; margin-bottom: 6px;";
                 btn.onclick = () => {
                     let code = textarea.value; let lines = code.split('\n');
                     let getRealName = (id) => {
@@ -8591,7 +8727,50 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                     }
                 };
-                wrap.appendChild(btn); menu.appendChild(wrap);
+                wrap.appendChild(btn); 
+                
+                // 🌟 NEU: INVERTIEREN BUTTON (NAND / NOR)
+                let btnInv = document.createElement('button');
+                btnInv.textContent = "Gatter invertieren (NAND / NOR)";
+                btnInv.style.cssText = "width: 100%; padding: 4px; background: #673ab7; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; font-weight: bold;";
+                btnInv.onclick = () => {
+                    let code = textarea.value; let lines = code.split('\n');
+                    let getRealName = (id) => {
+                        let n = currentGraph.nodes.get(id);
+                        if (n) {
+                            if (n.type === 'RS') return 'Q' + n.id.match(/\d+/)[0];
+                            if (n.type === 'SR') return 'Q' + n.id.match(/\d+/)[0] + '_SR';
+                            if (['TON', 'TOF', 'TP', 'CTU'].includes(n.type)) return n.id.substring(n.type.length + 1);
+                        }
+                        return id;
+                    };
+                    let realInputs = node.inputs.map(getRealName);
+                    let assignRegex = /(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i;
+                    let lineIdx = lines.findIndex(l => realInputs.every(inp => l.toUpperCase().includes(inp.toUpperCase())) && assignRegex.test(l));
+                    if (lineIdx !== -1) {
+                        let match = lines[lineIdx].match(assignRegex);
+                        if (match) {
+                            let parts = lines[lineIdx].split(match[0]);
+                            if (parts.length === 2) {
+                                let rhs = parts[1].trim();
+                                // Schauen, ob das Gatter schon invertiert ist
+                                if (rhs.startsWith('¬(') && rhs.endsWith(')')) {
+                                    rhs = rhs.substring(2, rhs.length - 1).trim(); // Aus NAND wird AND
+                                } else if (rhs.startsWith('!(') && rhs.endsWith(')')) {
+                                    rhs = rhs.substring(2, rhs.length - 1).trim();
+                                } else {
+                                    rhs = `¬(${rhs})`; // Aus AND wird NAND (Klammern setzen!)
+                                }
+                                lines[lineIdx] = parts[0] + match[0] + ' ' + rhs; 
+                                textarea.value = lines.join('\n');
+                                updateHighlighting(); updateEditor(); saveToStorage(); menu.style.display = 'none';
+                            }
+                        }
+                    }
+                };
+                wrap.appendChild(btnInv);
+                
+                menu.appendChild(wrap);
             }
             // =========================================================
             // TEIL 2: EINGÄNGE VERWALTEN
@@ -8896,39 +9075,49 @@ You must output exactly this JSON format. The logic code goes as a single string
             menu.innerHTML = '';
 
             let textVar = window.getFbsVariableDisplay(iecId); 
-            // 🌟 FIX: Hier ist der magische Schlüssel! Wir greifen die echte Code-Zeile ab
+																							  
             let linePrefix = svgElement.getAttribute('data-line-prefix');
-            if (!linePrefix) return; // Sicherheitsabbruch
+            if (!linePrefix) return; 
+
+            // Kategorisierung der Variablen
+            let isTimerOrCounter = iecId.startsWith('TON_') || iecId.startsWith('TOF_') || iecId.startsWith('TP_') || iecId.startsWith('CTU_');
+            // 🌟 FIX: Jetzt werden auch die echten Spulen (RS_1, SR_2) als intern erkannt, nicht nur die Signale (Q1, S1)!
+            let isFlipFlop = iecId.startsWith('RS_') || iecId.startsWith('SR_') || iecId.match(/^[RSQ]\d+(_SR)?$/i) !== null;
+            let isInternal = isTimerOrCounter || isFlipFlop;
+            let isGate = iecId.startsWith('AND_') || iecId.startsWith('OR_') || iecId.startsWith('GATE_');
 
             let title = document.createElement('div');
             title.style.cssText = 'padding: 6px 15px; color: #ffeb3b; font-size: 11px; border-bottom: 1px solid #555; font-weight: bold; cursor: default;';
             title.textContent = `🛠️ Edit: ${textVar}`;
             menu.appendChild(title);
 
-            if (role === 'contact' && textVar.includes('(')) {
-                let msg = document.createElement('div');
-                msg.style.cssText = 'padding: 10px 15px; color: #aaa; font-size: 10px; font-style: italic;';
-                msg.textContent = "Komplexe Gruppen-Kontakte können nur direkt im Code bearbeitet werden.";
-                menu.appendChild(msg);
-                menu.style.display = 'block';
-                return;
-            } 
+            // ==========================================
+            // KONTAKTE & SENSOREN (AUF DER LEITUNG)
+            // ==========================================
+            if (role === 'contact' || role === 'sensor-box') {
+                if (isInternal) {
+                    let msg = document.createElement('div');
+                    msg.style.cssText = 'padding: 10px 15px; color: #aaa; font-size: 10px; font-style: italic; text-align: center; line-height: 1.4;';
+                    msg.textContent = "Interne Bausteine und Gruppen-Kontakte können nur direkt im Code bearbeitet werden.";
+                    menu.appendChild(msg);
+                    menu.style.display = 'block';
+                    return;
+                }
 
-            // ==========================================
-            // WENN EIN KONTAKT (SCHALTER/RELAIS) GEKLICKT WURDE
-            // ==========================================
-            else if (role === 'contact') {
                 let isHardwareInput = globalInputs.includes(iecId);
                 let currentType = componentTypes[iecId] || 'taster';
-                // Sensoren dürfen nicht zu Tastern gewandelt werden!
                 let isSensor = currentType.startsWith('sensor_') || currentType === 'mech_sensor' || currentType === 'light_curtain';
-                let canSwapHardware = isHardwareInput && !isSensor;
+                let isNotHalt = currentType === 'nothalt'; 
+                
+                // 🌟 FIX: Die Rolle sagt uns jetzt ganz klar, ob wir auf das Hardware-Symbol oder auf seinen Schalter (Relais) geklickt haben
+                let isPhysicalHardwareBox = (role === 'sensor-box') || (role === 'contact' && isNotHalt);
+                let canSwapHardware = isHardwareInput && !isSensor && !isGate;
 
-                // 🌟 FIX: Erlaubt in MULTI-Modus oder bei Relais
-                if (!window.configStrictHardware || !isHardwareInput) {
+                // 1. Kontakt-Belegung wechseln (Nur für Schalter, nicht für Hardware-Boxen oder Not-Halt!)
+                if ((!window.configStrictHardware || !isHardwareInput || isGate) && !isPhysicalHardwareBox && !isNotHalt) {
                     let btnLogic = document.createElement('div');
                     btnLogic.className = 'ctx-item';
-                    btnLogic.innerHTML = `🔀 <b>Kontakt-Belegung</b> wechseln (NO ↔ NC)`;
+                    btnLogic.innerHTML = isGate ? `🔀 <b>Gatter invertieren</b> (NAND / NOR)` : `🔀 <b>Kontakt-Belegung</b> wechseln (NO ↔ NC)`;
                     btnLogic.onclick = () => {
                         let code = textarea.value;
                         let lines = code.split('\n');
@@ -8943,13 +9132,22 @@ You must output exactly this JSON format. The logic code goes as a single string
                             let left = parts[0];
                             let right = parts.slice(1).join(':='); 
                             
-                            let regexNot = new RegExp(`([¬!]\\s*)\\b${textVar}\\b|\\b(NOT\\s+|NICHT\\s+)${textVar}\\b`, 'gi');
-                            let regexPos = new RegExp(`\\b${textVar}\\b`, 'g');
-                            
-                            if (regexNot.test(right)) right = right.replace(regexNot, textVar);
-                            else right = right.replace(regexPos, `¬${textVar}`);
-                            
-                            lines[lineIdx] = `${left}:=${right}`;
+                            if (isGate) {
+                                let rhs = right.trim();
+                                if (rhs.startsWith('¬(') && rhs.endsWith(')')) rhs = rhs.substring(2, rhs.length - 1).trim();
+                                else if (rhs.startsWith('!(') && rhs.endsWith(')')) rhs = rhs.substring(2, rhs.length - 1).trim();
+                                else rhs = `¬(${rhs})`;
+                                lines[lineIdx] = `${left}:=${rhs}`;
+                            } else {
+                                let safeVar = textVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                let regexNot = new RegExp(`([¬!]\\s*)\\b${safeVar}\\b|\\b(NOT\\s+|NICHT\\s+)${safeVar}\\b`, 'gi');
+                                let regexPos = new RegExp(`\\b${safeVar}\\b`, 'g');
+                                
+                                if (regexNot.test(right)) right = right.replace(regexNot, textVar);
+                                else right = right.replace(regexPos, `¬${textVar}`);
+                                
+                                lines[lineIdx] = `${left}:=${right}`;
+                            }
                             textarea.value = lines.join('\n');
                             updateHighlighting(); updateEditor(); saveToStorage();
                         }
@@ -8958,7 +9156,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     menu.appendChild(btnLogic);
                 }
 
-                // Option 2: Echte Hardware tauschen (Nur bei echten Eingängen, Keine Sensoren!)
+                // 2. Hardware Taster umbauen
                 if (canSwapHardware) {
                     let btnHard = document.createElement('div');
                     btnHard.className = 'ctx-item';
@@ -8976,64 +9174,128 @@ You must output exactly this JSON format. The logic code goes as a single string
                     menu.appendChild(btnHard);
                 }
 
-                // Option 3: Kontakt Löschen
+                // 3. Sensor-Typ umbauen
+                if (isSensor) {
+                    let typeWrap = document.createElement('div'); typeWrap.style.padding = '5px 15px'; typeWrap.onclick = e => e.stopPropagation();
+                    typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Sensor-Typ ändern:</div>`;
+                    let selType = document.createElement('select');
+                    selType.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; cursor: pointer;";
+                    ['sensor_ind', 'sensor_kap', 'sensor_opt', 'sensor_mag', 'mech_sensor', 'light_curtain'].forEach(t => {
+                        let opt = document.createElement('option'); opt.value = t; opt.textContent = window.t('type_' + t) || t.toUpperCase();
+                        if (currentType === t) opt.selected = true;
+                        selType.appendChild(opt);
+                    });
+                    selType.onchange = (e) => {
+                        componentTypes[iecId] = e.target.value;
+                        localStorage.setItem('logikComponentTypes', JSON.stringify(componentTypes));
+                        updateEditor(); saveToStorage();
+                        menu.style.display = 'none';
+                    };
+                    typeWrap.appendChild(selType); menu.appendChild(typeWrap);
+                }
+
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; menu.appendChild(sep);
-                let titleDel = document.createElement('div'); titleDel.style.padding = '0 10px'; titleDel.style.color = '#ff5252'; titleDel.style.fontSize = '10px'; titleDel.textContent = 'Kontakt löschen:'; menu.appendChild(titleDel);
 
-                const deleteContact = (replaceWith) => {
-                    let code = textarea.value;
-                    let lines = code.split('\n');
-                    let assignStr = "(?::=|=|<-|\\\\bIST\\\\b|\\\\bIS\\\\b|\\\\bGLEICH\\\\b)";
-                    
-                    let safePrefix = linePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    let regexLine = new RegExp(`^\\s*${safePrefix}\\s*${assignStr}`, 'i');
-                    let lineIdx = lines.findIndex(l => regexLine.test(l));
-                    
-                    if (lineIdx !== -1) {
-                        let parts = lines[lineIdx].split('//')[0].replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=').split(':=');
-                        let left = parts[0];
-                        let right = parts.slice(1).join(':=');
+                // 4. LÖSCHEN (Entweder komplett oder nur als Draht)
+                if (isPhysicalHardwareBox) {
+                    let btnDelPre = document.createElement('div');
+                    btnDelPre.className = 'ctx-item';
+                    btnDelPre.innerHTML = `<span style="color: #ff5252;">🗑️ Komplettes Bauteil ausbauen</span>`;
+                    btnDelPre.onclick = () => {
+                        let code = textarea.value;
+                        let lines = code.split('\n');
+                        let replaceWith = isNotHalt ? 'TRUE' : 'FALSE';
+                        let safeVar = textVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let regexNot = new RegExp(`([¬!]\\s*)\\b${safeVar}\\b|\\b(NOT\\s+|NICHT\\s+)${safeVar}\\b`, 'gi');
+                        let regexPos = new RegExp(`\\b${safeVar}\\b`, 'g');
                         
-                        let regexNot = new RegExp(`([¬!]\\s*)\\b${textVar}\\b|\\b(NOT\\s+|NICHT\\s+)${textVar}\\b`, 'gi');
-                        let regexPos = new RegExp(`\\b${textVar}\\b`, 'g');
-                        
-                        if (regexNot.test(right)) right = right.replace(regexNot, replaceWith);
-                        else right = right.replace(regexPos, replaceWith);
-                        
-                        lines[lineIdx] = `${left}:=${right}`;
-                        textarea.value = lines.join('\n');
+                        for (let i=0; i<lines.length; i++) {
+                            if (lines[i].match(new RegExp(`^\\s*INPUT\\s+${safeVar}\\s*$`, 'i'))) {
+                                lines[i] = ''; 
+                                continue;
+                            }
+                            let parts = lines[i].split('//');
+                            if (parts[0].includes(':=') || parts[0].includes('=')) {
+                                let sides = parts[0].split(/:=|=/);
+                                let right = sides.slice(1).join(':=');
+                                if (regexNot.test(right)) right = right.replace(regexNot, replaceWith === 'TRUE' ? 'FALSE' : 'TRUE');
+                                else right = right.replace(regexPos, replaceWith);
+                                lines[i] = sides[0] + ':=' + right + (parts[1] ? '//' + parts[1] : '');
+                            }
+                        }
+                        textarea.value = lines.filter(l => l !== '').join('\n');
                         updateHighlighting(); updateEditor(); saveToStorage();
-                    }
-                    menu.style.display = 'none';
-                };
+                        menu.style.display = 'none';
+                    };
+                    menu.appendChild(btnDelPre);
+                } else {
+                    let titleDel = document.createElement('div'); titleDel.style.padding = '0 10px'; titleDel.style.color = '#ff5252'; titleDel.style.fontSize = '10px'; titleDel.textContent = 'Kontakt löschen:'; menu.appendChild(titleDel);
 
-                let btnDelBridge = document.createElement('div');
-                btnDelBridge.className = 'ctx-item';
-                btnDelBridge.innerHTML = `➖ Drahtbrücke setzen (Dauerstrom)`;
-                btnDelBridge.onclick = () => deleteContact('TRUE');
-                menu.appendChild(btnDelBridge);
+                    const deleteContact = (replaceWith) => {
+                        let code = textarea.value;
+                        let lines = code.split('\n');
+                        let assignStr = "(?::=|=|<-|\\\\bIST\\\\b|\\\\bIS\\\\b|\\\\bGLEICH\\\\b)";
+                        
+                        let safePrefix = linePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        let regexLine = new RegExp(`^\\s*${safePrefix}\\s*${assignStr}`, 'i');
+                        let lineIdx = lines.findIndex(l => regexLine.test(l));
+                        
+                        if (lineIdx !== -1) {
+                            let parts = lines[lineIdx].split('//')[0].replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=').split(':=');
+                            let left = parts[0];
+                            let right = parts.slice(1).join(':=');
+                            
+                            if (isGate) {
+                                lines[lineIdx] = `${left}:=${replaceWith}`;
+                            } else {
+                                let safeVar = textVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                let regexNot = new RegExp(`([¬!]\\s*)\\b${safeVar}\\b|\\b(NOT\\s+|NICHT\\s+)${safeVar}\\b`, 'gi');
+                                let regexPos = new RegExp(`\\b${safeVar}\\b`, 'g');
+                                
+                                if (regexNot.test(right)) right = right.replace(regexNot, replaceWith);
+                                else right = right.replace(regexPos, replaceWith);
+                                
+                                lines[lineIdx] = `${left}:=${right}`;
+                            }
+                            textarea.value = lines.join('\n');
+                            updateHighlighting(); updateEditor(); saveToStorage();
+                        }
+                        menu.style.display = 'none';
+                    };
 
-                let btnDelBreak = document.createElement('div');
-                btnDelBreak.className = 'ctx-item';
-                btnDelBreak.innerHTML = `✂️ Kontakt ausbauen (Leitung offen)`;
-                btnDelBreak.onclick = () => deleteContact('FALSE');
-                menu.appendChild(btnDelBreak);
-            } 
+                    let btnDelBridge = document.createElement('div');
+                    btnDelBridge.className = 'ctx-item';
+                    btnDelBridge.innerHTML = `➖ Drahtbrücke setzen (Dauerstrom)`;
+                    btnDelBridge.onclick = () => deleteContact('TRUE');
+                    menu.appendChild(btnDelBridge);
+
+                    let btnDelBreak = document.createElement('div');
+                    btnDelBreak.className = 'ctx-item';
+                    btnDelBreak.innerHTML = `✂️ Kontakt ausbauen (Leitung offen)`;
+                    btnDelBreak.onclick = () => deleteContact('FALSE');
+                    menu.appendChild(btnDelBreak);
+                }
+            }
+            // ==========================================
+            // SPULE (UNTEN IM PLAN)
+            // ==========================================
             else if (role === 'coil') {
-                let isOutput = globalOutputs.includes(iecId) && !['ton', 'tof', 'tp', 'ctu'].includes(cType);
-                let isInternal = iecId.startsWith('AND_') || iecId.startsWith('OR_') || iecId.startsWith('GATE_') || iecId.startsWith('TON_') || iecId.startsWith('TOF_') || iecId.startsWith('TP_') || iecId.startsWith('CTU_') || iecId.match(/^[RS]\d+(_SR)?$/i);
+																											 
+                if (isInternal || isGate) {
 
-                // 🌟 FIX: Interne Logik-Spulen (Timer, Zähler, RS/SR) dürfen nicht verändert oder gelöscht werden!
-                if (isInternal) {
+															 
+								 
                     let msg = document.createElement('div');
                     msg.style.cssText = 'padding: 10px 15px; color: #aaa; font-size: 10px; font-style: italic; line-height: 1.4; text-align: center;';
-                    msg.textContent = "Interne System-Bausteine können nur über ihren Ausgang oder direkt im Code bearbeitet werden.";
+                    msg.textContent = "Hilfsrelais für Gatter und System-Bausteine werden automatisch generiert und können nicht direkt gelöscht werden.";
                     menu.appendChild(msg);
                     menu.style.display = 'block';
                     return;
                 }
 
-                if (isOutput && !isInternal) {
+                let isOutput = globalOutputs.includes(iecId) && !['ton', 'tof', 'tp', 'ctu'].includes(cType);
+
+                if (isOutput) {
                     let typeWrap = document.createElement('div'); typeWrap.style.padding = '5px 15px'; typeWrap.onclick = e => e.stopPropagation();
                     typeWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Bauteil-Typ ändern:</div>`;
                     let selType = document.createElement('select');
@@ -9052,16 +9314,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                     typeWrap.appendChild(selType); menu.appendChild(typeWrap);
                 }
 
-                if (!isInternal) {
-                    let renameWrap = document.createElement('div'); renameWrap.style.padding = '5px 15px'; renameWrap.onclick = e => e.stopPropagation();
-                    renameWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Variable umbenennen:</div>`;
-                    let inpRename = document.createElement('input'); inpRename.type = 'text'; inpRename.value = iecId;
-                    inpRename.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; box-sizing: border-box;";
-                    let doRename = () => { renameSpsVariable(iecId, inpRename.value.trim().toUpperCase()); menu.style.display = 'none'; };
-                    inpRename.onchange = doRename;
-                    inpRename.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename(); } };
-                    renameWrap.appendChild(inpRename); menu.appendChild(renameWrap);
-                }
+								  
+                let renameWrap = document.createElement('div'); renameWrap.style.padding = '5px 15px'; renameWrap.onclick = e => e.stopPropagation();
+                renameWrap.innerHTML = `<div style="color: #aaa; font-size: 10px; margin-bottom: 3px;">Variable umbenennen:</div>`;
+                let inpRename = document.createElement('input'); inpRename.type = 'text'; inpRename.value = iecId;
+                inpRename.style.cssText = "width: 100%; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; outline: none; box-sizing: border-box;";
+                let doRename = () => { renameSpsVariable(iecId, inpRename.value.trim().toUpperCase()); menu.style.display = 'none'; };
+                inpRename.onchange = doRename;
+                inpRename.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename(); } };
+                renameWrap.appendChild(inpRename); menu.appendChild(renameWrap);
+				 
 
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; menu.appendChild(sep);
                 let btnDelRung = document.createElement('div');
@@ -9072,17 +9334,17 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let lines = code.split('\n');
                     const assignStr = "(?::=|=|<-|\\\\bIST\\\\b|\\\\bIS\\\\b|\\\\bGLEICH\\\\b)";
                     
-                    let outVar = iecId.replace(/^(TON_|TOF_|TP_|CTU_)/i, '');
-                    if (outVar.match(/^Q\d+(_SR)?$/i) || outVar.match(/^[RS]\d+(_SR)?$/i)) {
-                        let num = outVar.match(/\d+/)[0];
-                        let isSR = outVar.toUpperCase().includes('_SR');
-                        let sVar = isSR ? `S${num}_SR` : `S${num}`;
-                        let rVar = isSR ? `R${num}_SR` : `R${num}`;
-                        lines = lines.filter(l => !(new RegExp(`^\\s*${sVar}\\s*${assignStr}`, 'i').test(l) || new RegExp(`^\\s*${rVar}\\s*${assignStr}`, 'i').test(l)));
-                    } else {
-                        let regex = new RegExp(`^\\s*${outVar}\\s*${assignStr}`, 'i');
-                        lines = lines.filter(l => !regex.test(l));
-                    }
+																			 
+																							
+														 
+																		
+																   
+																   
+																																										 
+							
+                    let regex = new RegExp(`^\\s*${iecId}\\s*${assignStr}`, 'i');
+                    lines = lines.filter(l => !regex.test(l));
+					 
                     
                     textarea.value = lines.join('\n');
                     updateHighlighting(); updateEditor(); saveToStorage();
