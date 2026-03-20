@@ -121,21 +121,21 @@
 		/* ===================================================================== */
         /* 🌟 NEU: ANIMATIONEN FÜR BEIDE EINKLAPPBAREN LEISTEN (LOGIK & IEC) 🌟 */
         /* ===================================================================== */
-        #fbs-button-group, #iec-button-group {
+        #fbs-button-group, #fbs-options-group, #iec-button-group {
             display: flex; gap: 5px; overflow: hidden; 
             max-width: 0; max-height: 38px; opacity: 0; 
             flex-wrap: wrap; /* 🌟 DER FIX: Erlaubt den Umbruch in die nächste Zeile! */
             transition: max-width 0.4s ease, max-height 0.4s ease, opacity 0.3s ease; 
             pointer-events: auto; /* Buttons bleiben klickbar */
         }
-        #fbs-button-group.expanded, #iec-button-group.expanded {
+        #fbs-button-group.expanded, #fbs-options-group.expanded, #iec-button-group.expanded {
             max-width: 800px; 
             max-height: 300px; /* Gibt der Box Raum, nach unten zu wachsen */
             opacity: 1;
             overflow: visible; /* Keine Scrollbalken mehr! */
         }
         /* 🌟 DER FIX: Buttons haben exakt dieselbe Höhe und zentrieren ihren Text */
-        #fbs-button-group .tool-btn, #iec-button-group button {
+        #fbs-button-group .tool-btn, #fbs-options-group button, #iec-button-group button {
             flex: 0 0 auto !important; 
             width: max-content; 
             white-space: nowrap; 
@@ -187,6 +187,24 @@
             background-color: #f44336 !important; /* Wird Rot zum Schließen */
             color: #fff !important;
             border-color: #b71c1c !important;
+        }
+        /* --- Spezifisch: Optionen-Button Logikplan --- */
+        #btn-fbs-options {
+            flex: 0 0 auto !important;
+            height: 30px !important;
+            padding: 0 12px !important;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, color 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+            pointer-events: auto;
+            margin-top: 2px;
+        }
+        #btn-fbs-options.expanded {
+            background-color: #f44336 !important; color: #fff !important; border-color: #b71c1c !important;
         }
         /* 2D Toolbar: Feste Höhe aufheben, damit sie umbrechen kann */
         #factory-toolbar { 
@@ -353,8 +371,8 @@
         #circ-palette-panel button { padding: 4px 8px; background: #444; color: #fff; border: 1px solid #555; border-radius: 3px; font-size: 11px; cursor: grab; white-space: nowrap; }
         #circ-palette-panel button:active { cursor: grabbing; }
         #circ-palette-panel button.drag-active-circ { background: #4caf50; border-color: #4caf50; }
-        #btn-circ-palette { flex: 0 0 34px !important; width: 34px; height: 34px !important; border-radius: 50% !important; padding: 0 !important; font-size: 16px !important; line-height: 1 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: none !important; background: #607d8b; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background-color 0.2s; }
-        #btn-circ-palette.active { background: #4caf50 !important; transform: rotate(45deg); }
+        #btn-circ-palette { flex: 0 0 34px !important; width: 34px; height: 34px !important; border-radius: 50% !important; padding: 0 !important; font-size: 16px !important; line-height: 1 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: none !important; background: #37474f; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background-color 0.2s; }
+        #btn-circ-palette.active { background: #f44336 !important; transform: rotate(45deg); }
         .circ-del-rung-btn { cursor: pointer; }
         .circ-del-rung-btn:hover rect { opacity: 1 !important; }
         /* Hier wurde die stroke Transition ergänzt, damit das Umfärben weich passiert */
@@ -747,6 +765,7 @@
                 <button class="btn-export" onclick="openHelpModal()" style="background: #17a2b8; font-size: 11px; padding: 3px 8px; box-shadow: none;" data-i18n="btn_help">ℹ️ Hilfe / Tipps</button>
                 <button class="btn-export" onclick="openSaveLoadModal()" style="background: #2196f3; font-size: 11px; padding: 3px 8px; box-shadow: none;" data-i18n="btn_save_load">💾 Speichern / Laden</button>
                 <button class="btn-export" onclick="openExamplesModal()" style="background: #6a1b9a; font-size: 11px; padding: 3px 8px; box-shadow: none;" data-i18n="btn_examples">📋 Beispiele</button>
+                <button class="btn-export" onclick="if(confirm('Code-Editor leeren?')){textarea.value='';textarea.dispatchEvent(new Event('input'));}" style="background: #555; font-size: 11px; padding: 3px 8px; box-shadow: none;" title="Code-Editor leeren">🗑️ Leeren</button>
             </div>
         </div>
         <div class="section-header" onclick="toggleSection('simulator-container', this)">
@@ -857,7 +876,7 @@
         <div id="workspace-container">
             <div id="fbs-wrapper" class="workspace-panel" style="display: flex; grid-area: fbs; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
 			<div id="fbs-toolbar" style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 50; display: flex; gap: 5px; align-items: center; pointer-events: none;">
-                    <button id="btn-fbs-toggle" class="tool-btn" style="background: #2196f3; padding: 0; font-size: 16px; pointer-events: auto; border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.4);" onclick="toggleFbsToolbar()">➕</button>
+                    <button id="btn-fbs-toggle" class="tool-btn" style="background: #37474f; padding: 0; font-size: 16px; pointer-events: auto; border-radius: 50%; width: 34px; height: 34px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.4);" onclick="toggleFbsToolbar()">➕</button>
                     <div id="fbs-button-group">
                         <button class="tool-btn" style="background: #e6194B;" onclick="openFbsAddModal('AND')" draggable="true" ondragstart="startFbsDrag(event, 'AND')" ontouchstart="startFbsTouchDrag(event, 'AND')" data-i18n="fbs_btn_and">UND (&amp;&amp;)</button>
                         <button class="tool-btn" style="background: #3cb44b;" onclick="openFbsAddModal('OR')" draggable="true" ondragstart="startFbsDrag(event, 'OR')" ontouchstart="startFbsTouchDrag(event, 'OR')" data-i18n="fbs_btn_or">ODER (||)</button>
@@ -865,6 +884,11 @@
                         <button class="tool-btn" style="background: #911eb4;" onclick="openFbsAddModal('TON')" draggable="true" ondragstart="startFbsDrag(event, 'TON')" ontouchstart="startFbsTouchDrag(event, 'TON')" data-i18n="fbs_btn_timer">Timer (Zeit)</button>
                         <button class="tool-btn" style="background: #f58231;" onclick="openFbsAddModal('CTU')" draggable="true" ondragstart="startFbsDrag(event, 'CTU')" ontouchstart="startFbsTouchDrag(event, 'CTU')" data-i18n="fbs_btn_counter">Zähler (CTU)</button>
                         <span class="fbs-drag-hint" data-i18n="fbs_drag_hint">👆 Bausteine auf Leitungen ziehen</span>
+                    </div>
+                    <button id="btn-fbs-options" class="btn-export" style="background-color: #607d8b; border: 1px solid #455a64;" onclick="toggleFbsOptions()">⚙️ Optionen</button>
+                    <div id="fbs-options-group">
+                        <button id="btn-fbs-colors" class="btn-export" style="background-color: #911eb4; border: 1px solid #333;" onclick="toggleFbsColors()">🌈 Bunte Linien: AN</button>
+                        <button id="btn-fbs-layout" class="btn-export" style="background-color: #555; border: 1px solid #333;" onclick="cycleFbsLayout()">📐 Dichte: Normal</button>
                     </div>
                 </div>
                 <svg id="custom-svg" xmlns="http://www.w3.org/2000/svg">
@@ -877,7 +901,7 @@
             <div class="workspace-resizer" id="ws-resizer-1" style="grid-area: r1;"></div>
             <div id="circuit-wrapper" class="workspace-panel" style="display: none; grid-area: iec; background-image: radial-gradient(#e0e0e0 1px, transparent 1px); background-size: 20px 20px;">
                 <div class="circuit-btn-container" style="align-items: center;">
-                    <button id="btn-circ-palette" class="tool-btn" title="Bearbeiten (Drag &amp; Drop)" onclick="toggleCircPalette()">✏️</button>
+                    <button id="btn-circ-palette" class="tool-btn" title="Bearbeiten (Drag &amp; Drop)" onclick="toggleCircPalette()">➕</button>
                     <button id="btn-iec-toggle" class="btn-export" style="background-color: #607d8b; border: 1px solid #455a64;" onclick="toggleIecToolbar()" data-i18n="iec_options">⚙️ Optionen</button>
                     <div id="iec-button-group">
                         <button id="btn-toggle-strict" class="btn-export" style="background-color: #4caf50; border: 1px solid #333;" onclick="toggleStrictHardware()">♾️ Hardware-Limit: MULTI</button>
@@ -2003,6 +2027,9 @@ You must output exactly this JSON format. The logic code goes as a single string
 		// 🌟 NEU: Permanentes Farb-Gedächtnis für den Logikplan
         window.fbsNodeColors = {};
         window.fbsColorCounter = 0;
+        window.fbsColorMode = true;   // true = bunte Linien (Standard)
+        window.fbsLayoutScale = 1.0;  // 1.0 = Normal
+        window.fbsLayoutIndex = 0;    // 0=Normal, 1=Kompakt, 2=Weit
 		// ==========================================
         // NEU: WEB AUDIO API SYNTHESIZER (0 Bytes Audio-Dateien!)
         // ==========================================
@@ -2548,14 +2575,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                 // nehmen wir sofort das bestehende Gatter! (Visuelles Merging)
                 if (exprCache.has(expr)) return { id: exprCache.get(expr), inverted: false };
                 let orParts = expr.split('||').map(s => s.trim());
-                if (orParts.length > 1) { 
-                    let resultId = createGate('||', orParts.map(p => evaluateFlat(p))); 
+                if (orParts.length > 1) {
+                    if (orParts.some(p => p === '')) throw new Error('Unvollständiger Ausdruck');
+                    let resultId = createGate('||', orParts.map(p => evaluateFlat(p)));
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
-                } 
+                }
                 let andParts = expr.split('&&').map(s => s.trim());
-                if (andParts.length > 1) { 
-                    let resultId = createGate('&', andParts.map(p => evaluateFlat(p))); 
+                if (andParts.length > 1) {
+                    if (andParts.some(p => p === '')) throw new Error('Unvollständiger Ausdruck');
+                    let resultId = createGate('&', andParts.map(p => evaluateFlat(p)));
                     exprCache.set(expr, resultId);
                     return { id: resultId, inverted: false };
                 }
@@ -2565,7 +2594,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                     inverted = true;
                     cleanId = cleanId.substring(1).trim();
                 }
-                if (/^(AND_|OR_|GATE_)[a-zA-Z0-9_]+$/.test(cleanId)) return { id: cleanId, inverted }; 
+                if (!cleanId || /\s/.test(cleanId)) throw new Error('Ungültiger Variablenname: ' + JSON.stringify(cleanId));
+                if (/^(AND_|OR_|GATE_)[a-zA-Z0-9_]+$/.test(cleanId)) return { id: cleanId, inverted };
                 let canonicalKey = cleanId;
                 if (exprCache.has(canonicalKey)) return { id: exprCache.get(canonicalKey), inverted };
                 if (cleanId === 'FALSE' || cleanId === 'TRUE') {
@@ -2790,8 +2820,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             // =========================================================
             // NEU: PERFEKTIONIERTES LAYOUT (Barycenter + Elastisch + Lücken)
             // =========================================================
-            const MIN_GAP = 20;       
-            const WIRE_PADDING = 70;  
+            const _s = window.fbsLayoutScale || 1.0;
+            const MIN_GAP = Math.round(20 * _s);
+            const WIRE_PADDING = Math.round(70 * _s);
             let sortedLevels = Object.keys(columns).sort((a,b) => parseInt(a) - parseInt(b));
             // --- 1. EINGÄNGE ALPHABETISCH VORSORTIEREN ---
             if (columns[0]) columns[0].sort((a, b) => a.id.localeCompare(b.id));
@@ -2836,7 +2867,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 });
                 // FIX: Dramatisch verkleinerter Kabelkanal! 
                 // 6px pro einkommendem Kabel reichen völlig aus. Die ausgehenden Kabel verbrauchen kaum noch Platz!
-                let dynamicWirePadding = Math.max(50, 20 + (incomingCount * 6));
+                let dynamicWirePadding = Math.max(Math.round(50 * _s), Math.round(20 * _s) + (incomingCount * 6));
                 if (index > 0) currentX += dynamicWirePadding;
                 columns[level].forEach(node => {
                     if (level === 0) {
@@ -2970,7 +3001,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             return startY; 
         }
+        function fbsResolveColor(color) { return window.fbsColorMode !== false ? color : '#666'; }
         function drawPath(d, color, sourceId, edgeId = null, isTrunk = false) {
+            color = fbsResolveColor(color);
             const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
             halo.setAttribute("d", d);
             let cls = `fbs-line-halo net-source-${sourceId}`;
@@ -2992,6 +3025,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             svgLines.appendChild(path);
         }
         function drawBubble(cx, cy, color, sourceId) {
+            color = fbsResolveColor(color);
             const bubble = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             bubble.setAttribute("cx", cx); bubble.setAttribute("cy", cy); bubble.setAttribute("r", 3.5);
             bubble.setAttribute("fill", "#ffffff"); bubble.setAttribute("stroke", color); bubble.setAttribute("stroke-width", "2");
@@ -2999,6 +3033,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             svgNodes.appendChild(bubble);
         }
         function drawDot(cx, cy, color, sourceId) {
+            color = fbsResolveColor(color);
             const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", 4);
             dot.setAttribute("fill", color);
@@ -3157,7 +3192,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     rect.setAttribute("width", safe(node.width));
                     rect.setAttribute("height", safe(node.height));
                     rect.setAttribute("class", "fbs-block");
-                    rect.setAttribute("stroke", node.color);
+                    rect.setAttribute("stroke", fbsResolveColor(node.color));
                     g.appendChild(rect);
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("x", safe(node.width / 2));
@@ -3227,7 +3262,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     rect.setAttribute("width", safe(node.width));
                     rect.setAttribute("height", safe(node.height));
                     rect.setAttribute("class", "fbs-io-box");
-                    rect.setAttribute("stroke", node.color);
+                    rect.setAttribute("stroke", fbsResolveColor(node.color));
                     if (node.type === 'OUTPUT') {
                         rect.setAttribute("stroke-width", "3");
                         rect.setAttribute("fill", "#ffffff");
@@ -3258,7 +3293,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             setTimeout(() => {
                 let pFbs = customSvg.closest('.workspace-panel') || document.getElementById('fbs-wrapper');
                 if (pFbs && pFbs.offsetWidth > 0 && pFbs.offsetHeight > 0) { // 🌟 FIX: offsetHeight Check!
-                    if (isFirstRun || !panZoomInstance) {
+                    if (graph.nodes.size === 0) {
+                        // Leerer Graph – SVG-Pan-Zoom nicht initialisieren (würde abstürzen)
+                    } else if (isFirstRun || !panZoomInstance) {
                         panZoomInstance = svgPanZoom(customSvg, svgPanZoomOptions);
                     } else {
                         // Sanftes Update statt Neubau
@@ -4357,7 +4394,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             const drawLine = (x1, y1, x2, y2, width = 2, varName = null, color = null, isNCLine = false) => {
                 let l = createSvgElement('line', {x1, y1, x2, y2, stroke: '#000', 'stroke-width': width});
                 if (varName && varName !== 'NONE') {
-                    l.classList.add('circ-wire', `circ-var-${varName}`);
+                    l.classList.add('circ-wire', `circ-var-${varName.replace(/\s+/g, '_')}`);
                     if (isNCLine) l.classList.add('is-nc-wire');
                     if (color) l.style.setProperty('--logic-color', color);
                 }
@@ -4798,6 +4835,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         'data-line-prefix': item.id
                     });
                     gSens.style.cursor = 'context-menu';
+                    if (col) gSens.style.setProperty('--logic-color', col);
                     gSens.appendChild(createSvgElement('rect', {x: currX - 15, y: sBoxY, width: 30, height: 30, fill: '#fff', stroke: '#000', 'stroke-width': 2, class: 'circ-component'}));
                     let diamondPts = `${currX},${sBoxY+3} ${currX+7},${sBoxY+10} ${currX},${sBoxY+17} ${currX-7},${sBoxY+10}`;
                     gSens.appendChild(createSvgElement('polygon', {points: diamondPts, fill: 'none', stroke: '#000', 'stroke-width': 1.5, class: 'circ-static'}));
@@ -5159,7 +5197,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 setPower(drawLine(currX, coilExitY, currX, yBot, 2, hwId, srcCol), pCond);
                 currX += 130;
             });
-            let totalWidth = Math.max(1000, currX + 50);
+            let totalWidth = currX <= 100 ? Math.max(400, currX + 50) : Math.max(1000, currX + 50);
             let lPlus = drawLine(20, yTop, totalWidth - 20, yTop, 3);
             lPlus.setAttribute('stroke', '#f58231'); lPlus.classList.remove('circ-wire');
             drawText(25, yTop - 10, 'L+ (24V DC)', true);
@@ -9788,7 +9826,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             const panel = getCircDoc().getElementById('circ-palette-panel');
             if (btn) btn.classList.toggle('active', window.configCircPalette);
             if (panel) panel.style.display = window.configCircPalette ? 'flex' : 'none';
-            if (currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs, true);
+            const hasContent = currentGraph && currentGraph.edges && currentGraph.edges.length > 0;
+            if (currentGraph) drawCircuitPlan(currentGraph, globalInputs, globalOutputs, !window.configCircPalette || hasContent);
         };
 
         window.startCircDrag = function(e, type) {
@@ -10745,6 +10784,60 @@ You must output exactly this JSON format. The logic code goes as a single string
             } else {
                 btn.setAttribute('data-i18n', 'iec_options');
                 btn.textContent = t('iec_options');
+            }
+            if (typeof SoundEngine !== 'undefined') SoundEngine.click();
+        };
+        window.toggleFbsOptions = function() {
+            let doc = (window.popOutWindows && window.popOutWindows['fbs-wrapper'] && !window.popOutWindows['fbs-wrapper'].closed)
+                      ? window.popOutWindows['fbs-wrapper'].document : document;
+            const group = doc.getElementById('fbs-options-group');
+            const btn = doc.getElementById('btn-fbs-options');
+            if (!group || !btn) return;
+            group.classList.toggle('expanded');
+            btn.classList.toggle('expanded');
+            if (btn.classList.contains('expanded')) {
+                btn.textContent = '❌ Schließen';
+            } else {
+                btn.textContent = '⚙️ Optionen';
+            }
+            if (typeof SoundEngine !== 'undefined') SoundEngine.click();
+        };
+        window.toggleFbsColors = function() {
+            window.fbsColorMode = !window.fbsColorMode;
+            let doc = (window.popOutWindows && window.popOutWindows['fbs-wrapper'] && !window.popOutWindows['fbs-wrapper'].closed)
+                      ? window.popOutWindows['fbs-wrapper'].document : document;
+            const btn = doc.getElementById('btn-fbs-colors');
+            if (btn) {
+                if (window.fbsColorMode) {
+                    btn.style.backgroundColor = '#911eb4';
+                    btn.textContent = '🌈 Bunte Linien: AN';
+                } else {
+                    btn.style.backgroundColor = '#555';
+                    btn.textContent = '🌈 Bunte Linien: AUS';
+                }
+            }
+            if (typeof currentGraph !== 'undefined' && currentGraph) drawGraph(currentGraph);
+            if (typeof SoundEngine !== 'undefined') SoundEngine.click();
+        };
+        const _fbsLayoutSteps = [
+            { scale: 1.0,  label: '📐 Dichte: Normal',  color: '#555'    },
+            { scale: 0.65, label: '📐 Dichte: Kompakt', color: '#4363d8' },
+            { scale: 1.5,  label: '📐 Dichte: Weit',    color: '#3cb44b' },
+        ];
+        window.cycleFbsLayout = function() {
+            window.fbsLayoutIndex = ((window.fbsLayoutIndex || 0) + 1) % _fbsLayoutSteps.length;
+            const step = _fbsLayoutSteps[window.fbsLayoutIndex];
+            window.fbsLayoutScale = step.scale;
+            let doc = (window.popOutWindows && window.popOutWindows['fbs-wrapper'] && !window.popOutWindows['fbs-wrapper'].closed)
+                      ? window.popOutWindows['fbs-wrapper'].document : document;
+            const btn = doc.getElementById('btn-fbs-layout');
+            if (btn) {
+                btn.style.backgroundColor = step.color;
+                btn.textContent = step.label;
+            }
+            if (typeof currentGraph !== 'undefined' && currentGraph) {
+                calculateLayout(currentGraph);
+                drawGraph(currentGraph);
             }
             if (typeof SoundEngine !== 'undefined') SoundEngine.click();
         };
