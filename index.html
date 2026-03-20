@@ -799,6 +799,52 @@
         }
         #tutorial-tooltip.arrow-left::before  { border-right-color: #2196f3; left: -18px; }
         #tutorial-tooltip.arrow-right::before { border-left-color:  #2196f3; right: -18px; }
+        /* ==========================================
+           🎬 AUFZEICHNUNG / PLAYBACK
+        ========================================== */
+        #rec-indicator {
+            display: none; position: fixed; top: 48px; right: 8px; z-index: 7500;
+            align-items: center; gap: 5px; background: rgba(183,28,28,0.92);
+            color: #fff; border-radius: 4px; padding: 3px 9px;
+            font-size: 11px; font-weight: bold; pointer-events: none;
+        }
+        #rec-indicator .rec-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #ff5252;
+            animation: rec-blink 0.9s ease-in-out infinite;
+        }
+        @keyframes rec-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.15; } }
+        #playback-bar {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 8000;
+            background: #1a2332; border-top: 1.5px solid #2196f3;
+            padding: 7px 14px; align-items: center; gap: 9px;
+            font-size: 12px; color: #ccc; box-shadow: 0 -4px 20px rgba(0,0,0,0.55);
+        }
+        #pb-scrubber { flex: 1; height: 4px; accent-color: #2196f3; cursor: pointer; min-width: 60px; }
+        .pb-btn {
+            background: #2d3a4a; color: #fff; border: 1px solid #445;
+            border-radius: 4px; padding: 3px 9px; cursor: pointer; font-size: 13px; flex-shrink: 0;
+        }
+        .pb-btn:hover { background: #37474f; }
+        .pb-btn.pb-active { background: #1565c0; border-color: #2196f3; }
+        /* ==========================================
+           💡 AUTOCOMPLETE
+        ========================================== */
+        #ac-dropdown {
+            display: none; position: fixed; z-index: 9500;
+            background: #252526; border: 1px solid #007acc;
+            border-radius: 4px; box-shadow: 0 4px 18px rgba(0,0,0,0.65);
+            max-height: 210px; overflow-y: auto; min-width: 200px; max-width: 320px;
+        }
+        .ac-item {
+            padding: 5px 10px; cursor: pointer; font-size: 12px; font-family: monospace;
+            color: #d4d4d4; display: flex; align-items: baseline; gap: 8px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .ac-item:last-child { border-bottom: none; }
+        .ac-item:hover, .ac-item.ac-sel { background: #094771; color: #fff; }
+        .ac-lbl { flex: 1; }
+        .ac-type { font-size: 10px; color: #888; flex-shrink: 0; font-family: sans-serif; }
+        .ac-item.ac-sel .ac-type { color: #aaa; }
     </style>
 </head>
 <body>
@@ -914,6 +960,7 @@
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
                 <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B;" onclick="toggleSimulation()" data-i18n="btn_sim_start">Simulation starten</button>
+                <button id="btn-record" class="btn-export" onclick="toggleRecording()" style="background:#b71c1c;box-shadow:none;padding:3px 9px;font-size:15px;" title="Simulation aufzeichnen">⏺</button>
                 <button id="btn-toggle-sound" class="btn-export" style="background-color: #555;" onclick="toggleSound()" data-i18n="sound_off">🔇 Ton: AUS</button>
                 <div class="tb-dropdown">
                     <button id="btn-extras" class="btn-export" style="background-color: #607d8b; cursor: pointer;" data-i18n="btn_extras">🛠️ Extras ▼</button>
@@ -4235,7 +4282,20 @@ You must output exactly this JSON format. The logic code goes as a single string
             lastSimulationTime = now;
             if (!simulationFunction || !currentGraph) return;
             // Führe die Logik aus und übergebe Zeit und Timer-Speicher
-            simulationFunction(spsState, deltaMs, window.simTimers);
+            if (!_pbActive) {
+                simulationFunction(spsState, deltaMs, window.simTimers);
+                // 🎬 Recording: Snapshot alle ~50ms (≈20fps)
+                if (_recActive) {
+                    const _rt = performance.now() - _recStart;
+                    const _rl = _recFrames[_recFrames.length - 1];
+                    if (!_rl || _rt - _rl.t >= 48) {
+                        _recFrames.push({ t: Math.round(_rt), s: { ...spsState } });
+                        if (_recFrames.length > 6000) _recFrames.shift();
+                        const _re = document.getElementById('rec-timer');
+                        if (_re) _re.textContent = _recFmtTime(_rt);
+                    }
+                }
+            }
             // Live-Update der blauen Zahlen in den FBS-Kästen
             if (window.simTimers) {
                 for (let [id, t] of Object.entries(window.simTimers)) {
@@ -4347,7 +4407,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                     // Ein Element leuchtet nur, wenn auch wirklich Strom von oben bis hierher fließt!
                     let shouldGlow = el.classList.contains('circ-wire') ? hasPower : (hasPower && isMechanicallyClosed);
-                    if (isSimulationActive) {
+                    if (isSimulationActive || _pbActive) {
                         // Klinge physisch öffnen/schließen
                         if (blade) {
                             if (isMechanicallyClosed) blade.classList.remove('open');
@@ -10219,7 +10279,8 @@ You must output exactly this JSON format. The logic code goes as a single string
         // NEU: AUSBAUSTUFE 2 - Logikbausteine hinzufügen
         // ==========================================
 		window.openFbsAddModal = function(type) {
-            originalOpenFbsAddModal(type);
+            document.getElementById('fbs-add-modal').style.display = 'block';
+            document.getElementById('fbs-add-type').value = type;
             document.getElementById('custom-svg').style.cursor = 'crosshair';
             // 🌟 FIX: Hier setzen wir die Platzhalter und dynamischen Texte via i18n
             document.getElementById('fbs-add-out').placeholder = window.t('dyn_ph_out');
@@ -10997,11 +11058,6 @@ You must output exactly this JSON format. The logic code goes as a single string
             originalConfirmFbsAdd();
             closeFbsModal();
         };
-        const originalOpenFbsAddModal = window.openFbsAddModal;
-        window.openFbsAddModal = function(type) {
-            originalOpenFbsAddModal(type);
-            document.getElementById('custom-svg').style.cursor = 'crosshair';
-        };
         // --- 1. DRAG & DROP AUF LINIEN ---
         const fbsWrapper = document.getElementById('fbs-wrapper');
         let lastHighlightedLine = null;
@@ -11667,6 +11723,289 @@ You must output exactly this JSON format. The logic code goes as a single string
         startFactoryEngine();
 
         // ==========================================
+        // 🎬 AUFZEICHNUNG / PLAYBACK
+        // ==========================================
+        let _recActive = false, _recFrames = [], _recStart = 0;
+        let _pbActive = false, _pbIdx = 0, _pbTimer = null, _pbSpeed = 1.0, _pbPlaying = false;
+
+        function _recFmtTime(ms) {
+            const s = Math.floor(ms / 1000);
+            return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        }
+
+        window.toggleRecording = function () {
+            if (!isSimulationActive) {
+                alert('Bitte zuerst die Simulation starten.');
+                return;
+            }
+            const btn = document.getElementById('btn-record');
+            const ind = document.getElementById('rec-indicator');
+            if (_recActive) {
+                _recActive = false;
+                ind.style.display = 'none';
+                btn.style.background = '#b71c1c';
+                btn.title = 'Simulation aufzeichnen';
+                btn.textContent = '⏺';
+                if (_recFrames.length > 0) _pbOpen();
+            } else {
+                _recFrames = [];
+                _recStart = performance.now();
+                _recActive = true;
+                ind.style.display = 'flex';
+                btn.style.background = '#555';
+                btn.title = 'Aufnahme stoppen';
+                btn.textContent = '⏹';
+            }
+        };
+
+        function _pbOpen() {
+            const bar = document.getElementById('playback-bar');
+            bar.style.display = 'flex';
+            const dur = _recFrames[_recFrames.length - 1].t;
+            document.getElementById('pb-dur').textContent = _recFmtTime(dur);
+            document.getElementById('pb-framecount').textContent = `${_recFrames.length} Frames`;
+            _pbIdx = 0; _pbPlaying = false;
+            document.getElementById('pb-play-btn').textContent = '▶';
+            document.getElementById('pb-play-btn').classList.remove('pb-active');
+            _pbRenderFrame(0);
+        }
+
+        window._pbClose = function () {
+            _pbStop();
+            _pbActive = false;
+            document.getElementById('playback-bar').style.display = 'none';
+        };
+
+        window._pbToggle = function () { _pbPlaying ? _pbPause() : _pbPlay(); };
+
+        function _pbPlay() {
+            if (_pbIdx >= _recFrames.length - 1) _pbIdx = 0;
+            _pbPlaying = true;
+            _pbActive = true;
+            const btn = document.getElementById('pb-play-btn');
+            btn.textContent = '⏸'; btn.classList.add('pb-active');
+            _pbScheduleNext();
+        }
+
+        function _pbPause() {
+            _pbPlaying = false;
+            if (_pbTimer) { clearTimeout(_pbTimer); _pbTimer = null; }
+            const btn = document.getElementById('pb-play-btn');
+            btn.textContent = '▶'; btn.classList.remove('pb-active');
+        }
+
+        function _pbStop() {
+            _pbPause();
+            _pbActive = false;
+        }
+
+        function _pbScheduleNext() {
+            if (!_pbPlaying || _pbIdx >= _recFrames.length - 1) { _pbPause(); return; }
+            const delay = (_recFrames[_pbIdx + 1].t - _recFrames[_pbIdx].t) / _pbSpeed;
+            _pbTimer = setTimeout(() => {
+                _pbIdx++;
+                _pbRenderFrame(_pbIdx);
+                _pbScheduleNext();
+            }, Math.max(1, delay));
+        }
+
+        function _pbRenderFrame(idx) {
+            if (!_recFrames[idx]) return;
+            const state = _recFrames[idx].s;
+            _applyStateToUI(state);
+            const total = _recFrames[_recFrames.length - 1].t;
+            document.getElementById('pb-pos').textContent = _recFmtTime(_recFrames[idx].t);
+            document.getElementById('pb-scrubber').value = Math.round((_recFrames[idx].t / total) * 1000);
+        }
+
+        window._pbSeek = function (idx) {
+            _pbPause();
+            _pbIdx = Math.max(0, Math.min(idx, _recFrames.length - 1));
+            _pbRenderFrame(_pbIdx);
+        };
+
+        window._pbStep = function (dir) {
+            _pbPause();
+            _pbIdx = Math.max(0, Math.min(_pbIdx + dir, _recFrames.length - 1));
+            _pbRenderFrame(_pbIdx);
+        };
+
+        window._pbScrub = function (val) {
+            if (!_recFrames.length) return;
+            const target = (val / 1000) * _recFrames[_recFrames.length - 1].t;
+            let closest = 0;
+            for (let i = 0; i < _recFrames.length; i++) {
+                if (_recFrames[i].t >= target) { closest = i; break; }
+                closest = i;
+            }
+            _pbPause();
+            _pbIdx = closest;
+            _pbRenderFrame(closest);
+        };
+
+        window._pbSetSpeed = function (s) { _pbSpeed = s; };
+
+        function _applyStateToUI(state) {
+            if (!currentGraph) return;
+            // 1. Left panel outputs and inputs
+            for (const [key, value] of Object.entries(state)) {
+                const led = document.getElementById(`sim_out_${key}`);
+                if (led) led.classList.toggle('on', !!value);
+                const btn = document.getElementById(`sim_taster_${key}`);
+                if (btn) btn.classList.toggle('pressed', !!value);
+                const sw = document.getElementById(`sim_in_${key}`);
+                if (sw) sw.checked = !!value;
+            }
+            // 2. FBS nodes and connection lines
+            currentGraph.nodes.forEach(node => {
+                const val = !!state[node.id];
+                const block = customSvg.querySelector(`#node-block-${CSS.escape(node.id)}`);
+                if (block) { block.classList.toggle('active', val); block.classList.toggle('inactive', !val); }
+                customSvg.querySelectorAll(`.net-source-${CSS.escape(node.id)}`).forEach(el => {
+                    el.classList.toggle('active', val); el.classList.toggle('inactive', !val);
+                });
+            });
+            // 3. IEC circuit elements
+            circuitSvg.querySelectorAll('.circ-colored-group, .circ-wire').forEach(el => {
+                const varClass = Array.from(el.classList).find(c => c.startsWith('circ-var-'));
+                if (!varClass) return;
+                const varName = varClass.replace('circ-var-', '');
+                const val = !!state[varName];
+                const blade = el.querySelector('.circ-moving-contact');
+                const isNC = blade ? blade.classList.contains('is-nc') : el.classList.contains('is-nc-wire');
+                const hasPower = el._checkPower ? el._checkPower(state) : true;
+                const cRole = el.getAttribute('data-iec-role');
+                const shouldGlow = cRole === 'coil' ? hasPower :
+                    (el.classList.contains('circ-wire') ? hasPower : (hasPower && (isNC ? !val : val)));
+                el.classList.toggle('active', shouldGlow);
+                if (blade) blade.classList.toggle('open', !(isNC ? !val : val));
+            });
+        }
+
+        // ==========================================
+        // 💡 AUTOCOMPLETE
+        // ==========================================
+        (function () {
+            const AC_KW = [
+                { l: 'INPUT',  t: 'Schlüsselwort', i: 'INPUT '         },
+                { l: 'TRUE',   t: 'Wert',           i: 'TRUE'           },
+                { l: 'FALSE',  t: 'Wert',           i: 'FALSE'          },
+                { l: 'TON',    t: 'Timer',           i: 'TON(, 1.0s)'   },
+                { l: 'TOF',    t: 'Timer',           i: 'TOF(, 1.0s)'   },
+                { l: 'TP',     t: 'Timer',           i: 'TP(, 0.5s)'    },
+                { l: 'CTU',    t: 'Zähler',          i: 'CTU(, , 0)'    },
+                { l: 'AND',    t: 'Operator',        i: 'AND '          },
+                { l: 'OR',     t: 'Operator',        i: 'OR '           },
+                { l: 'NOT',    t: 'Operator',        i: 'NOT '          },
+                { l: 'UND',    t: 'Operator',        i: 'UND '          },
+                { l: 'ODER',   t: 'Operator',        i: 'ODER '         },
+                { l: 'NICHT',  t: 'Operator',        i: 'NICHT '        },
+            ];
+
+            let _acOn = false, _acList = [], _acSel = 0, _acWord = '', _acWordPos = 0;
+            let _dropEl = null;
+            function _getDrop() { return _dropEl || (_dropEl = document.getElementById('ac-dropdown')); }
+
+            function _caretCoords() {
+                const el = textarea, pos = el.selectionStart;
+                const m = document.createElement('div');
+                const cs = getComputedStyle(el);
+                ['fontFamily','fontSize','fontWeight','letterSpacing','lineHeight',
+                 'paddingTop','paddingLeft','paddingRight','paddingBottom','boxSizing'].forEach(p => m.style[p] = cs[p]);
+                m.style.cssText += ';position:absolute;left:-9999px;top:-9999px;white-space:pre-wrap;word-break:break-word;visibility:hidden;';
+                m.style.width = el.offsetWidth + 'px';
+                const sp = document.createElement('span');
+                m.textContent = el.value.substring(0, pos);
+                m.appendChild(sp); sp.textContent = '|';
+                document.body.appendChild(m);
+                const r = el.getBoundingClientRect();
+                const coords = {
+                    left: r.left + sp.offsetLeft - el.scrollLeft,
+                    top:  r.top  + sp.offsetTop  - el.scrollTop + parseFloat(cs.lineHeight || 16)
+                };
+                document.body.removeChild(m);
+                return coords;
+            }
+
+            function _curWord() {
+                const pos = textarea.selectionStart;
+                const m = textarea.value.substring(0, pos).match(/[a-zA-Z_][a-zA-Z0-9_]*$/);
+                return m ? { word: m[0], start: pos - m[0].length } : { word: '', start: pos };
+            }
+
+            function _buildList(word) {
+                const lw = word.toLowerCase();
+                const vars = [...(globalInputs || []), ...(globalOutputs || [])]
+                    .map(v => ({ l: v, t: 'Variable', i: v }));
+                return [...vars, ...AC_KW]
+                    .filter(it => it.l.toLowerCase().startsWith(lw) && it.l.length > word.length)
+                    .filter((it, idx, arr) => arr.findIndex(x => x.l === it.l) === idx) // deduplicate
+                    .slice(0, 12);
+            }
+
+            function _render() {
+                const drop = _getDrop(); if (!drop) return;
+                drop.innerHTML = _acList.map((it, i) =>
+                    `<div class="ac-item${i === _acSel ? ' ac-sel' : ''}" data-i="${i}">` +
+                    `<span class="ac-lbl">${it.l}</span><span class="ac-type">${it.t}</span></div>`
+                ).join('');
+                drop.querySelectorAll('.ac-item').forEach(el =>
+                    el.addEventListener('mousedown', e => { e.preventDefault(); _commit(+el.dataset.i); })
+                );
+                // Scroll selected into view
+                const sel = drop.querySelector('.ac-sel');
+                if (sel) sel.scrollIntoView({ block: 'nearest' });
+            }
+
+            function _open() {
+                const { word, start } = _curWord();
+                if (word.length < 1) { _close(); return; }
+                _acList = _buildList(word);
+                if (_acList.length === 0) { _close(); return; }
+                _acWord = word; _acWordPos = start;
+                _acSel = 0;
+                const c = _caretCoords();
+                const drop = _getDrop(); if (!drop) return;
+                drop.style.left = `${Math.min(c.left, window.innerWidth - 330)}px`;
+                drop.style.top  = `${Math.min(c.top, window.innerHeight - 230)}px`;
+                drop.style.display = 'block';
+                _acOn = true;
+                _render();
+            }
+
+            function _close() { const drop = _getDrop(); if (drop) drop.style.display = 'none'; _acOn = false; _acSel = 0; }
+
+            function _commit(idx) {
+                const item = _acList[idx];
+                if (!item) return;
+                const before = textarea.value.substring(0, _acWordPos);
+                const after  = textarea.value.substring(_acWordPos + _acWord.length);
+                // For block templates, place cursor before the first argument
+                const cursorOff = item.i.indexOf(',') !== -1 ? item.i.indexOf('(') + 1 : item.i.length;
+                textarea.value = before + item.i + after;
+                textarea.selectionStart = textarea.selectionEnd = _acWordPos + cursorOff;
+                textarea.dispatchEvent(new Event('input'));
+                _close();
+                textarea.focus();
+            }
+
+            textarea.addEventListener('keydown', e => {
+                if (!_acOn) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); _acSel = Math.min(_acSel + 1, _acList.length - 1); _render(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); _acSel = Math.max(_acSel - 1, 0); _render(); }
+                else if (e.key === 'Tab' || e.key === 'Enter') { if (_acList.length) { e.preventDefault(); _commit(_acSel); } }
+                else if (e.key === 'Escape') { _close(); }
+            });
+
+            // Trigger after each keystroke (deferred so value is updated)
+            textarea.addEventListener('input', () => setTimeout(_open, 0));
+
+            document.addEventListener('mousedown', e => { const drop = _getDrop(); if (!drop || !drop.contains(e.target)) _close(); });
+            textarea.addEventListener('blur',   () => setTimeout(_close, 150));
+            textarea.addEventListener('scroll', _close);
+        })();
+
+        // ==========================================
         // 🎓 TUTORIAL MODE
         // ==========================================
         (function () {
@@ -11803,6 +12142,37 @@ You must output exactly this JSON format. The logic code goes as a single string
             };
         })();
     </script>
+
+    <!-- 🎬 Aufnahme-Indikator -->
+    <div id="rec-indicator">
+        <div class="rec-dot"></div>
+        <span>REC</span>
+        <span id="rec-timer">0:00</span>
+    </div>
+
+    <!-- 🎬 Playback-Leiste -->
+    <div id="playback-bar">
+        <button class="pb-btn" onclick="_pbClose()" title="Playback schließen">✕</button>
+        <span style="color:#64b5f6;font-weight:bold;font-size:11px;flex-shrink:0;">⏮ PLAYBACK</span>
+        <button class="pb-btn" onclick="_pbSeek(0)" title="Zum Anfang">⏮</button>
+        <button class="pb-btn" onclick="_pbStep(-1)" title="1 Frame zurück">◀</button>
+        <button id="pb-play-btn" class="pb-btn" onclick="_pbToggle()" title="Abspielen / Pause">▶</button>
+        <button class="pb-btn" onclick="_pbStep(1)" title="1 Frame vor">▶|</button>
+        <span id="pb-pos" style="min-width:34px;text-align:right;flex-shrink:0;">0:00</span>
+        <input type="range" id="pb-scrubber" min="0" max="1000" value="0" oninput="_pbScrub(this.value)">
+        <span id="pb-dur" style="min-width:34px;flex-shrink:0;">0:00</span>
+        <select id="pb-speed-sel" onchange="_pbSetSpeed(+this.value)" style="background:#2d3a4a;color:#fff;border:1px solid #445;border-radius:4px;padding:2px 4px;font-size:11px;flex-shrink:0;">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+        </select>
+        <span id="pb-framecount" style="color:#546e7a;font-size:11px;flex-shrink:0;"></span>
+    </div>
+
+    <!-- 💡 Autocomplete Dropdown -->
+    <div id="ac-dropdown"></div>
 
     <!-- 🎓 TUTORIAL OVERLAY -->
     <div id="tutorial-overlay">
