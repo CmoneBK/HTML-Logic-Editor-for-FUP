@@ -468,7 +468,8 @@
         .tb-dropdown-content > div:last-child, .tb-submenu-content > div:last-child { border-bottom: none; }
         .tb-dropdown:hover .tb-dropdown-content { display: block; }
 		.tb-drop-btn { background: #444; color: #fff; border: 1px solid #666; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.1s; }
-        .tb-drop-btn:hover { background: #555; border-color: #888; }																																																																  														
+        .tb-drop-btn:hover { background: #555; border-color: #888; }
+        /* F2D-CSS-START */
         #factory-canvas-area { flex-grow: 1; position: relative; width: 100%; height: 100%; background-image: linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%, #ddd), linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%, #ddd); background-size: 20px 20px; background-position: 0 0, 10px 10px; }
         /* 2D Objekte */
         .f2d-obj { position: absolute; top: 0; left: 0; box-sizing: border-box; cursor: move; user-select: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
@@ -555,6 +556,18 @@
             outline-offset: 3px;
             box-shadow: 0 0 15px rgba(0, 122, 204, 0.6) !important;
         }
+        .f2d-locked { outline: 1px dashed #ff9800 !important; }
+        .f2d-lock-badge { position:absolute;top:1px;left:1px;font-size:9px;pointer-events:none;z-index:50;background:rgba(0,0,0,0.55);border-radius:2px;padding:0 2px;line-height:14px; }
+        #factory-wrapper.sim-active .f2d-lock-badge { display:none !important; }
+        /* --- Factory Sidebar --- */
+        #factory-sidebar { position:absolute;top:50px;right:0;bottom:0;width:22px;display:flex;background:#252526;border-left:1px solid #444;z-index:100;overflow:hidden;transition:width 0.2s ease;box-shadow:-2px 0 6px rgba(0,0,0,0.3); }
+        #factory-sidebar.open { width:230px; }
+        #factory-sidebar-tab { flex-shrink:0;width:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#37474f;gap:6px; }
+        #factory-sidebar-tab:hover { background:#455a64; }
+        #factory-sidebar-content { flex-shrink:0;width:208px;padding:10px;overflow-y:auto;box-sizing:border-box; }
+        #factory-minimap { position:absolute;bottom:10px;right:60px;width:200px;height:150px;background:#1a1a2e;border:1px solid #555;border-radius:4px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.6);overflow:hidden; }
+        #factory-wrapper.sidebar-open .factory-zoom-controls { right:232px; }
+        #factory-wrapper.sidebar-open #factory-minimap { right:290px; }
         .f2d-obj:hover > .f2d-rotate-handle { display: block; }
         .is-child > .f2d-rotate-handle { display: none !important; }
         /* Versteckt Editor-Handles, wenn die Simulation läuft */
@@ -730,6 +743,7 @@
         .pneu-hose { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.1s; }
         .pneu-hose.pressurized { stroke: #81d4fa; filter: drop-shadow(0 0 3px rgba(3,169,244,0.8)); } /* Unter Druck */
         .pneu-hose.exhaust { stroke: #1565c0; opacity: 0.7; } /* Abluft / Drucklos */
+        /* F2D-CSS-END */
         /* --- Beispiele Modal --- */
         #examples-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.78); z-index: 3500; justify-content: center; align-items: center; }
         #examples-modal-overlay.open { display: flex; }
@@ -744,6 +758,47 @@
         .example-card-desc { font-size: 11px; color: #aaa; line-height: 1.55; flex: 1; }
         .example-card-btn { align-self: flex-start; margin-top: 8px; background: #007acc; color: #fff; border: none; padding: 5px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.15s; }
         .example-card-btn:hover { background: #0090e0; }
+        /* ==========================================
+           🎓 TUTORIAL MODE
+        ========================================== */
+        #tutorial-overlay { display: none; position: fixed; inset: 0; z-index: 8900; pointer-events: none; }
+        #tutorial-overlay.active { display: block; }
+        #tutorial-spotlight {
+            position: fixed; border-radius: 6px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.72);
+            outline: 2px solid rgba(33,150,243,0.9); outline-offset: 2px;
+            transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease;
+            pointer-events: none;
+        }
+        #tutorial-tooltip {
+            position: fixed; width: 300px;
+            background: #1a2332; border: 1.5px solid #2196f3; border-radius: 10px;
+            padding: 18px 18px 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+            color: #e8eaf6; pointer-events: all; z-index: 8902;
+            transition: left 0.3s ease, top 0.3s ease;
+        }
+        #tutorial-tooltip h4 { margin: 0 0 9px; font-size: 14px; color: #64b5f6; font-weight: 700; }
+        #tutorial-tooltip p  { margin: 0 0 13px; font-size: 12px; line-height: 1.6; color: #b0bec5; }
+        .tut-nav { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+        .tut-nav button { background: #2196f3; color: #fff; border: none; padding: 5px 13px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .tut-nav button:hover { background: #1976d2; }
+        .tut-nav button:disabled { background: #333; color: #555; cursor: not-allowed; }
+        .tut-nav .tut-skip { background: transparent; color: #78909c; font-weight: normal; padding: 5px 6px; }
+        .tut-nav .tut-skip:hover { background: transparent; color: #ef5350; }
+        .tut-progress { font-size: 11px; color: #546e7a; min-width: 36px; text-align: center; }
+        /* Tooltip arrows */
+        #tutorial-tooltip.arrow-top::before, #tutorial-tooltip.arrow-bottom::before {
+            content: ''; position: absolute; left: var(--tut-ax, 50%); transform: translateX(-50%);
+            border: 9px solid transparent;
+        }
+        #tutorial-tooltip.arrow-top::before    { border-bottom-color: #2196f3; top: -18px; }
+        #tutorial-tooltip.arrow-bottom::before { border-top-color:    #2196f3; bottom: -18px; }
+        #tutorial-tooltip.arrow-left::before, #tutorial-tooltip.arrow-right::before {
+            content: ''; position: absolute; top: var(--tut-ay, 50%); transform: translateY(-50%);
+            border: 9px solid transparent;
+        }
+        #tutorial-tooltip.arrow-left::before  { border-right-color: #2196f3; left: -18px; }
+        #tutorial-tooltip.arrow-right::before { border-left-color:  #2196f3; right: -18px; }
     </style>
 </head>
 <body>
@@ -849,6 +904,7 @@
                         <div onclick="selectLayout('grid-sim-left', '◨')" data-i18n="layout_left">◨ 2D-Anlage links</div>
                     </div>
                 </div>
+                <button onclick="startTutorial()" class="btn-export" style="background-color: #5c6bc0; box-shadow: none;" title="Interaktive Schritt-für-Schritt-Tour">🎓 Tour</button>
                 <div class="info-hover-wrapper">
                     <button class="btn-export" style="background-color: #17a2b8; cursor: help;" data-i18n="btn_info">ℹ️ Info</button>
                     <div class="info-hover-content" data-i18n="info_text">
@@ -860,10 +916,12 @@
                 <button id="btn-toggle-sim" class="btn-export" style="background-color: #e6194B;" onclick="toggleSimulation()" data-i18n="btn_sim_start">Simulation starten</button>
                 <button id="btn-toggle-sound" class="btn-export" style="background-color: #555;" onclick="toggleSound()" data-i18n="sound_off">🔇 Ton: AUS</button>
                 <div class="tb-dropdown">
-                    <button class="btn-export" style="background-color: #607d8b; cursor: pointer;" data-i18n="btn_extras">🛠️ Extras ▼</button>
+                    <button id="btn-extras" class="btn-export" style="background-color: #607d8b; cursor: pointer;" data-i18n="btn_extras">🛠️ Extras ▼</button>
                     <div class="tb-dropdown-content" style="right: 0; left: auto; min-width: 240px; text-align: left;">
                         <div onclick="openAnalyzerModal()" data-i18n="extra_osc">📊 Oszilloskop öffnen</div>
-                        <div onclick="exportSVG()" data-i18n="extra_svg">📸 Ansicht als SVG speichern</div>
+                        <div onclick="exportSVG('fbs')" data-i18n="extra_svg">📸 Logikplan als SVG speichern</div>
+                        <div onclick="exportSVG('iec')">📸 Schaltplan als SVG speichern</div>
+                        <div onclick="openPdfExportModal()">📄 Als PDF exportieren</div>
                         <div style="border-top: 1px solid #555; margin: 2px 0;"></div>
                         <div onclick="detachPanel('fbs-wrapper', 'Logikplan')" data-i18n="extra_detach_fbs">⏏️ Logikplan abkoppeln (Multi-Screen)</div>
                         <div onclick="detachPanel('circuit-wrapper', 'Schaltplan')" data-i18n="extra_detach_iec">⏏️ Schaltplan abkoppeln (Multi-Screen)</div>
@@ -1120,10 +1178,36 @@
                 <div id="factory-canvas-area">
                     <div id="factory-content"></div>
                 </div>
+                <!-- Minimap (innerhalb factory-wrapper, nicht canvas-area, damit kein Mitscrollen) -->
+                <div id="factory-minimap" style="display:none;">
+                    <canvas id="minimap-canvas" width="200" height="150" style="display:block;width:100%;height:100%;cursor:crosshair;"></canvas>
+                    <div style="position:absolute;top:2px;left:5px;color:#607d8b;font-size:9px;pointer-events:none;font-weight:bold;">MINIMAP</div>
+                    <div onclick="toggleMinimap()" style="position:absolute;top:1px;right:4px;color:#aaa;font-size:11px;cursor:pointer;padding:1px 4px;line-height:1.4;" title="Schließen">✕</div>
+                </div>
+                <!-- Aufklappbare Seitenleiste rechts -->
+                <div id="factory-sidebar">
+                    <div id="factory-sidebar-tab" onclick="toggleFactorySidebar()" title="Optionen">
+                        <span style="writing-mode:vertical-rl;color:#90a4ae;font-size:8px;letter-spacing:1px;user-select:none;">EXTRAS</span>
+                        <span id="sidebar-arrow" style="color:#607d8b;font-size:11px;">▶</span>
+                    </div>
+                    <div id="factory-sidebar-content">
+                        <div style="color:#ccc;font-size:11px;font-weight:bold;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #444;">⚙️ Extras</div>
+                        <!-- Snap to Grid -->
+                        <div style="margin-bottom:14px;">
+                            <div style="color:#90a4ae;font-size:10px;margin-bottom:6px;font-weight:bold;">🧲 Snap-to-Grid</div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <button id="btn-snap" onclick="toggleSnap()" style="min-width:38px;background:#455a64;font-size:11px;padding:3px 8px;border-radius:3px;border:1px solid #666;color:#fff;cursor:pointer;">Aus</button>
+                                <input id="inp-snap-size" type="number" min="5" max="200" step="5" value="20" onchange="setGridSize(this.value)" style="width:50px;background:#1e1e1e;color:#ddd;border:1px solid #555;border-radius:3px;font-size:11px;padding:3px 5px;text-align:center;">
+                                <span style="color:#aaa;font-size:11px;">px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="factory-zoom-controls">
                     <button onclick="factoryZoomIn()" title="Vergrößern">+</button>
                     <button onclick="factoryZoomOut()" title="Verkleinern">−</button>
-                    <button onclick="factoryZoomReset()" title="Ansicht zurücksetzen" style="font-size: 12px;">🏠</button>
+                    <button onclick="factoryZoomReset()" title="Ansicht zurücksetzen" style="font-size:12px;">🏠</button>
+                    <button id="btn-minimap-toggle" onclick="toggleMinimap()" title="Minimap ein/ausblenden" style="font-size:14px;background:#37474f;color:#ccc;border-color:#555;">🗺</button>
                 </div>
             </div>
         </div>
@@ -1231,7 +1315,38 @@
             <div id="plugin-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;">
             </div>
         </div>
-		<div id="analyzer-modal" style="display: none; position: fixed; top: 10vh; left: 10vw; background: #2d2d30; padding: 15px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.9); z-index: 3000; width: 80vw; min-width: 400px; height: 75vh; min-height: 300px; flex-direction: column; resize: both; overflow: hidden;">
+        <!-- PDF Export Modal -->
+        <div id="pdf-export-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#2d2d30;padding:24px;border:1px solid #444;border-radius:6px;box-shadow:0 4px 30px rgba(0,0,0,0.9);z-index:4000;width:380px;color:#ccc;font-family:'Segoe UI',sans-serif;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #555;padding-bottom:12px;">
+                <h3 style="margin:0;color:#fff;font-size:15px;">📄 PDF exportieren</h3>
+                <button onclick="closePdfExportModal()" style="background:#555;color:#fff;border:none;padding:3px 10px;border-radius:3px;cursor:pointer;font-size:13px;">✕</button>
+            </div>
+            <div style="margin-bottom:14px;font-size:12px;color:#90a4ae;">Wähle die Inhalte für den PDF-Export:</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="pdf-chk-code" checked style="width:15px;height:15px;cursor:pointer;"> 💻 ST-Code (Editor)
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="pdf-chk-io" checked style="width:15px;height:15px;cursor:pointer;"> 🔌 Eingangs- / Ausgangskonfiguration
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="pdf-chk-fbs" checked style="width:15px;height:15px;cursor:pointer;"> 🧩 Logikplan (FBS)
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="pdf-chk-iec" checked style="width:15px;height:15px;cursor:pointer;"> ⚡ Schaltplan (IEC)
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                    <input type="checkbox" id="pdf-chk-factory" checked style="width:15px;height:15px;cursor:pointer;"> 🏭 2D-Anlage (Fabrik)
+                </label>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button onclick="closePdfExportModal()" style="background:#455a64;color:#fff;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-size:13px;">Abbrechen</button>
+                <button onclick="generatePdf()" style="background:#1565c0;color:#fff;border:none;padding:7px 18px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">🖨️ PDF generieren</button>
+            </div>
+        </div>
+
+
+		<div id="analyzer-modal" style="display:none;position:fixed;top:10vh;left:10vw; background: #2d2d30; padding: 15px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.9); z-index: 3000; width: 80vw; min-width: 400px; height: 75vh; min-height: 300px; flex-direction: column; resize: both; overflow: hidden;">
             <div id="analyzer-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px; cursor: move; user-select: none;">
                 <h3 style="margin:0; color:#fff; pointer-events: none;">📊 Logik-Analysator (Oszilloskop)</h3>
                 <button onclick="closeAnalyzerModal()" style="background: #e6194B; color: white; border: none; padding: 4px 12px; border-radius: 3px; cursor: pointer; font-weight: bold;">Schließen</button>
@@ -2429,8 +2544,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (draggedElement) {
                 let canvasRect = factoryCanvas.getBoundingClientRect();
                 // FIX: Skalierung einrechnen
-                let newX = (e.clientX - canvasRect.left) / factoryScale - offsetX; 
-                let newY = (e.clientY - canvasRect.top) / factoryScale - offsetY;
+                let newX = snapVal((e.clientX - canvasRect.left) / factoryScale - offsetX);
+                let newY = snapVal((e.clientY - canvasRect.top) / factoryScale - offsetY);
                 let dx = newX - draggedElement.data.dragStartX; 
                 let dy = newY - draggedElement.data.dragStartY;
                 if (selectedElements.length > 0) {
@@ -5346,33 +5461,247 @@ You must output exactly this JSON format. The logic code goes as a single string
                 console.warn("Warte auf korrekte Syntax...", e);
             }
         }
-        function exportSVG() {
-            const targetSvg = currentView === 'FBS' ? customSvg : circuitSvg;
+        function exportSVG(which) {
+            const isIec = which === 'iec';
+            const targetSvg = isIec ? circuitSvg : customSvg;
             const clone = targetSvg.cloneNode(true);
+            clone.querySelectorAll('[id^="svg-pan-zoom"]').forEach(e => e.remove());
             const viewport = clone.querySelector('.svg-pan-zoom_viewport');
             if (viewport) viewport.removeAttribute('transform');
-            // NEU: Wir betten die nötigen CSS-Klassen direkt in die exportierte SVG-Datei ein!
-            // Dadurch wissen externe Programme, dass Pfade nicht schwarz ausgemalt werden dürfen.
             const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
-            styleElement.textContent = `
-                .fbs-block { fill: #ffffff; stroke-width: 2.5px; }
-                .fbs-text { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; fill: #000000; font-weight: bold; }
-                .fbs-pin-text { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px; fill: #555555; }
-                .fbs-line-halo { fill: none; stroke: #ffffff; stroke-width: 7px; stroke-linejoin: round; stroke-linecap: round; }
-                .fbs-line { fill: none; stroke-width: 2.5px; stroke-linejoin: round; stroke-linecap: round; }
-                .fbs-io-box { fill: #f0f0f0; stroke-width: 2px; }
-                .fbs-bubble { fill: #ffffff; stroke-width: 2px; }
-                text { font-family: 'Segoe UI', Tahoma, sans-serif; }
-            `;
+            if (!isIec) {
+                styleElement.textContent = `
+                    .fbs-block { fill: #ffffff; stroke-width: 2.5px; }
+                    .fbs-text { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 13px; fill: #000000; font-weight: bold; }
+                    .fbs-pin-text { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px; fill: #555555; }
+                    .fbs-line-halo { fill: none; stroke: #ffffff; stroke-width: 7px; stroke-linejoin: round; stroke-linecap: round; }
+                    .fbs-line { fill: none; stroke-width: 2.5px; stroke-linejoin: round; stroke-linecap: round; }
+                    .fbs-io-box { fill: #f0f0f0; stroke-width: 2px; }
+                    .fbs-bubble { fill: #ffffff; stroke-width: 2px; }
+                    text { font-family: 'Segoe UI', Tahoma, sans-serif; }
+                `;
+            } else {
+                // Bake contact resting-state rotations as SVG attribute transforms.
+                // getBBox() on the live elements gives us the correct pivot coordinates,
+                // avoiding CSS transform-box / transform-origin issues in standalone SVG.
+                _bakeContactTransforms(targetSvg, clone);
+                styleElement.textContent = `
+                    text { font-family: 'Segoe UI', Tahoma, sans-serif; fill: #222; }
+                    .circ-component { fill: #fff; stroke: #333; stroke-width: 1.5px; }
+                    .circ-wire { fill: none; stroke: #333; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; }
+                    .circ-static { fill: none; stroke: #333; stroke-width: 1.5px; }
+                    .circ-moving-contact { fill: none; stroke: #333; stroke-width: 1.5px; }
+                    rect, line, path, polyline, circle { stroke-linecap: round; stroke-linejoin: round; }
+                `;
+            }
             clone.insertBefore(styleElement, clone.firstChild);
             const serializer = new XMLSerializer();
             let source = serializer.serializeToString(clone);
             if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
             source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
             const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-            const downloadLink = document.createElement("a"); downloadLink.href = url; downloadLink.download = currentView === 'FBS' ? "logikplan-fbs.svg" : "schaltplan-iec.svg";
+            const downloadLink = document.createElement("a"); downloadLink.href = url; downloadLink.download = isIec ? "schaltplan-iec.svg" : "logikplan-fbs.svg";
             document.body.appendChild(downloadLink); downloadLink.click(); document.body.removeChild(downloadLink);
         }
+        // ==========================================
+        // PDF EXPORT
+        // ==========================================
+        window.openPdfExportModal = function() {
+            document.getElementById('pdf-export-modal').style.display = 'block';
+        };
+        window.closePdfExportModal = function() {
+            document.getElementById('pdf-export-modal').style.display = 'none';
+        };
+        // Bake resting-state transforms for IEC contacts into SVG attribute transforms.
+        // NO (Schließer) rest = visually OPEN  = -25° (same as .is-no.open in CSS)
+        // NC (Öffner)    rest = visually CLOSED = +15° (same as .is-nc in CSS)
+        // CSS uses transform-origin: center bottom for NC, center center for NO.
+        // The circuit renderer writes the exact pivot as inline style:
+        //   movingGroup.style.transformOrigin = `${x}px ${y+15}px`
+        // Read it directly — no getBBox guessing needed.
+        // NO (Schließer) rest = visually OPEN  = –25°
+        // NC (Öffner)    rest = visually CLOSED = +15°
+        function _bakeContactTransforms(liveSvg, cloneSvg) {
+            const live   = Array.from(liveSvg.querySelectorAll('.circ-moving-contact'));
+            const cloned = Array.from(cloneSvg.querySelectorAll('.circ-moving-contact'));
+            live.forEach((orig, i) => {
+                const cl = cloned[i];
+                if (!cl) return;
+                cl.classList.remove('open');
+                cl.removeAttribute('transform');
+                const origin = orig.style.transformOrigin; // "150px 230px"
+                const m = origin && origin.match(/([\d.]+)px\s+([\d.]+)px/);
+                const isNc = cl.classList.contains('is-nc');
+                if (m) {
+                    cl.setAttribute('transform',
+                        `rotate(${isNc ? 15 : -25}, ${m[1]}, ${m[2]})`);
+                }
+                cl.removeAttribute('style'); // strip after extracting pivot
+            });
+        }
+
+        // Returns an <img> element (data URL) for embedding a diagram in the PDF window.
+        // The SVG is sized to its full content bounds (via getBBox). The <img> is responsive
+        // (width:100%; height:auto) so it fills whatever container it's placed in.
+        function _svgToDataUrlImg(svgEl, cssText, isIec) {
+            // If the panel is hidden, getBBox() returns 0 – temporarily show it to get real bounds.
+            const wrapper = svgEl.closest('[id$="-wrapper"]');
+            const wasHidden = wrapper && wrapper.style.display === 'none';
+            if (wasHidden) wrapper.style.display = 'flex';
+
+            const clone  = svgEl.cloneNode(true);
+            // Remove svg-pan-zoom UI controls (buttons, overlay) from the exported image
+            clone.querySelectorAll('[id^="svg-pan-zoom"]').forEach(e => e.remove());
+            const liveVp  = svgEl.querySelector('.svg-pan-zoom_viewport');
+            const cloneVp = clone.querySelector('.svg-pan-zoom_viewport');
+            let vbX = 0, vbY = 0, vbW = 800, vbH = 600;
+            let gotBBox = false;
+            if (liveVp) {
+                try {
+                    const bb = liveVp.getBBox();
+                    if (bb.width > 10 && bb.height > 10) {
+                        const p = 40;
+                        vbX = bb.x - p; vbY = bb.y - p;
+                        vbW = bb.width  + p * 2;
+                        vbH = bb.height + p * 2;
+                        if (cloneVp) cloneVp.removeAttribute('transform');
+                        gotBBox = true;
+                    }
+                } catch (e) {}
+            }
+            // Restore hidden state before any returns
+            if (wasHidden) wrapper.style.display = 'none';
+
+            if (!gotBBox) {
+                vbW = svgEl.clientWidth  || 800;
+                vbH = svgEl.clientHeight || 600;
+            }
+            // Set intrinsic dimensions equal to viewBox (browser uses these for height:auto ratio)
+            clone.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+            clone.setAttribute('width',  vbW);
+            clone.setAttribute('height', vbH);
+            clone.removeAttribute('style');
+            if (isIec) _bakeContactTransforms(svgEl, clone);
+            if (cssText) {
+                const s = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+                s.textContent = cssText;
+                clone.insertBefore(s, clone.firstChild);
+            }
+            const ser = new XMLSerializer();
+            let str = ser.serializeToString(clone);
+            if (!str.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/))
+                str = str.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+            return `<img src="${dataUrl}" style="width:100%;height:auto;display:block;">`;
+        }
+        window.generatePdf = function() {
+            const inclCode    = document.getElementById('pdf-chk-code').checked;
+            const inclIO      = document.getElementById('pdf-chk-io').checked;
+            const inclFbs     = document.getElementById('pdf-chk-fbs').checked;
+            const inclIec     = document.getElementById('pdf-chk-iec').checked;
+            const inclFactory = document.getElementById('pdf-chk-factory').checked;
+            const printCSS = `
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body { font-family: 'Segoe UI', Tahoma, sans-serif; color: #000 !important; background: #fff !important; margin: 16px; }
+                h1 { font-size: 20px; margin: 0 0 4px; }
+                h2 { font-size: 15px; margin: 20px 0 6px; border-bottom: 2px solid #333; padding-bottom: 4px; page-break-after: avoid; }
+                .pdf-meta { font-size: 11px; color: #666; margin-bottom: 16px; }
+                .pdf-section { page-break-inside: avoid; margin-bottom: 24px; }
+                pre { background: #f5f5f5; border: 1px solid #ccc; padding: 10px; font-size: 11px; white-space: pre-wrap; word-break: break-all; border-radius: 3px; }
+                table { border-collapse: collapse; width: 100%; font-size: 12px; margin-bottom: 12px; }
+                th { background: #e0e0e0; border: 1px solid #bbb; padding: 5px 8px; text-align: left; }
+                td { border: 1px solid #bbb; padding: 4px 8px; }
+                svg { max-width: 100%; height: auto; display: block; }
+                img { max-width: 100%; height: auto; border: 1px solid #ccc; display: block; }
+                code { font-family: monospace; font-size: 12px; }
+            `;
+            let html = `<h1 style="margin-bottom:2px;">VALIS – Projektdokumentation</h1>
+                <div class="pdf-meta">Exportiert am ${new Date().toLocaleString('de-DE')} &nbsp;|&nbsp; ${document.title}</div>`;
+
+            if (inclCode) {
+                const code = document.getElementById('code') ? document.getElementById('code').value : '';
+                html += `<div class="pdf-section"><h2>💻 ST-Code</h2><pre>${code.replace(/</g,'&lt;').replace(/>/g,'&gt;') || '(leer)'}</pre></div>`;
+            }
+
+            if (inclIO) {
+                let ioHtml = '';
+                if (globalInputs.length > 0 || globalOutputs.length > 0) {
+                    ioHtml = '<table><tr><th>Typ</th><th>Variable</th></tr>';
+                    globalInputs.forEach(v  => { ioHtml += `<tr><td>Eingang (Input)</td><td><code>${v}</code></td></tr>`; });
+                    globalOutputs.forEach(v => { ioHtml += `<tr><td>Ausgang (Output)</td><td><code>${v}</code></td></tr>`; });
+                    ioHtml += '</table>';
+                } else {
+                    ioHtml = '<p style="color:#888;font-size:12px;">Keine I/O-Konfiguration erkannt. Bitte Simulation einmal starten.</p>';
+                }
+                html += `<div class="pdf-section"><h2>🔌 Eingangs- / Ausgangskonfiguration</h2>${ioHtml}</div>`;
+            }
+
+            const fbsCss = `
+                .fbs-block { fill: #ffffff; stroke-width: 2.5px; }
+                .fbs-text { font-family:'Segoe UI',Tahoma,sans-serif; font-size:13px; fill:#000; font-weight:bold; }
+                .fbs-pin-text { font-family:'Segoe UI',Tahoma,sans-serif; font-size:10px; fill:#555; }
+                .fbs-line-halo { display:none; }
+                .fbs-line { fill:none; stroke-width:2.5px; stroke-linejoin:round; stroke-linecap:round; }
+                .fbs-io-box { fill:#f0f0f0; stroke-width:2px; }
+                .fbs-bubble { fill:#fff; stroke-width:2px; }
+                text { font-family:'Segoe UI',Tahoma,sans-serif; }
+            `;
+            const iecCss = `
+                text { font-family:'Segoe UI',Tahoma,sans-serif; fill:#222; }
+                .circ-component { fill:#fff; stroke:#333; stroke-width:1.5px; }
+                .circ-wire { fill:none; stroke:#333; stroke-width:2px; stroke-linecap:round; stroke-linejoin:round; }
+                .circ-static { fill:none; stroke:#333; stroke-width:1.5px; }
+                .circ-moving-contact { fill:none; stroke:#333; stroke-width:1.5px; }
+                rect,line,path,polyline,circle { stroke-linecap:round; stroke-linejoin:round; }
+            `;
+
+            if (inclFbs) {
+                html += `<div class="pdf-section"><h2>🧩 Logikplan (FBS)</h2><div style="border:1px solid #ddd;width:100%;box-sizing:border-box;">${_svgToDataUrlImg(customSvg, fbsCss, false)}</div></div>`;
+            }
+
+            if (inclIec) {
+                html += `<div class="pdf-section"><h2>⚡ Schaltplan (IEC)</h2><div style="border:1px solid #ddd;width:100%;box-sizing:border-box;">${_svgToDataUrlImg(circuitSvg, iecCss, true)}</div></div>`;
+            }
+
+            if (inclFactory) {
+                try {
+                    const factoryEl = document.getElementById('factory-content');
+                    // Extract factory CSS section using markers (captures all factory rules including
+                    // non-f2d-prefixed classes like .active, .energized, @keyframes, etc.)
+                    const rawCss = (document.querySelector('style') || {}).textContent || '';
+                    const f2dMatch = rawCss.match(/\/\* F2D-CSS-START \*\/([\s\S]*?)\/\* F2D-CSS-END \*\//);
+                    const f2dCss = f2dMatch ? f2dMatch[1] : '';
+                    const pad = 40;
+                    const minX = factoryObjects.length ? Math.min(...factoryObjects.map(o => o.x)) - pad : 0;
+                    const minY = factoryObjects.length ? Math.min(...factoryObjects.map(o => o.y)) - pad : 0;
+                    const maxX = factoryObjects.length ? Math.max(...factoryObjects.map(o => o.x + (o.width  || 60))) + pad : 800;
+                    const maxY = factoryObjects.length ? Math.max(...factoryObjects.map(o => o.y + (o.height || o.width || 60))) + pad : 600;
+                    const fW = maxX - minX, fH = maxY - minY;
+                    const printW = 740, printH = 480;
+                    const sc = Math.min(printW / fW, printH / fH);
+                    // Clone factory HTML – strip workpieces (simulation state) and reset zoom
+                    const cloneEl = factoryEl.cloneNode(true);
+                    cloneEl.querySelectorAll('.f2d-item, .f2d-lock-badge').forEach(e => e.remove());
+                    cloneEl.style.transform = '';
+                    html += `<div class="pdf-section"><h2>🏭 2D-Anlage</h2>
+                        <style>${f2dCss.replace(/<\/style>/gi, '')}</style>
+                        <div style="width:${printW}px;height:${printH}px;overflow:hidden;position:relative;border:1px solid #ccc;">
+                            <div style="position:absolute;left:0;top:0;transform:scale(${sc}) translate(${-minX}px,${-minY}px);transform-origin:0 0;width:4000px;height:3000px;">
+                                ${cloneEl.innerHTML}
+                            </div>
+                        </div></div>`;
+                } catch(e) {
+                    html += `<div class="pdf-section"><h2>🏭 2D-Anlage</h2><p>Fehler: ${e.message}</p></div>`;
+                }
+            }
+
+            closePdfExportModal();
+            const pw = window.open('', '_blank');
+            pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>VALIS PDF Export</title><style>${printCSS}</style></head><body>${html}</body></html>`);
+            pw.document.close();
+            pw.focus();
+            setTimeout(() => { pw.print(); }, 400);
+        };
 		// ==========================================
         // 2D FACTORY ENGINE (PHYSIK & LOGIK-BINDING)
         // ==========================================
@@ -5403,6 +5732,93 @@ You must output exactly this JSON format. The logic code goes as a single string
         });
 		// --- 2D KAMERA ZOOM ---
         let factoryScale = 1.0;
+        let snapToGrid = false;
+        let gridSize = 20;
+        function snapVal(v) { return snapToGrid ? Math.round(v / gridSize) * gridSize : v; }
+        function updateGridBackground() {
+            factoryCanvas.style.backgroundSize = `${snapToGrid ? gridSize : 20}px ${snapToGrid ? gridSize : 20}px`;
+        }
+        window.toggleSnap = function() {
+            snapToGrid = !snapToGrid;
+            const btn = document.getElementById('btn-snap');
+            if (btn) { btn.style.background = snapToGrid ? '#1565c0' : '#455a64'; btn.textContent = snapToGrid ? 'Ein' : 'Aus'; }
+            updateGridBackground();
+        };
+        // --- Minimap ---
+        let minimapVisible = false;
+        let _minimapFrame = 0;
+        window.toggleMinimap = function() {
+            minimapVisible = !minimapVisible;
+            document.getElementById('factory-minimap').style.display = minimapVisible ? 'block' : 'none';
+            const btn = document.getElementById('btn-minimap-toggle');
+            if (btn) { btn.style.background = minimapVisible ? '#1565c0' : '#37474f'; btn.style.color = minimapVisible ? '#fff' : '#ccc'; }
+            if (minimapVisible) renderMinimap();
+        };
+        window.toggleFactorySidebar = function() {
+            const sidebar = document.getElementById('factory-sidebar');
+            const arrow = document.getElementById('sidebar-arrow');
+            sidebar.classList.toggle('open');
+            document.getElementById('factory-wrapper').classList.toggle('sidebar-open');
+            if (arrow) arrow.textContent = sidebar.classList.contains('open') ? '◀' : '▶';
+        };
+        function renderMinimap() {
+            if (!minimapVisible) return;
+            const canvas = document.getElementById('minimap-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const FW = 4000, FH = 3000, sx = W / FW, sy = H / FH;
+            ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, W, H);
+            // Dot grid
+            ctx.fillStyle = 'rgba(176,190,197,0.15)';
+            for (let gx = 0; gx < W; gx += 20*sx*5) for (let gy = 0; gy < H; gy += 20*sy*5) { ctx.beginPath(); ctx.arc(gx, gy, 0.7, 0, Math.PI*2); ctx.fill(); }
+            // Objects
+            const mmColors = { conveyor:'#607d8b', taster:'#4caf50', taster_nc:'#ef5350', nothalt:'#ef5350', sensor_ind:'#ffc107', sensor_opt:'#ff9800', sensor_mag:'#ce93d8', sensor_kap:'#ffb300', led:'#fff176', relais:'#ba68c8', motor:'#42a5f5', valve:'#ff9800', wall:'#546e7a', frame:'#546e7a', spawner_metall:'#90a4ae', spawner_kunststoff:'#ff7043', despawner:'#795548', zylinder_single:'#b0bec5', zylinder_double:'#b0bec5' };
+            factoryObjects.forEach(o => {
+                const c = (ComponentRegistry[o.type] && ComponentRegistry[o.type].color) || mmColors[o.type] || '#888';
+                ctx.fillStyle = c;
+                const w = Math.max(3, o.width * sx), h = Math.max(3, (o.height || o.width) * sy);
+                ctx.fillRect(o.x * sx, o.y * sy, w, h);
+            });
+            // Items (Werkstücke)
+            ctx.fillStyle = '#90caf9';
+            factoryItems.forEach(i => { ctx.beginPath(); ctx.arc(i.x * sx, i.y * sy, 2.5, 0, Math.PI*2); ctx.fill(); });
+            // Viewport rectangle
+            const vx = factoryScrollArea.scrollLeft / factoryScale * sx;
+            const vy = factoryScrollArea.scrollTop  / factoryScale * sy;
+            const vw = factoryScrollArea.clientWidth  / factoryScale * sx;
+            const vh = factoryScrollArea.clientHeight / factoryScale * sy;
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+            ctx.strokeRect(Math.max(0,vx), Math.max(0,vy), Math.min(vw, W-vx), Math.min(vh, H-vy));
+        }
+        document.getElementById('minimap-canvas').addEventListener('click', (e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            const fx = (e.clientX - r.left) / r.width * 4000;
+            const fy = (e.clientY - r.top)  / r.height * 3000;
+            factoryScrollArea.scrollLeft = fx * factoryScale - factoryScrollArea.clientWidth  / 2;
+            factoryScrollArea.scrollTop  = fy * factoryScale - factoryScrollArea.clientHeight / 2;
+        });
+        // --- Zoom to Selection ---
+        window.zoomToSelection = function() {
+            if (selectedElements.length === 0) return;
+            const pad = 60;
+            const minX = Math.min(...selectedElements.map(o => o.x)) - pad;
+            const minY = Math.min(...selectedElements.map(o => o.y)) - pad;
+            const maxX = Math.max(...selectedElements.map(o => o.x + o.width)) + pad;
+            const maxY = Math.max(...selectedElements.map(o => o.y + (o.height || o.width))) + pad;
+            const selW = maxX - minX, selH = maxY - minY;
+            const areaW = factoryScrollArea.clientWidth, areaH = factoryScrollArea.clientHeight;
+            factoryScale = Math.min(3.0, Math.max(0.2, Math.min(areaW / selW, areaH / selH)));
+            factoryCanvas.style.transform = `scale(${factoryScale})`;
+            factoryScrollArea.scrollLeft = minX * factoryScale - (areaW - selW * factoryScale) / 2;
+            factoryScrollArea.scrollTop  = minY * factoryScale - (areaH - selH * factoryScale) / 2;
+        };
+        window.setGridSize = function(val) {
+            gridSize = Math.max(5, Math.min(200, parseInt(val) || 20));
+            const inp = document.getElementById('inp-snap-size');
+            if (inp) inp.value = gridSize;
+            updateGridBackground();
+        };
         // --- NEU: Manuelle Zoom-Buttons ---
         window.factoryZoomIn = function() {
             factoryScale = Math.min(3.0, factoryScale * 1.2); // 20% reinzoomen
@@ -5468,9 +5884,13 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (e.touches.length === 0) isPanActive = false;
         });
         const ctxMenu = document.getElementById('factory-context-menu');
-        let factoryObjects = []; 
-        let factoryItems = [];   
+        let factoryObjects = [];
+        let factoryItems = [];
         let engineRunning = false;
+        let factoryHistory = [];
+        let historyIndex = -1;
+        let isApplyingHistory = false;
+        const HISTORY_MAX = 50;
         let draggedElement = null;
         let resizingElement = null;
         let resizingElementXY = null; 
@@ -6972,10 +7392,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                     selectedElements.push(dragTarget);
                     dragTarget.el.classList.add('f2d-selected');
                 }
+                if (dragTarget.locked) return; // Gesperrte Objekte nicht ziehen
                 draggedElement = { el: dragTarget.el, data: dragTarget };
-                let canvasRect = factoryCanvas.getBoundingClientRect(); 
+                let canvasRect = factoryCanvas.getBoundingClientRect();
                 // FIX: Verschiebe-Maus-Offset an den Zoom anpassen!
-                offsetX = (e.clientX - canvasRect.left) / factoryScale - dragTarget.x; 
+                offsetX = (e.clientX - canvasRect.left) / factoryScale - dragTarget.x;
                 offsetY = (e.clientY - canvasRect.top) / factoryScale - dragTarget.y;
                 // Start-Koordinaten aller selektierten Objekte für das Group-Dragging merken
                 selectedElements.forEach(sel => {
@@ -7078,6 +7499,57 @@ You must output exactly this JSON format. The logic code goes as a single string
                 infoBox.innerHTML += `<br><br><span style="color:#007acc;font-weight:bold;">📦 ${window.t('ctx_fac_group')} (${selectedElements.length} ${window.t('ctx_fac_objects')})</span>`;
             }
             ctxMenu.appendChild(infoBox);
+            // --- Ausrichten & Verteilen (nur bei Mehrfachauswahl) ---
+            if (selectedElements.includes(obj) && selectedElements.length > 1) {
+                const getH = o => o.height || o.width;
+                const topLevel = () => selectedElements.filter(s => !s.parent || !selectedElements.includes(s.parent));
+                const applyAlign = (fn) => { fn(topLevel()); topLevel().forEach(o => updateObjTransform(o)); saveFactoryState(); ctxMenu.style.display = 'none'; };
+                let sep = document.createElement('div'); sep.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sep);
+                let label = document.createElement('div'); label.style.cssText = 'padding:3px 15px 2px;color:#aaa;font-size:10px;'; label.textContent = '⬡ Ausrichten'; ctxMenu.appendChild(label);
+                const alignBtns = [
+                    ['⬅ Links',    os => { const m=Math.min(...os.map(o=>o.x));       os.forEach(o=>{o.x=m;}); }],
+                    ['➡ Rechts',   os => { const m=Math.max(...os.map(o=>o.x+o.width)); os.forEach(o=>{o.x=m-o.width;}); }],
+                    ['⬆ Oben',     os => { const m=Math.min(...os.map(o=>o.y));       os.forEach(o=>{o.y=m;}); }],
+                    ['⬇ Unten',    os => { const m=Math.max(...os.map(o=>o.y+getH(o))); os.forEach(o=>{o.y=m-getH(o);}); }],
+                    ['↔ Mittig H', os => { const cx=(Math.min(...os.map(o=>o.x))+Math.max(...os.map(o=>o.x+o.width)))/2; os.forEach(o=>{o.x=cx-o.width/2;}); }],
+                    ['↕ Mittig V', os => { const cy=(Math.min(...os.map(o=>o.y))+Math.max(...os.map(o=>o.y+getH(o))))/2; os.forEach(o=>{o.y=cy-getH(o)/2;}); }],
+                ];
+                let grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px 8px 4px;';
+                alignBtns.forEach(([txt, fn]) => {
+                    let b = document.createElement('div'); b.className = 'ctx-item'; b.style.cssText = 'font-size:11px;padding:4px 6px;text-align:center;';
+                    b.textContent = txt; b.onclick = () => applyAlign(fn); grid.appendChild(b);
+                });
+                ctxMenu.appendChild(grid);
+                let label2 = document.createElement('div'); label2.style.cssText = 'padding:3px 15px 2px;color:#aaa;font-size:10px;'; label2.textContent = '⇔ Verteilen'; ctxMenu.appendChild(label2);
+                const distBtns = [
+                    ['↔ Horizontal', os => {
+                        os.sort((a,b)=>a.x-b.x);
+                        if (os.length < 3) return;
+                        const span = os[os.length-1].x + os[os.length-1].width - os[0].x;
+                        const gap = (span - os.reduce((s,o)=>s+o.width,0)) / (os.length-1);
+                        let cx = os[0].x + os[0].width;
+                        for (let i=1;i<os.length-1;i++) { os[i].x=cx+gap; cx=os[i].x+os[i].width; }
+                    }],
+                    ['↕ Vertikal', os => {
+                        os.sort((a,b)=>a.y-b.y);
+                        if (os.length < 3) return;
+                        const span = os[os.length-1].y + getH(os[os.length-1]) - os[0].y;
+                        const gap = (span - os.reduce((s,o)=>s+getH(o),0)) / (os.length-1);
+                        let cy = os[0].y + getH(os[0]);
+                        for (let i=1;i<os.length-1;i++) { os[i].y=cy+gap; cy=os[i].y+getH(os[i]); }
+                    }],
+                ];
+                let grid2 = document.createElement('div'); grid2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px 8px 6px;';
+                distBtns.forEach(([txt, fn]) => {
+                    let b = document.createElement('div'); b.className = 'ctx-item'; b.style.cssText = 'font-size:11px;padding:4px 6px;text-align:center;';
+                    b.textContent = txt; b.onclick = () => applyAlign(fn); grid2.appendChild(b);
+                });
+                ctxMenu.appendChild(grid2);
+                let btnZoom = document.createElement('div'); btnZoom.className = 'ctx-item'; btnZoom.style.cssText = 'font-size:11px;padding:5px 15px;';
+                btnZoom.textContent = '🔍 Auf Auswahl zoomen';
+                btnZoom.onclick = () => { zoomToSelection(); ctxMenu.style.display = 'none'; };
+                ctxMenu.appendChild(btnZoom);
+            }
             if (!selectedElements.includes(obj) || selectedElements.length === 1) {
                 const addVarSelect = (label, currentVal, listType, varProp) => {
                     let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
@@ -7162,6 +7634,26 @@ You must output exactly this JSON format. The logic code goes as a single string
                     saveFactoryState(); 
                 }; 
                 ctxMenu.appendChild(btnRot);
+            }
+            {
+                const isMultiSel = selectedElements.includes(obj) && selectedElements.length > 1;
+                const targets = isMultiSel ? selectedElements : [obj];
+                const allLocked = targets.every(o => o.locked);
+                let btnLock = document.createElement('div'); btnLock.className = 'ctx-item';
+                btnLock.textContent = allLocked ? '🔓 Entsperren' : '🔒 Sperren';
+                btnLock.onclick = () => {
+                    const newState = !allLocked;
+                    targets.forEach(o => {
+                        o.locked = newState;
+                        o.el.classList.toggle('f2d-locked', newState);
+                        if (newState) {
+                            if (!o.lockBadge) { let b = document.createElement('div'); b.className = 'f2d-lock-badge'; b.textContent = '🔒'; o.el.appendChild(b); o.lockBadge = b; }
+                            o.lockBadge.style.display = '';
+                        } else if (o.lockBadge) { o.lockBadge.style.display = 'none'; }
+                    });
+                    saveFactoryState();
+                };
+                ctxMenu.appendChild(btnLock);
             }
             if (obj.labelEl) {
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
@@ -7912,6 +8404,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (typeof window.drawPneumaticHoses === 'function') {
                 window.drawPneumaticHoses();
             }
+            if (++_minimapFrame % 6 === 0) renderMinimap(); // ~10fps Minimap-Update
             requestAnimationFrame(factoryLoop);
         }
         window.clearFactory = function(force = false) {
@@ -7951,6 +8444,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             // 2. WICHTIG: Wenn der User im Code-Editor oder einem Textfeld tippt, alles ignorieren!
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+            // 2b. Undo / Redo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoFactory(); return; }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoFactory(); return; }
             // 3. Simulations-Steuerung
             if (isSimulationActive) {
                 let key = e.key.toLowerCase();
@@ -8097,14 +8593,35 @@ You must output exactly this JSON format. The logic code goes as a single string
                     hasPneumatics: o.hasPneumatics, targetCylinderId: o.targetCylinderId, role: o.role, isDouble: o.isDouble,
                     // 🌟 FIX: parentId und attachmentType MÜSSEN gespeichert werden, sonst fällt der Stempel ab!
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType, normLabel: o.normLabel, originalLabelText: o.originalLabelText,
-                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound,
+                    color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound, locked: o.locked || false,
 					linkedVarX_Plus: o.linkedVarX_Plus, linkedVarX_Minus: o.linkedVarX_Minus, linkedVarY_Plus: o.linkedVarY_Plus, linkedVarY_Minus: o.linkedVarY_Minus, linkedVarGrab: o.linkedVarGrab, posX: o.posX, posY: o.posY
                 }))
             };
         }
         function saveFactoryState() {
-            if (isLoadingFactory) return; 
-            localStorage.setItem('logikFactoryState', JSON.stringify(getFactoryStateObj()));
+            if (isLoadingFactory || isApplyingHistory) return;
+            const json = JSON.stringify(getFactoryStateObj());
+            localStorage.setItem('logikFactoryState', json);
+            factoryHistory.splice(historyIndex + 1);
+            factoryHistory.push(json);
+            while (factoryHistory.length > HISTORY_MAX) factoryHistory.shift();
+            historyIndex = factoryHistory.length - 1;
+        }
+        function undoFactory() {
+            if (isSimulationActive || historyIndex <= 0) return;
+            historyIndex--;
+            isApplyingHistory = true;
+            localStorage.setItem('logikFactoryState', factoryHistory[historyIndex]);
+            loadFactoryState();
+            isApplyingHistory = false;
+        }
+        function redoFactory() {
+            if (isSimulationActive || historyIndex >= factoryHistory.length - 1) return;
+            historyIndex++;
+            isApplyingHistory = true;
+            localStorage.setItem('logikFactoryState', factoryHistory[historyIndex]);
+            loadFactoryState();
+            isApplyingHistory = false;
         }
         // HIER WAR DER FEHLER: Diese Funktion hatte ich versehentlich weggeschnitten!
         window.loadFactoryState = function() {
@@ -8184,6 +8701,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                         newObj.labelPinned = true;
                         if (newObj.labelEl) newObj.labelEl.classList.add('f2d-label-pinned');
                     }
+                    if (o.locked) {
+                        newObj.locked = true;
+                        newObj.el.classList.add('f2d-locked');
+                        let b = document.createElement('div'); b.className = 'f2d-lock-badge'; b.textContent = '🔒'; newObj.el.appendChild(b); newObj.lockBadge = b;
+                    }
                     if(newObj.resizerEl) newObj.el.style.width = newObj.width + 'px';
                     if(newObj.type.startsWith('zone_') || newObj.type === 'wall' || newObj.type === 'frame' || (ComponentRegistry[newObj.type] && ComponentRegistry[newObj.type].hasHeight)) { 
                         newObj.el.style.height = newObj.height + 'px'; 
@@ -8201,6 +8723,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                     delete o._savedParentId;
                 });
+                // Initialen Zustand beim ersten Laden in History aufnehmen
+                if (!isApplyingHistory && factoryHistory.length === 0) {
+                    const json = JSON.stringify(getFactoryStateObj());
+                    localStorage.setItem('logikFactoryState', json);
+                    factoryHistory.push(json);
+                    historyIndex = 0;
+                }
             } catch(e) { console.error(e); } finally { isLoadingFactory = false; }
         };
 		// --- NEU: HILFE MODAL STEUERUNG ---
@@ -11136,6 +11665,160 @@ You must output exactly this JSON format. The logic code goes as a single string
         };
         // 3. Engine zünden
         startFactoryEngine();
+
+        // ==========================================
+        // 🎓 TUTORIAL MODE
+        // ==========================================
+        (function () {
+            const STEPS = [
+                {
+                    title: '🎓 Willkommen bei VALIS!',
+                    text: 'Diese kurze Tour führt dich durch die wichtigsten Bereiche der Anwendung. Klicke auf "Weiter →" um zu starten.',
+                    target: null
+                },
+                {
+                    title: '💻 ST-Code-Editor',
+                    text: 'Hier tippst du deinen Structured Text (ST) Code. VALIS versteht UND, ODER, NICHT, Flip-Flops (SR/RS), Timer (TON/TOF) und Zähler (CTU).',
+                    target: '#code', pos: 'right'
+                },
+                {
+                    title: '▶️ Simulation starten',
+                    text: 'Startet die Live-Simulation. Die Eingänge erscheinen bereits beim Eintippen des Codes im linken Panel und können dort angeklickt werden. Mit gedrückter STRG-Taste können mehrere Taster gleichzeitig aktiv bleiben. Alternativ lassen sich Eingänge auch per Tastaturzuweisung steuern.',
+                    target: '#btn-toggle-sim', pos: 'bottom'
+                },
+                {
+                    title: '🧩 Logikplan (FBS)',
+                    text: 'Dein Code als grafischer Funktionsbausteinplan – wird automatisch generiert. Neue Blöcke lassen sich per Drag & Drop aus der Seitenleiste hinzufügen, per Rechtsklick können Verbindungen und Blöcke bearbeitet werden. Während der Simulation wird der Logikfluss farbig animiert.',
+                    target: '#btn-view-fbs', pos: 'bottom'
+                },
+                {
+                    title: '⚡ Schaltplan (IEC)',
+                    text: 'Automatisch erzeugter IEC-Schaltplan mit Kontakten und Spulen. Verschiedene Darstellungsoptionen stehen zur Wahl: Im bunten Modus stimmen die Strangfarben mit den Gattern und Signalen des Logikplans überein. Ideal für Steuerungsnachweise und Dokumentation.',
+                    target: '#btn-view-iec', pos: 'bottom'
+                },
+                {
+                    title: '🏭 2D-Anlage',
+                    text: 'Baue eine virtuelle Anlage mit Förderband, Zylindern, Sensoren, LEDs und Pneumatik. Wichtig: Sobald ein Bauteil mit einer SPS-Variable verbunden ist, übernimmt die Anlage die Kontrolle – die manuelle Steuerung dieses Eingangs im linken Panel wird dann gesperrt.',
+                    target: '#btn-view-fac', pos: 'bottom'
+                },
+                {
+                    title: '🛠️ Extras',
+                    text: 'Hier findest du das Oszilloskop für Signalanalysen, PDF- & SVG-Export deiner Pläne sowie die Möglichkeit, Panels auf einen zweiten Monitor abzukoppeln.',
+                    target: '#btn-extras', pos: 'bottom'
+                },
+                {
+                    title: '💾 Speichern & Laden',
+                    text: 'Exportiere Projekte als .valisave-Datei oder importiere gespeicherte Projekte. Projekte lassen sich auch als URL-Parameter teilen.',
+                    target: '[onclick="openSaveLoadModal()"]', pos: 'bottom'
+                },
+                {
+                    title: '📋 Beispielprojekte',
+                    text: 'Starte direkt mit einem der vorbereiteten Beispiele – von einfacher Motorsteuerung bis zur komplexen Pneumatikanlage mit Förderband.',
+                    target: '[onclick="openExamplesModal()"]', pos: 'bottom'
+                },
+                {
+                    title: '🎓 Tour abgeschlossen!',
+                    text: 'Du kennst jetzt alle wichtigen Bereiche von VALIS. Der Hilfe-Button (ℹ️) steht dir jederzeit zur Verfügung. Viel Spaß beim Automatisieren! 🚀',
+                    target: null
+                }
+            ];
+
+            let _step = 0;
+
+            function _show(i) {
+                const step = STEPS[i];
+                const spotlight = document.getElementById('tutorial-spotlight');
+                const tip = document.getElementById('tutorial-tooltip');
+                document.getElementById('tut-title').textContent = step.title;
+                document.getElementById('tut-text').textContent = step.text;
+                document.getElementById('tut-progress').textContent = `${i + 1} / ${STEPS.length}`;
+                document.getElementById('tut-prev').disabled = (i === 0);
+                document.getElementById('tut-next').textContent = (i === STEPS.length - 1) ? '✓ Fertig' : 'Weiter →';
+                tip.className = '';
+                tip.style.removeProperty('--tut-ax');
+                tip.style.removeProperty('--tut-ay');
+
+                if (!step.target) {
+                    spotlight.style.display = 'none';
+                    const tw = 300, th = 200;
+                    tip.style.left = `${Math.round((window.innerWidth - tw) / 2)}px`;
+                    tip.style.top  = `${Math.round((window.innerHeight - th) / 2)}px`;
+                    return;
+                }
+
+                const el = document.querySelector(step.target);
+                if (!el) { spotlight.style.display = 'none'; return; }
+
+                const r = el.getBoundingClientRect();
+                const pad = 8, mg = 14, tw = 300, th = 165;
+                spotlight.style.display = 'block';
+                spotlight.style.left   = `${r.left   - pad}px`;
+                spotlight.style.top    = `${r.top    - pad}px`;
+                spotlight.style.width  = `${r.width  + pad * 2}px`;
+                spotlight.style.height = `${r.height + pad * 2}px`;
+
+                const ecx = r.left + r.width / 2;
+                const ecy = r.top  + r.height / 2;
+                const pos = step.pos || 'bottom';
+                let tl, tt, ac = '';
+
+                if (pos === 'bottom') {
+                    tt = r.bottom + pad + mg; tl = ecx - tw / 2; ac = 'arrow-top';
+                } else if (pos === 'top') {
+                    tt = r.top - pad - th - mg; tl = ecx - tw / 2; ac = 'arrow-bottom';
+                } else if (pos === 'right') {
+                    tl = r.right + pad + mg; tt = ecy - th / 2; ac = 'arrow-left';
+                } else {
+                    tl = r.left - tw - pad - mg; tt = ecy - th / 2; ac = 'arrow-right';
+                }
+
+                tl = Math.max(8, Math.min(tl, window.innerWidth  - tw - 8));
+                tt = Math.max(8, Math.min(tt, window.innerHeight - th - 8));
+                tip.style.left = `${Math.round(tl)}px`;
+                tip.style.top  = `${Math.round(tt)}px`;
+                tip.className  = ac;
+
+                if (ac === 'arrow-top' || ac === 'arrow-bottom') {
+                    tip.style.setProperty('--tut-ax', `${Math.round(ecx - tl)}px`);
+                } else {
+                    tip.style.setProperty('--tut-ay', `${Math.round(ecy - tt)}px`);
+                }
+            }
+
+            window.startTutorial = function () {
+                _step = 0;
+                document.getElementById('tutorial-overlay').classList.add('active');
+                _show(0);
+            };
+            window.tutorialNext = function () {
+                if (_step >= STEPS.length - 1) { closeTutorial(); return; }
+                _step++; _show(_step);
+            };
+            window.tutorialPrev = function () {
+                if (_step <= 0) return;
+                _step--; _show(_step);
+            };
+            window.closeTutorial = function () {
+                document.getElementById('tutorial-overlay').classList.remove('active');
+            };
+        })();
     </script>
+
+    <!-- 🎓 TUTORIAL OVERLAY -->
+    <div id="tutorial-overlay">
+        <div id="tutorial-spotlight" style="display:none;left:0;top:0;width:0;height:0;"></div>
+        <div id="tutorial-tooltip" style="left:-9999px;top:-9999px;">
+            <h4 id="tut-title"></h4>
+            <p id="tut-text"></p>
+            <div class="tut-nav">
+                <button class="tut-skip" onclick="closeTutorial()">✕ Schließen</button>
+                <span class="tut-progress" id="tut-progress"></span>
+                <div style="display:flex;gap:5px;">
+                    <button id="tut-prev" onclick="tutorialPrev()">← Zurück</button>
+                    <button id="tut-next" onclick="tutorialNext()">Weiter →</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
