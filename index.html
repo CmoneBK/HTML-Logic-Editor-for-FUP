@@ -10925,6 +10925,27 @@ You must output exactly this JSON format. The logic code goes as a single string
                 btnInstall.style.display = 'inline-block';
             }
         });
+        // Fenster-Resize: SVG-Pan-Zoom-Instanzen neu ausrichten
+        let _windowResizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(_windowResizeTimer);
+            _windowResizeTimer = setTimeout(() => {
+                // Flex-Werte zurücksetzen, damit sich die Panels neu verteilen
+                if (!currentLayout.startsWith('grid-')) {
+                    document.querySelectorAll('.workspace-panel').forEach(p => {
+                        if (p.style.display !== 'none') p.style.flex = '1 1 0%';
+                    });
+                }
+                // SVG-Pan-Zoom neu kalibrieren
+                if (panZoomInstance && document.getElementById('fbs-wrapper').style.display !== 'none') {
+                    panZoomInstance.resize(); panZoomInstance.fit(); panZoomInstance.center();
+                }
+                if (panZoomCircuitInstance && document.getElementById('circuit-wrapper').style.display !== 'none') {
+                    panZoomCircuitInstance.resize(); panZoomCircuitInstance.fit(); panZoomCircuitInstance.center();
+                }
+                if (isAnalyzerOpen) drawAnalyzer();
+            }, 100);
+        });
         // 2. Android / Chrome / Edge Logic (Fängt die Einladung des Browsers ab)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
