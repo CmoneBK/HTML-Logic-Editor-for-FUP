@@ -9866,13 +9866,29 @@ You must output exactly this JSON format. The logic code goes as a single string
             // Klick auf Element → Variable in fokussiertes Modal-Feld einfügen
             const modal = document.getElementById('circ-add-modal');
             if (!modal || modal.style.display === 'none') return;
-            let focusedInput = window._circModalFocusedInput;
-            if (!focusedInput || !modal.contains(focusedInput)) return;
             let target = e.target.closest('.circ-colored-group');
             if (!target) return;
-            e.stopPropagation();
             let iecId = target.getAttribute('data-iec-id');
             if (!iecId || iecId === 'NONE') return;
+            // RELAY_CONTACT-Modal: SELECT-Dropdown per Klick befüllen
+            let relaySelect = modal.querySelector('#circ-add-relay-sel');
+            if (relaySelect) {
+                e.stopPropagation();
+                if (!Array.from(relaySelect.options).some(o => o.value === iecId)) {
+                    let opt = document.createElement('option');
+                    opt.value = iecId;
+                    let lbl = window.getFbsVariableDisplay ? window.getFbsVariableDisplay(iecId) : iecId;
+                    if (lbl.startsWith('(') || lbl.includes(' && ') || lbl.includes(' || ')) lbl = iecId;
+                    opt.textContent = lbl;
+                    relaySelect.appendChild(opt);
+                }
+                relaySelect.value = iecId;
+                return;
+            }
+            // Standard-Modal: fokussiertes Textfeld befüllen
+            let focusedInput = window._circModalFocusedInput;
+            if (!focusedInput || !modal.contains(focusedInput)) return;
+            e.stopPropagation();
             // RS_1 → Q1, TON_0 → Ausgangsvariable usw. über getFbsVariableDisplay
             let displayName = (window.getFbsVariableDisplay ? window.getFbsVariableDisplay(iecId) : iecId);
             // getFbsVariableDisplay gibt für GATE-Knoten komplexe Ausdrücke zurück – dann lieber iecId nutzen
@@ -10062,7 +10078,17 @@ You must output exactly this JSON format. The logic code goes as a single string
                 } else add(inp('circ-add-out', t('circ_add_out_lbl'), 'text', '', 'z.B. MOTOR_1'));
 
             } else if (cat === 'RELAY_CONTACT') {
-                let relayOpts = (globalOutputs || []).map(v => `<option value="${v}">${v}</option>`).join('');
+                let allRelayVars = [...(globalOutputs || [])];
+                if (currentGraph) {
+                    currentGraph.nodes.forEach((node, id) => {
+                        if (node.type === 'GATE') allRelayVars.push(id);
+                    });
+                }
+                let relayOpts = allRelayVars.map(v => {
+                    if (globalOutputs && globalOutputs.includes(v)) return `<option value="${v}">${v}</option>`;
+                    let lbl = window.getFbsVariableDisplay ? window.getFbsVariableDisplay(v) : v;
+                    return `<option value="${v}">${lbl}</option>`;
+                }).join('');
                 add(sel('circ-add-relay-sel', t('circ_add_relay_lbl'), relayOpts));
                 if (zoneType === 'extend') add(`<div style="margin-bottom:12px;"><label style="color:#aaa; font-size:11px; display:block; margin-bottom:5px;">${t('circ_add_link_lbl')}</label>
                     <label style="color:#fff; font-size:12px; cursor:pointer; margin-right:12px;"><input type="radio" name="circ-link" value="AND" checked> In Reihe (AND)</label>
