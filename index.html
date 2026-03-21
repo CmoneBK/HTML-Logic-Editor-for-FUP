@@ -877,8 +877,8 @@
                 <button class="btn-export" onclick="if(confirm('Code-Editor leeren?')){textarea.value='';textarea.dispatchEvent(new Event('input'));}" style="background: #555; font-size: 11px; padding: 3px 8px; box-shadow: none;" title="Code-Editor leeren">🗑️ Leeren</button>
             </div>
         </div>
-        <div class="section-header" onclick="toggleSection('simulator-container', this)">
-            <span class="toggle-icon">▼</span> <span data-i18n="sim_header">Simulation (Ein- & Ausgänge)</span>
+        <div class="section-header" onclick="toggleSection('editor-container', this)">
+            <span class="toggle-icon">▼</span> Logik-Editor
         </div>
         <div id="editor-container">
             <div class="legend-box">
@@ -1210,14 +1210,21 @@
                     <div id="fm-group-1" style="margin-bottom: 10px;">
                         <label id="fm-label-1" style="color: #aaa; font-size: 11px; display: block; margin-bottom: 3px;">Variable 1</label>
                         <select id="fm-select-1" style="width: 100%; padding: 6px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px;"></select>
+                        <input type="text" id="fm-formula-1" placeholder="z.B. E1 AND NOT E2 oder neuer Name" style="display:none; width:100%; padding:6px; background:#1a1a2e; color:#d4d4d4; border:1px solid #4a6fa5; border-radius:3px; box-sizing:border-box; margin-top:4px; font-family:monospace; font-size:11px;">
+                    </div>
+                    <div id="fm-bullet-container" style="display:none; margin-bottom:10px;">
+                        <label style="color:#aaa; font-size:11px; display:block; margin-bottom:3px; font-weight:bold;">Welches Signal repräsentiert diese Komponente?</label>
+                        <select id="fm-bullet-select" style="width:100%; padding:6px; background:#1e1e1e; color:#fff; border:1px solid #4a6fa5; border-radius:3px;"></select>
                     </div>
                     <div id="fm-group-2" style="margin-bottom: 10px; display: none;">
                         <label id="fm-label-2" style="color: #aaa; font-size: 11px; display: block; margin-bottom: 3px;">Variable 2</label>
                         <select id="fm-select-2" style="width: 100%; padding: 6px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px;"></select>
+                        <input type="text" id="fm-formula-2" placeholder="z.B. E1 AND NOT E2 oder neuer Name" style="display:none; width:100%; padding:6px; background:#1a1a2e; color:#d4d4d4; border:1px solid #4a6fa5; border-radius:3px; box-sizing:border-box; margin-top:4px; font-family:monospace; font-size:11px;">
                     </div>
 					<div id="fm-group-3" style="margin-bottom: 10px; display: none;">
                         <label id="fm-label-3" style="color: #aaa; font-size: 11px; display: block; margin-bottom: 3px;">Variable 3</label>
                         <select id="fm-select-3" style="width: 100%; padding: 6px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px;"></select>
+                        <input type="text" id="fm-formula-3" placeholder="z.B. E1 AND NOT E2 oder neuer Name" style="display:none; width:100%; padding:6px; background:#1a1a2e; color:#d4d4d4; border:1px solid #4a6fa5; border-radius:3px; box-sizing:border-box; margin-top:4px; font-family:monospace; font-size:11px;">
                     </div>
                     <div id="fm-group-color" style="margin-bottom: 15px; display: none;">
                         <label style="color: #aaa; font-size: 11px; display: block; margin-bottom: 3px;">Farbe wählen</label>
@@ -2196,6 +2203,24 @@ You must output exactly this JSON format. The logic code goes as a single string
         // ==========================================
         let panZoomInstance = null;
         let spsState = {};
+        // Wertet linkedFormula eines Objekts gegen spsState aus; fallback auf linkedVar
+        function resolveLinked(obj, state) {
+            if (obj.linkedFormula) {
+                if (!obj._compiledFormula) {
+                    try {
+                        let expr = obj.linkedFormula
+                            .replace(/\bAND\b/gi, '&&').replace(/\bOR\b/gi, '||')
+                            .replace(/\bXOR\b/gi, '!==').replace(/\bNOT\b/gi, '!')
+                            .replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (m) =>
+                                /^(true|false)$/i.test(m) ? m.toLowerCase() : `(!!(s['${m}']))`
+                            );
+                        obj._compiledFormula = new Function('s', `"use strict"; return !!(${expr});`);
+                    } catch(e) { obj._compiledFormula = () => false; }
+                }
+                try { return obj._compiledFormula(state); } catch(e) { return false; }
+            }
+            return !!state[obj.linkedVar];
+        }
 		// 🌟 NEU: Tastatur-Steuerung
         window.inputKeyBindings = JSON.parse(localStorage.getItem('valisKeyBindings')) || {};
         window.isAssigningKey = null;
@@ -5981,6 +6006,7 @@ You must output exactly this JSON format. The logic code goes as a single string
         let selectionStartX = 0, selectionStartY = 0;
         let selectionBoxEl = null;
         let pendingFactoryType = null;
+        let pendingIsOutput = false; // Merkt sich ob aktuell ein Ausgang- oder Eingangs-Bauteil zugewiesen wird
         let contextTarget = null;
         let isLoadingFactory = false;
         let globalViewMode = 'side';
@@ -7734,6 +7760,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (ComponentRegistry[type]) config[type] = ComponentRegistry[type].modalConfig; // Lade Config aus Registry
             let c = config[type] || { t: 'Sensor (Eingang) zuweisen:', l1: 'SPS Eingangsvariable', out: false };
             if (type.startsWith('spawner_')) c = { t: 'Spawner konfigurieren:', l1: 'Aktivieren durch (Optional)', out: true, spawner: true };
+            pendingIsOutput = !!c.out;
             title.textContent = c.t; lbl1.textContent = c.l1;
             if (c.spawner) {
                 let emptyOpt = document.createElement('option'); emptyOpt.value = ""; emptyOpt.textContent = "-- Dauerhaft aktiv --"; sel1.appendChild(emptyOpt);
@@ -7759,17 +7786,145 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (c.l2) { lbl2.textContent = c.l2; fillOptions(sel2, true, type); grp2.style.display = 'block'; }
             if (c.l3) { lbl3.textContent = c.l3; fillOptions(sel3, true, type); grp3.style.display = 'block'; }
             if (type === 'nothalt') document.getElementById('fm-select-color').value = 'red';
-            if (sel1.options.length === 0 && !type.startsWith('spawner_') && c.customList !== 'timers') { alert("Keine passenden Variablen im Code gefunden!"); pendingFactoryType = null; return; }
+            // --- Formel-/Neue-Variable-Unterstützung ---
+            const isInputType = !c.out;
+            const bulletContainer = document.getElementById('fm-bullet-container');
+            const form1 = document.getElementById('fm-formula-1');
+            const form2 = document.getElementById('fm-formula-2');
+            const form3 = document.getElementById('fm-formula-3');
+            const bulletSelect = document.getElementById('fm-bullet-select');
+            [form1, form2, form3].forEach(f => { if (f) { f.style.display = 'none'; f.value = ''; }});
+            bulletContainer.style.display = 'none'; bulletSelect.innerHTML = '';
+            const _kw = new Set(['AND','OR','NOT','XOR','TRUE','FALSE','and','or','not','xor','true','false']);
+            const extractVars = (expr) =>
+                [...new Set((expr.match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g) || []).filter(m => !_kw.has(m)))];
+            // Parst "OUTPUT := RHS" → { outputVar, rhsExpr }, oder { outputVar: null, rhsExpr: text }
+            const parseExpr = (text) => {
+                const t = text.trim();
+                const idx = t.indexOf(':=');
+                if (idx !== -1) return { outputVar: t.slice(0, idx).trim(), rhsExpr: t.slice(idx + 2).trim() };
+                return { outputVar: null, rhsExpr: t };
+            };
+            const updateBullets = (text) => {
+                bulletContainer.style.display = 'none'; bulletSelect.innerHTML = '';
+                if (!isInputType || !text.trim()) return;
+                const { rhsExpr } = parseExpr(text);
+                const vars = extractVars(rhsExpr);
+                if (vars.length > 1) {
+                    vars.forEach(v => {
+                        let opt = document.createElement('option'); opt.value = v; opt.textContent = v;
+                        bulletSelect.appendChild(opt);
+                    });
+                    bulletContainer.style.display = 'block';
+                }
+            };
+            const addCustomOpt = (sel) => {
+                let opt = document.createElement('option'); opt.value = '__custom__';
+                opt.textContent = '✏️ Neue Variable / Formel eingeben...'; sel.appendChild(opt);
+            };
+            if (!c.spawner && c.customList !== 'timers') {
+                const noVars1 = sel1.options.length === 0;
+                addCustomOpt(sel1);
+                if (noVars1) { sel1.value = '__custom__'; form1.style.display = 'block'; }
+                if (grp2.style.display !== 'none') addCustomOpt(sel2);
+                if (grp3 && grp3.style.display !== 'none') addCustomOpt(sel3);
+            }
+            sel1.onchange = () => {
+                const isCustom = sel1.value === '__custom__';
+                form1.style.display = isCustom ? 'block' : 'none';
+                if (!isCustom) { bulletContainer.style.display = 'none'; bulletSelect.innerHTML = ''; }
+                else updateBullets(form1.value);
+            };
+            form1.oninput = () => updateBullets(form1.value);
+            sel2.onchange = () => { form2.style.display = sel2.value === '__custom__' ? 'block' : 'none'; };
+            if (sel3) sel3.onchange = () => { if (form3) form3.style.display = sel3.value === '__custom__' ? 'block' : 'none'; };
             modal.style.display = 'block';
         };
         window.closeFactoryModal = function() { document.getElementById('factory-modal').style.display = 'none'; pendingFactoryType = null; };
         window.confirmFactoryModal = function() {
-            const val1 = document.getElementById('fm-select-1').value; 
-            const val2 = document.getElementById('fm-select-2').value;
-            const val3 = document.getElementById('fm-select-3') ? document.getElementById('fm-select-3').value : null; // NEU
-            const color = document.getElementById('fm-select-color').value; 
+            const getEntry = (selectId, formulaId) => {
+                const sel = document.getElementById(selectId);
+                if (!sel) return { val: '', formula: null };
+                if (sel.value === '__custom__') {
+                    const f = document.getElementById(formulaId);
+                    const txt = f ? f.value.trim() : '';
+                    return { val: txt, formula: txt || null };
+                }
+                return { val: sel.value, formula: null };
+            };
+            const e1 = getEntry('fm-select-1', 'fm-formula-1');
+            const e2 = getEntry('fm-select-2', 'fm-formula-2');
+            const e3 = getEntry('fm-select-3', 'fm-formula-3');
+            // Hilfsfunktionen für Ausdruck-Parsing
+            const _kw2 = new Set(['AND','OR','NOT','XOR','TRUE','FALSE','and','or','not','xor','true','false']);
+            const _extractVars2 = (s) => [...new Set((s.match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g)||[]).filter(m=>!_kw2.has(m)))];
+            const _parseExpr = (text) => {
+                const t = text.trim();
+                const idx = t.indexOf(':=');
+                if (idx !== -1) return { outputVar: t.slice(0, idx).trim(), rhsExpr: t.slice(idx + 2).trim() };
+                return { outputVar: null, rhsExpr: t };
+            };
+            let var1 = e1.val;
+            let linkedFormula = null;
+            let codeToAdd = null; // Vollständige Zeile für den Code-Editor (exakt wie eingegeben)
+            if (e1.formula) {
+                const parsed = _parseExpr(e1.formula);
+                if (parsed.outputVar) {
+                    // Format "Ausgang := Eingang_Ausdruck"
+                    codeToAdd = e1.formula.trim(); // Formel 1:1 übernehmen
+                    if (pendingIsOutput) {
+                        // Ausgangs-Komponente (LED, Förderband…): linkedVar = linke Seite
+                        var1 = parsed.outputVar;
+                        linkedFormula = parsed.rhsExpr;
+                    } else {
+                        // Eingangs-Komponente (Taster, Sensor…): linkedVar = ausgewählter Eingang (rechte Seite)
+                        const selBullet = document.getElementById('fm-bullet-select');
+                        var1 = (selBullet && selBullet.value) ? selBullet.value
+                             : (_extractVars2(parsed.rhsExpr)[0] || parsed.rhsExpr);
+                        linkedFormula = parsed.rhsExpr;
+                    }
+                } else {
+                    // Kein ":=" – einfacher Variablenname
+                    if (pendingIsOutput) {
+                        var1 = e1.val;
+                    } else {
+                        // Eingang: Dropdown-Auswahl wenn mehrere Vars im Ausdruck
+                        const selBullet = document.getElementById('fm-bullet-select');
+                        var1 = (selBullet && selBullet.value) ? selBullet.value
+                             : (_extractVars2(e1.formula)[0] || e1.val);
+                    }
+                }
+            }
+            const color = document.getElementById('fm-select-color').value;
             const interval = parseFloat(document.getElementById('fm-input-interval').value) || 3;
-            createFactoryObject(pendingFactoryType, val1, val2, null, color, interval, val3); // var3 übergeben
+            const newObj = createFactoryObject(pendingFactoryType, var1, e2.val, null, color, interval, e3.val);
+            if (newObj && linkedFormula) newObj.linkedFormula = linkedFormula;
+            // --- In den Logik-Editor einfügen ---
+            if (e1.formula && !pendingFactoryType.startsWith('spawner_')) {
+                const _isVarName = (s) => s && /^[A-Za-z_][A-Za-z0-9_]*$/.test(s);
+                let code = textarea.value;
+                const _alreadyInput  = (v) => new RegExp(`^INPUT\\s+${v}\\s*$`, 'mi').test(code);
+                const _alreadyOutput = (v) => new RegExp(`^\\s*${v}\\s*:=`, 'mi').test(code);
+                let additions = [];
+                if (codeToAdd) {
+                    // Formel-Zeile exakt einfügen – keine separaten INPUT-Deklarationen nötig
+                    const outVar = _parseExpr(codeToAdd).outputVar;
+                    if (!_alreadyOutput(outVar)) additions.push(codeToAdd);
+                } else {
+                    // Nur Variablenname (kein ":=")
+                    if (pendingIsOutput) {
+                        if (_isVarName(var1) && !_alreadyOutput(var1) && !_alreadyInput(var1)) additions.push(`${var1} := FALSE`);
+                    } else {
+                        _extractVars2(e1.formula).forEach(v => {
+                            if (_isVarName(v) && !_alreadyInput(v) && !_alreadyOutput(v)) additions.push(`INPUT ${v}`);
+                        });
+                    }
+                }
+                if (additions.length > 0) {
+                    textarea.value = code.trimEnd() + '\n' + additions.join('\n');
+                    updateHighlighting(); updateEditor(); saveToStorage();
+                }
+            }
             closeFactoryModal();
         };
         const colorMap = { 'green': '#4caf50', 'red': '#f44336', 'blue': '#2196f3', 'yellow': '#ffeb3b', 'white': '#9e9e9e' };
@@ -8700,7 +8855,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let deltaMs = (deltaTime * 1000) * window.simSpeed; 
                 factoryObjects.forEach(obj => {
                     if (obj.type.startsWith('spawner_')) {
-                        let isActive = obj.linkedVar ? !!spsState[obj.linkedVar] : true;
+                        let isActive = obj.linkedVar ? resolveLinked(obj, spsState) : true;
                         if (isActive) {
                             obj.timeAccum = (obj.timeAccum || 0) + deltaMs;
                             if (obj.timeAccum >= obj.interval * 1000) { 
@@ -8728,8 +8883,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                         if (isVisuallyPressed) { obj.el.classList.add('f2d-control-active'); obj.el.style.boxShadow = `0 0 15px ${obj.hexColor}, inset 0 0 10px rgba(0,0,0,0.5)`; }
                         else { obj.el.classList.remove('f2d-control-active'); obj.el.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.4)'; }
                     } else if (obj.type === 'led') {
-                        if (!!spsState[obj.linkedVar]) { obj.el.style.backgroundColor = obj.hexColor; obj.el.style.boxShadow = `0 0 20px ${obj.hexColor}, inset 0 0 10px rgba(255,255,255,0.6)`; obj.el.style.color = '#000'; obj.el.style.borderColor = '#fff'; }
-                        else { obj.el.style.backgroundColor = '#222'; obj.el.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.4)'; obj.el.style.color = 'rgba(255,255,255,0.4)'; obj.el.style.borderColor = '#444'; }                  
+                        if (resolveLinked(obj, spsState)) { obj.el.style.backgroundColor = obj.hexColor; obj.el.style.boxShadow = `0 0 20px ${obj.hexColor}, inset 0 0 10px rgba(255,255,255,0.6)`; obj.el.style.color = '#000'; obj.el.style.borderColor = '#fff'; }
+                        else { obj.el.style.backgroundColor = '#222'; obj.el.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.4)'; obj.el.style.color = 'rgba(255,255,255,0.4)'; obj.el.style.borderColor = '#444'; }
                     }
                 });
                 // Schleife für alle Aktoren (Zylinder und Förderbänder)
@@ -8833,7 +8988,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                     }
                     if (obj.type === 'conveyor') {
-                        obj.isRunning = !!spsState[obj.linkedVar];
+                        obj.isRunning = resolveLinked(obj, spsState);
                         if (obj.isRunning) {
                             obj.beltOffset += (2 * window.simSpeed * timeScale); 
                             if (obj.beltOffset >= 20) obj.beltOffset -= 20; 
@@ -9252,7 +9407,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
                     // 🌟 FIX: opening für Drosseln hinzugefügt!
                     thickness: o.thickness, speed: o.speed, heatingPower: o.heatingPower, meltTemp: o.meltTemp, opening: o.opening,
-                    linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, spawnSolid: o.spawnSolid,
+                    linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, spawnSolid: o.spawnSolid, linkedFormula: o.linkedFormula || null,
                     hasPneumatics: o.hasPneumatics, targetCylinderId: o.targetCylinderId, role: o.role, isDouble: o.isDouble,
                     // 🌟 FIX: parentId und attachmentType MÜSSEN gespeichert werden, sonst fällt der Stempel ab!
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType, normLabel: o.normLabel, originalLabelText: o.originalLabelText,
@@ -9328,6 +9483,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (o.linkedVarY_Plus) newObj.linkedVarY_Plus = o.linkedVarY_Plus;
                     if (o.linkedVarY_Minus) newObj.linkedVarY_Minus = o.linkedVarY_Minus;
                     if (o.linkedVarGrab) newObj.linkedVarGrab = o.linkedVarGrab;
+                    if (o.linkedFormula) newObj.linkedFormula = o.linkedFormula;
                     if (o.posX !== undefined) { newObj.posX = o.posX; newObj.posY = o.posY; }
                     if (o.groupId) { newObj.groupId = o.groupId; newObj.el.classList.add('f2d-grouped'); }
                     newObj.x = o.x; newObj.y = o.y; newObj.width = o.width; newObj.rotation = o.rotation;
