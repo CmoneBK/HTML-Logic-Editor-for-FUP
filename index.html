@@ -976,6 +976,7 @@
                         <div onclick="exportSVG('fbs')" data-i18n="extra_svg">📸 Logikplan als SVG speichern</div>
                         <div onclick="exportSVG('iec')">📸 Schaltplan als SVG speichern</div>
                         <div onclick="openPdfExportModal()">📄 Als PDF exportieren</div>
+                        <div onclick="exportSCL()" data-i18n="extra_scl">📤 Als Siemens SCL exportieren (TIA Portal)</div>
                         <div style="border-top: 1px solid #555; margin: 2px 0;"></div>
                         <div onclick="detachPanel('fbs-wrapper', 'Logikplan')" data-i18n="extra_detach_fbs">⏏️ Logikplan abkoppeln (Multi-Screen)</div>
                         <div onclick="detachPanel('circuit-wrapper', 'Schaltplan')" data-i18n="extra_detach_iec">⏏️ Schaltplan abkoppeln (Multi-Screen)</div>
@@ -1789,6 +1790,25 @@ const aktiv = resolveLinked(obj, spsState);
             </div>
         </div>
 
+        <!-- SCL Export Modal -->
+        <div id="scl-export-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e1e2e;padding:20px;border:1px solid #444;border-radius:8px;box-shadow:0 4px 40px rgba(0,0,0,0.95);z-index:4000;width:680px;max-width:95vw;color:#ccc;font-family:'Segoe UI',sans-serif;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #555;padding-bottom:10px;">
+                <div>
+                    <h3 style="margin:0;color:#fff;font-size:15px;">📤 Siemens SCL Export – TIA Portal</h3>
+                    <p style="margin:4px 0 0;color:#888;font-size:11px;">Generierter Function Block – in TIA Portal über „SCL-Quelle importieren" einbinden</p>
+                </div>
+                <button onclick="document.getElementById('scl-export-modal').style.display='none'" style="background:#555;color:#fff;border:none;padding:4px 11px;border-radius:3px;cursor:pointer;font-size:14px;">✕</button>
+            </div>
+            <textarea id="scl-output" readonly style="width:100%;height:360px;font-family:'Consolas','Courier New',monospace;font-size:12px;line-height:1.5;background:#0d1117;color:#9cdcfe;border:1px solid #30363d;border-radius:4px;padding:12px;resize:vertical;box-sizing:border-box;tab-size:4;"></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+                <button onclick="downloadSCL()" style="background:#007acc;color:#fff;border:none;padding:7px 16px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">⬇️ .scl herunterladen</button>
+                <button onclick="copySCL()" style="background:#3a3a4a;color:#fff;border:none;padding:7px 14px;border-radius:4px;cursor:pointer;font-size:13px;">📋 Kopieren</button>
+                <span id="scl-copy-hint" style="color:#4caf50;font-size:11px;opacity:0;transition:opacity 0.4s;margin-left:4px;">Kopiert!</span>
+                <div style="flex:1;"></div>
+                <span style="color:#555;font-size:10px;">SCL v1 · IEC 61131-3</span>
+            </div>
+        </div>
+
 
 		<div id="analyzer-modal" style="display:none;position:fixed;top:10vh;left:10vw; background: #2d2d30; padding: 15px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 25px rgba(0,0,0,0.9); z-index: 3000; width: 80vw; min-width: 400px; height: 75vh; min-height: 300px; flex-direction: column; resize: both; overflow: hidden;">
             <div id="analyzer-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-bottom: 10px; cursor: move; user-select: none;">
@@ -1863,6 +1883,7 @@ const aktiv = resolveLinked(obj, spsState);
                 "extra_detach_iec": "⏏️ Schaltplan abkoppeln (Multi-Screen)",
                 "extra_detach_fac": "⏏️ 2D-Anlage abkoppeln (Multi-Screen)",
                 "extra_detach_osc": "⏏️ Oszilloskop abkoppeln (Multi-Screen)",
+                "extra_scl": "📤 Als Siemens SCL exportieren (TIA Portal)",
                 // Sound
                 "sound_off": "🔇 Ton: AUS",
                 "sound_logic": "⚡ Ton: Logik",
@@ -2207,6 +2228,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
                 "extra_detach_iec": "⏏️ Detach Circuit Diagram (Multi-Screen)",
                 "extra_detach_fac": "⏏️ Detach 2D Factory (Multi-Screen)",
                 "extra_detach_osc": "⏏️ Detach Oscilloscope (Multi-Screen)",
+                "extra_scl": "📤 Export as Siemens SCL (TIA Portal)",
                 // Sound
                 "sound_off": "🔇 Sound: OFF",
                 "sound_logic": "⚡ Sound: Logic",
@@ -9970,8 +9992,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                 items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid, meltTemp: i.meltTemp })),
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
-                    // 🌟 FIX: opening für Drosseln hinzugefügt!
-                    thickness: o.thickness, speed: o.speed, heatingPower: o.heatingPower, meltTemp: o.meltTemp, opening: o.opening,
+                    // 🌟 FIX: opening für Drosseln, extension für Zylinder-Anbauteile hinzugefügt!
+                    thickness: o.thickness, speed: o.speed, heatingPower: o.heatingPower, meltTemp: o.meltTemp, opening: o.opening, extension: (o.extension !== undefined ? Math.round(o.extension) : undefined),
                     linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, spawnSolid: o.spawnSolid, linkedFormula: o.linkedFormula || null,
                     hasPneumatics: o.hasPneumatics, targetCylinderId: o.targetCylinderId, role: o.role, isDouble: o.isDouble,
                     // 🌟 FIX: parentId und attachmentType MÜSSEN gespeichert werden, sonst fällt der Stempel ab!
@@ -10070,6 +10092,20 @@ You must output exactly this JSON format. The logic code goes as a single string
                             let valD = newObj.el.querySelector('.f2d-throttle-val');
                             if (knob) knob.style.transform = `rotate(${o.opening * 2.7}deg)`;
                             if (valD) valD.textContent = o.opening + '%';
+                        }
+                    }
+                    // 🌟 FIX: Zylinder-Ausfahrzustand wiederherstellen (sonst driftet Anbauteil beim ersten Tick)
+                    if (o.extension !== undefined && newObj.type && newObj.type.startsWith('zylinder')) {
+                        newObj.extension = o.extension;
+                        // Stange auch visuell sofort in die richtige Position setzen
+                        if (newObj.rodEl) {
+                            let extPixels = (o.extension / 100) * newObj.width;
+                            newObj.rodEl.style.transform = `translateX(${extPixels}px)`;
+                        }
+                        if (newObj.magnetEl) {
+                            let magTravel = newObj.width - 20;
+                            let magPos = 5 + (o.extension / 100) * magTravel;
+                            newObj.magnetEl.style.left = `${magPos}px`;
                         }
                     }
                     // 🌟 FIX: Wenn das Bauteil ein Stempel ist, merkt es sich hier seine Montierung!
@@ -10247,6 +10283,316 @@ You must output exactly this JSON format. The logic code goes as a single string
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         };
+        // ============================================================
+        // SCL EXPORT – Siemens TIA Portal
+        // ============================================================
+        window.exportSCL = function() {
+            const code = textarea.value;
+            const lines = code.split('\n');
+
+            // --- Hilfsfunktion: VALIS-Ausdruck → SCL-Ausdruck ---
+            function toSCL(expr) {
+                // Negation mit ¬VAR und ¬(...)
+                expr = expr.replace(/¬\(([^)]*)\)/g, 'NOT ($1)');
+                expr = expr.replace(/¬(\w+)/g, 'NOT $1');
+                expr = expr.replace(/&&/g, 'AND');
+                expr = expr.replace(/\|\|/g, 'OR');
+                return expr.trim();
+            }
+
+            // --- Variablen-Typen aus componentTypes klassifizieren ---
+            const inputTypes  = new Set(['taster','taster_nc','schalter','schalter_nc','nothalt','key_switch',
+                                         'sensor_ind','sensor_opt','sensor_mag','sensor_kap','sensor_col','sensor_us','encoder','hmi_button']);
+            const outputTypes = new Set(['led','valve','motor','siren','valve_pneu','relais','stacklight','display','hmi_lamp','fan']);
+
+            // --- Parse-Strukturen ---
+            const explicitInputs = [];          // via "INPUT VAR" deklariert
+            const flipFlops = new Map();        // Nummer → { set, reset, isSR, outVar }
+            const timers    = [];               // { outVar, timerType, inExpr, timeMs, inst }
+            const counters  = [];               // { outVar, cuExpr, resetExpr, pv, inst }
+            const assigns   = [];               // { lhs, rhs, comment }
+            const allLHS    = new Set();        // Alle linken Seiten
+            const allVars   = new Set();        // Alle referenzierten Variablen
+
+            // Variablen aus Ausdruck extrahieren (einfaches Tokenizing)
+            function extractVars(expr) {
+                return (expr.match(/\b[A-Z_][A-Z0-9_]*\b/g) || []).filter(v =>
+                    !['AND','OR','NOT','TON','TOF','TP','CTU','TRUE','FALSE'].includes(v));
+            }
+
+            // Kommentare sammeln (letzte Kommentarzeile vor einem Block)
+            let lastComment = '';
+            const blockComments = new Map(); // lhs → comment
+
+            for (let raw of lines) {
+                const commentMatch = raw.match(/^\s*\/\/\s*(.*)/);
+                if (commentMatch) { lastComment = commentMatch[1].trim(); continue; }
+                const line = raw.replace(/\/\/.*/, '').trim();
+                if (!line) { lastComment = ''; continue; }
+
+                // INPUT-Deklaration
+                const inputDecl = line.match(/^INPUT\s+(\w+)$/);
+                if (inputDecl) { explicitInputs.push(inputDecl[1]); lastComment = ''; continue; }
+
+                // Flip-Flop Set: S1 := ... oder S2_SR := ...
+                const ffSet = line.match(/^S(\d+)(_SR)?\s*:=\s*(.+)$/);
+                if (ffSet) {
+                    const num = ffSet[1], isSR = !!ffSet[2], expr = toSCL(ffSet[3]);
+                    if (!flipFlops.has(num)) flipFlops.set(num, { isSR, set: '', reset: '', outVar: null });
+                    flipFlops.get(num).set = expr;
+                    flipFlops.get(num).isSR = isSR;
+                    extractVars(ffSet[3]).forEach(v => allVars.add(v));
+                    lastComment = ''; continue;
+                }
+
+                // Flip-Flop Reset: R1 := ... oder R2_SR := ...
+                const ffRst = line.match(/^R(\d+)(_SR)?\s*:=\s*(.+)$/);
+                if (ffRst) {
+                    const num = ffRst[1], isSR = !!ffRst[2], expr = toSCL(ffRst[3]);
+                    if (!flipFlops.has(num)) flipFlops.set(num, { isSR, set: '', reset: '', outVar: null });
+                    flipFlops.get(num).reset = expr;
+                    flipFlops.get(num).isSR = isSR;
+                    extractVars(ffRst[3]).forEach(v => allVars.add(v));
+                    lastComment = ''; continue;
+                }
+
+                // Timer: VARNAME := TON|TOF|TP(expr, time)
+                const timerM = line.match(/^(\w+)\s*:=\s*(TON|TOF|TP)\((.+),\s*([\d.]+)\)$/);
+                if (timerM) {
+                    const [, outVar, tt, inExpr, t] = timerM;
+                    const timeMs = Math.round(parseFloat(t) * 1000);
+                    const inst = `_T_${tt}${timers.length + 1}`;
+                    timers.push({ outVar, timerType: tt, inExpr: toSCL(inExpr), timeMs, inst });
+                    allLHS.add(outVar);
+                    extractVars(inExpr).forEach(v => allVars.add(v));
+                    blockComments.set(outVar, lastComment);
+                    lastComment = ''; continue;
+                }
+
+                // Zähler: VARNAME := CTU(cu, reset, pv)
+                // Robusteres Parsing: letztes Argument ist PV (Zahl), dann split rückwärts
+                const ctrM = line.match(/^(\w+)\s*:=\s*CTU\((.+),\s*(\d+)\)$/);
+                if (ctrM) {
+                    const [, outVar, inner, pv] = ctrM;
+                    // inner ist "cu_expr, reset_expr" — split beim letzten Komma
+                    const lastComma = inner.lastIndexOf(',');
+                    const cuExpr = toSCL(inner.slice(0, lastComma).trim());
+                    const resetExpr = toSCL(inner.slice(lastComma + 1).trim());
+                    const inst = `_C_CTU${counters.length + 1}`;
+                    counters.push({ outVar, cuExpr, resetExpr, pv: parseInt(pv), inst });
+                    allLHS.add(outVar);
+                    extractVars(inner).forEach(v => allVars.add(v));
+                    blockComments.set(outVar, lastComment);
+                    lastComment = ''; continue;
+                }
+
+                // Normale Zuweisung
+                const assignM = line.match(/^(\w+)\s*:=\s*(.+)$/);
+                if (assignM) {
+                    const [, lhs, rhs] = assignM;
+                    assigns.push({ lhs, rhs: toSCL(rhs), comment: lastComment });
+                    allLHS.add(lhs);
+                    extractVars(rhs).forEach(v => allVars.add(v));
+                    lastComment = ''; continue;
+                }
+                lastComment = '';
+            }
+
+            // Flip-Flop-Ausgangsvariablen ermitteln (Qn oder Qn_SR)
+            flipFlops.forEach((ff, num) => {
+                const outVarSR  = `Q${num}_SR`;
+                const outVarNorm = `Q${num}`;
+                if (allLHS.has(outVarSR) || assigns.some(a => extractVars(a.rhs).includes(outVarSR))) {
+                    ff.outVar = outVarSR;
+                } else {
+                    ff.outVar = outVarNorm;
+                }
+                allLHS.add(ff.outVar);
+            });
+
+            // --- Variablen klassifizieren ---
+            const varInput    = new Set(explicitInputs);
+            const varOutput   = new Set();
+            const varInternal = new Set();
+
+            // Timer/Counter-Instanzen
+            const timerInsts   = new Set(timers.map(t => t.inst));
+            const counterInsts = new Set(counters.map(c => c.inst));
+
+            // Flip-Flop-Ausgänge immer intern
+            flipFlops.forEach(ff => varInternal.add(ff.outVar));
+
+            // Alle LHS-Variablen klassifizieren
+            allLHS.forEach(v => {
+                if (varInternal.has(v)) return;
+                if (timerInsts.has(v) || counterInsts.has(v)) return;
+                const ct = componentTypes[v];
+                if (outputTypes.has(ct)) { varOutput.add(v); return; }
+                // Timers/Counter-Ausgänge (outVar) → intern
+                if (timers.some(t => t.outVar === v) || counters.some(c => c.outVar === v)) {
+                    varInternal.add(v); return;
+                }
+                varInternal.add(v);
+            });
+
+            // RHS-only Variablen → Input prüfen
+            allVars.forEach(v => {
+                if (allLHS.has(v) || varInput.has(v) || varInternal.has(v) || varOutput.has(v)) return;
+                const ct = componentTypes[v];
+                if (inputTypes.has(ct)) { varInput.add(v); return; }
+                if (outputTypes.has(ct)) { varOutput.add(v); return; }
+                // Unbekannt: als Input behandeln (wahrscheinlich Sensor/Taster ohne Typ)
+                varInput.add(v);
+            });
+
+            // Aus explicitInputs: Falls in varInternal/varOutput, dort entfernen
+            explicitInputs.forEach(v => { varInternal.delete(v); varOutput.delete(v); });
+
+            // Kommentar für Variablen-Typ
+            function typeComment(v) {
+                const ct = componentTypes[v];
+                return ct ? `   // ${ct}` : '';
+            }
+
+            // --- SCL generieren ---
+            const I = '   '; // Einrückung
+            let scl = '';
+
+            scl += `FUNCTION_BLOCK "VALIS_Steuerung"\n`;
+            scl += `{ S7_Optimized_Access := 'TRUE' }\n`;
+            scl += `AUTHOR : 'VALIS'\n`;
+            scl += `FAMILY : 'VALIS_Export'\n`;
+            scl += `VERSION : '1.0'\n\n`;
+
+            // VAR_INPUT
+            scl += `${I}VAR_INPUT\n`;
+            if (varInput.size === 0) scl += `${I}   // (keine expliziten Eingänge erkannt)\n`;
+            varInput.forEach(v => scl += `${I}   ${v} : BOOL;${typeComment(v)}\n`);
+            scl += `${I}END_VAR\n\n`;
+
+            // VAR_OUTPUT
+            scl += `${I}VAR_OUTPUT\n`;
+            if (varOutput.size === 0) scl += `${I}   // (keine Ausgänge erkannt)\n`;
+            varOutput.forEach(v => scl += `${I}   ${v} : BOOL;${typeComment(v)}\n`);
+            scl += `${I}END_VAR\n\n`;
+
+            // VAR (intern)
+            // Flip-Flop-Ausgangsvariablen sammeln, um Duplikate in varInternal zu vermeiden
+            const ffOutVars = new Set();
+            flipFlops.forEach(ff => ffOutVars.add(ff.outVar));
+            const timerOutVars = new Set(timers.map(t => t.outVar));
+            const ctrOutVars   = new Set(counters.map(c => c.outVar));
+
+            scl += `${I}VAR\n`;
+            // 1. Flip-Flop-Zustände
+            flipFlops.forEach((ff, num) => {
+                scl += `${I}   ${ff.outVar} : BOOL;   // ${ff.isSR ? 'SR' : 'RS'}-Glied ${num} Zustand\n`;
+            });
+            // 2. Interne Variablen (ohne FF-Ausgänge, Timer-Ausgänge und Zähler-Ausgänge, die separat deklariert werden)
+            varInternal.forEach(v => {
+                if (ffOutVars.has(v) || timerOutVars.has(v) || ctrOutVars.has(v)) return;
+                scl += `${I}   ${v} : BOOL;\n`;
+            });
+            // Timer-Ausgänge als BOOL
+            timerOutVars.forEach(v => { if (varInternal.has(v)) scl += `${I}   ${v} : BOOL;\n`; });
+            ctrOutVars.forEach(v   => { if (varInternal.has(v)) scl += `${I}   ${v} : BOOL;\n`; });
+            // 3. Timer- und Zähler-Instanzen
+            timers.forEach(t => scl += `${I}   "${t.inst}" : ${t.timerType === 'TON' ? 'TON_TIME' : t.timerType === 'TOF' ? 'TOF_TIME' : 'TP_TIME'};\n`);
+            counters.forEach(c => scl += `${I}   "${c.inst}" : CTU;\n`);
+            if (varInternal.size === 0 && flipFlops.size === 0 && timers.length === 0 && counters.length === 0) scl += `${I}   // (keine internen Variablen)\n`;
+            scl += `${I}END_VAR\n\n`;
+
+            // BEGIN
+            scl += `BEGIN\n`;
+
+            // Flip-Flops
+            if (flipFlops.size > 0) {
+                scl += `\n${I}// ${'='.repeat(58)}\n`;
+                scl += `${I}// Speicherglieder (Flip-Flops)\n`;
+                scl += `${I}// ${'='.repeat(58)}\n`;
+                flipFlops.forEach((ff, num) => {
+                    const lbl = ff.isSR ? `SR-Glied ${num} (Set-dominant: S hat Vorrang)` : `RS-Glied ${num} (Reset-dominant: R hat Vorrang)`;
+                    scl += `\n${I}// ${lbl}\n`;
+                    if (ff.isSR) {
+                        scl += `${I}IF (${ff.set || 'FALSE'}) THEN\n`;
+                        scl += `${I}   ${ff.outVar} := TRUE;\n`;
+                        scl += `${I}ELSIF (${ff.reset || 'FALSE'}) THEN\n`;
+                        scl += `${I}   ${ff.outVar} := FALSE;\n`;
+                        scl += `${I}END_IF;\n`;
+                    } else {
+                        scl += `${I}IF (${ff.reset || 'FALSE'}) THEN\n`;
+                        scl += `${I}   ${ff.outVar} := FALSE;\n`;
+                        scl += `${I}ELSIF (${ff.set || 'FALSE'}) THEN\n`;
+                        scl += `${I}   ${ff.outVar} := TRUE;\n`;
+                        scl += `${I}END_IF;\n`;
+                    }
+                });
+            }
+
+            // Timer
+            if (timers.length > 0) {
+                scl += `\n${I}// ${'='.repeat(58)}\n`;
+                scl += `${I}// Zeitglieder (Timer)\n`;
+                scl += `${I}// ${'='.repeat(58)}\n`;
+                timers.forEach(t => {
+                    const labels = { TON: 'Einschaltverzögerung', TOF: 'Ausschaltverzögerung', TP: 'Impuls' };
+                    const cmt = blockComments.get(t.outVar) ? ` – ${blockComments.get(t.outVar)}` : '';
+                    scl += `\n${I}// ${t.timerType} (${labels[t.timerType] || t.timerType}, PT = ${t.timeMs}ms)${cmt}\n`;
+                    scl += `${I}"${t.inst}"(IN := ${t.inExpr}, PT := T#${t.timeMs}ms);\n`;
+                    scl += `${I}${t.outVar} := "${t.inst}".Q;\n`;
+                });
+            }
+
+            // Zähler
+            if (counters.length > 0) {
+                scl += `\n${I}// ${'='.repeat(58)}\n`;
+                scl += `${I}// Zähler\n`;
+                scl += `${I}// ${'='.repeat(58)}\n`;
+                counters.forEach(c => {
+                    const cmt = blockComments.get(c.outVar) ? ` – ${blockComments.get(c.outVar)}` : '';
+                    scl += `\n${I}// CTU (Vorwärtszähler, PV = ${c.pv})${cmt}\n`;
+                    scl += `${I}"${c.inst}"(CU := ${c.cuExpr}, R := ${c.resetExpr}, PV := ${c.pv});\n`;
+                    scl += `${I}${c.outVar} := "${c.inst}".Q;\n`;
+                });
+            }
+
+            // Zuweisungen
+            if (assigns.length > 0) {
+                scl += `\n${I}// ${'='.repeat(58)}\n`;
+                scl += `${I}// Zuweisungen\n`;
+                scl += `${I}// ${'='.repeat(58)}\n\n`;
+                assigns.forEach(a => {
+                    if (a.comment) scl += `${I}// ${a.comment}\n`;
+                    scl += `${I}${a.lhs} := ${a.rhs};\n`;
+                });
+            }
+
+            scl += `\nEND_FUNCTION_BLOCK\n`;
+
+            // Modal befüllen und öffnen
+            document.getElementById('scl-output').value = scl;
+            document.getElementById('scl-export-modal').style.display = 'block';
+        };
+
+        window.downloadSCL = function() {
+            const content = document.getElementById('scl-output').value;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url; a.download = 'VALIS_Steuerung.scl';
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+        };
+
+        window.copySCL = function() {
+            const ta = document.getElementById('scl-output');
+            ta.select();
+            document.execCommand('copy');
+            const hint = document.getElementById('scl-copy-hint');
+            hint.style.opacity = '1';
+            setTimeout(() => { hint.style.opacity = '0'; }, 2000);
+        };
+
         window.uploadValisave = function(event) {
             const file = event.target.files[0];
             if (!file) return;
