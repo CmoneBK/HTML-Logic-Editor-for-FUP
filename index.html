@@ -569,6 +569,12 @@
         .f2d-locked { outline: 1px dashed #ff9800 !important; }
         .f2d-lock-badge { position:absolute;top:1px;left:1px;font-size:9px;pointer-events:none;z-index:50;background:rgba(0,0,0,0.55);border-radius:2px;padding:0 2px;line-height:14px; }
         #factory-wrapper.sim-active .f2d-lock-badge { display:none !important; }
+        /* === Kommentar-Pins === */
+        .fac-pin { position:absolute; z-index:50; min-width:160px; max-width:240px; border-radius:6px; box-shadow:2px 3px 8px rgba(0,0,0,0.45); user-select:none; }
+        .fac-pin-header { display:flex; align-items:center; gap:4px; padding:4px 6px; background:rgba(0,0,0,0.15); border-radius:6px 6px 0 0; cursor:grab; font-size:12px; }
+        .fac-pin-body { padding:6px; }
+        .fac-pin-body textarea { width:100%; min-height:60px; background:rgba(255,255,255,0.5); border:none; border-radius:3px; font-size:12px; padding:4px; resize:vertical; color:#222; font-family:sans-serif; box-sizing:border-box; outline:none; }
+        #factory-wrapper.sim-active .fac-pin { pointer-events:none; opacity:0.7; }
         /* --- Factory Sidebar --- */
         #factory-sidebar { position:absolute;top:50px;right:0;bottom:0;width:22px;display:flex;background:#252526;border-left:1px solid #444;z-index:100;overflow:hidden;transition:width 0.2s ease;box-shadow:-2px 0 6px rgba(0,0,0,0.3); }
         #factory-sidebar.open { width:230px; }
@@ -1208,6 +1214,7 @@
                         <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateSimSpeed(this.value)" style="width: 70px; cursor: ew-resize;">
                     </div>
                     <button id="btn-viewmode" class="tool-btn" onclick="toggleGlobalViewMode()" style="margin-left: auto; background-color: #4caf50;" data-i18n="fac_btn_view_side">🌍 Global: Seitenansicht</button>
+                    <button class="tool-btn" style="background-color: #26a69a; margin-left: 10px;" onclick="openSnippetLibrary()">📚 Bibliothek</button>
                     <button class="btn-export" style="background-color: #ff9800; margin-left: 10px;" onclick="openPluginModal()" data-i18n="fac_btn_plugins">🧩 Plugins</button>
                     <button class="tool-btn" onclick="clearFactory()" style="background-color: #b71c1c; margin-left: 10px;" data-i18n="fac_btn_clear">🗑️ Alles löschen</button>
                 </div>
@@ -1972,6 +1979,25 @@ const aktiv = resolveLinked(obj, spsState);
                         <div style="color:#a5d6a7;font-size:10px;margin-bottom:3px;font-weight:bold;">→ Aktuell</div>
                         <textarea id="diff-new" readonly style="width:100%;height:180px;font-family:'Consolas',monospace;font-size:11px;background:#0a1a0a;color:#a5d6a7;border:1px solid #1a4a1a;border-radius:3px;padding:8px;resize:none;box-sizing:border-box;"></textarea>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Snippet-Bibliothek Modal -->
+        <div id="snippet-library-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:4500;align-items:center;justify-content:center;">
+            <div style="background:#1e1e2e;border:1px solid #444;border-radius:8px;box-shadow:0 4px 40px rgba(0,0,0,0.95);width:600px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;color:#ccc;font-family:'Segoe UI',sans-serif;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #555;flex-shrink:0;">
+                    <div>
+                        <h3 style="margin:0;color:#fff;font-size:15px;">📚 Snippet-Bibliothek</h3>
+                        <p style="margin:4px 0 0;color:#888;font-size:11px;">Gespeicherte Anlagen-Bausteine – Rechtsklick auf Objekte → „Als Snippet speichern"</p>
+                    </div>
+                    <button onclick="document.getElementById('snippet-library-modal').style.display='none'" style="background:#555;color:#fff;border:none;padding:4px 11px;border-radius:3px;cursor:pointer;font-size:14px;">✕</button>
+                </div>
+                <div id="snippet-list" style="overflow-y:auto;flex:1;padding:12px 16px;"></div>
+                <div id="snippet-share-row" style="display:none;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid #444;flex-shrink:0;">
+                    <span style="font-size:11px;color:#80cbc4;white-space:nowrap;">🔗 Teilen-Link:</span>
+                    <input id="snippet-share-url" type="text" readonly style="flex:1;background:#0d1117;color:#80cbc4;border:1px solid #555;border-radius:3px;padding:5px 8px;font-size:11px;font-family:monospace;">
+                    <button onclick="navigator.clipboard.writeText(document.getElementById('snippet-share-url').value).then(()=>alert('✅ Link kopiert!'))" style="background:#26a69a;color:#fff;border:none;padding:5px 10px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap;">📋 Kopieren</button>
                 </div>
             </div>
         </div>
@@ -3198,6 +3224,15 @@ You must output exactly this JSON format. The logic code goes as a single string
                 updateObjTransform(resizingElementXY.data);
                 return; 
             }
+            // 5b. Pin-Drag
+            if (_pinDragActive) {
+                const { pin, el, startMX, startMY, startPX, startPY } = _pinDragActive;
+                pin.x = Math.round(startPX + (e.clientX - startMX) / factoryScale);
+                pin.y = Math.round(startPY + (e.clientY - startMY) / factoryScale);
+                el.style.left = pin.x + 'px';
+                el.style.top = pin.y + 'px';
+                return;
+            }
             // 6. Drag & Drop (Einzelnes Element oder ganze Gruppe)
             if (draggedElement) {
                 let canvasRect = factoryCanvas.getBoundingClientRect();
@@ -3220,10 +3255,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             }
         }); // Ende des Mousemove-Blocks
-        document.addEventListener('mouseup', () => { 
-            if(draggedElement || resizingElement) saveFactoryState(); 
-            draggedElement = null; 
-            resizingElement = null; 
+        document.addEventListener('mouseup', () => {
+            if(draggedElement || resizingElement) saveFactoryState();
+            if (_pinDragActive) { saveFactoryState(); _pinDragActive = null; }
+            draggedElement = null;
+            resizingElement = null;
         });
         window.toggleSection = function(id, headerEl) {
             const el = document.getElementById(id);
@@ -6557,6 +6593,8 @@ You must output exactly this JSON format. The logic code goes as a single string
         const ctxMenu = document.getElementById('factory-context-menu');
         let factoryObjects = [];
         let factoryItems = [];
+        let factoryPins = [];
+        let _pinDragActive = null;
         let engineRunning = false;
         let factoryHistory = [];
         let historyIndex = -1;
@@ -6587,9 +6625,9 @@ You must output exactly this JSON format. The logic code goes as a single string
         // NEU: BAUTEIL REGISTRY (Plugin-Architektur)
         // ==========================================
         const ComponentRegistry = {
-            // 🌟 PNEUMATIK BASIS-KOMPONENTEN
+            // 🌟 PNEUMATIK BASIS-KOMPONENTEN (intern, nicht im Plugin Manager sichtbar)
             'pneumatic_zone': {
-                directSpawn: true, noRodAttach: true,
+                directSpawn: true, noRodAttach: true, hideFromPluginManager: true,
                 build: function(obj, el) {
                     obj.width = 400; obj.height = 300; el.className = 'f2d-obj f2d-pneumatic-zone';
                     el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
@@ -6598,7 +6636,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             },
             'compressor': {
-                directSpawn: true, noRodAttach: true,
+                directSpawn: true, noRodAttach: true, hideFromPluginManager: true,
                 build: function(obj, el) {
                     obj.width = 100; obj.height = 60; obj.pressure = 6.0; obj.maxFlow = 200; // 6 bar, 200 l/min
                     el.className = 'f2d-obj f2d-compressor';
@@ -6622,7 +6660,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             },
 			'throttle': {
-                directSpawn: true, noRodAttach: true,
+                directSpawn: true, noRodAttach: true, hideFromPluginManager: true,
                 build: function(obj, el) {
                     obj.width = 40; obj.height = 35; obj.opening = 100;
                     el.className = 'f2d-obj f2d-throttle';
@@ -6658,7 +6696,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             },
             'valve_pneu': {
-                directSpawn: true, noRodAttach: true,
+                directSpawn: true, noRodAttach: true, hideFromPluginManager: true,
                 build: function(obj, el, var1, var2) {
                     // 🌟 FIX: Ventil ist wieder 50px breit! (Schläuche können so exakt ankern)
                     obj.width = 50; obj.height = 40; obj.isDouble = (var2 === 'double'); 
@@ -6780,7 +6818,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             },
             'manifold': {
-                directSpawn: true, noRodAttach: true,
+                directSpawn: true, noRodAttach: true, hideFromPluginManager: true,
                 build: function(obj, el) {
                     obj.width = 200; obj.height = 15; el.className = 'f2d-obj f2d-manifold';
                     el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
@@ -8266,7 +8304,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             },
             // Stubs für Built-in-Typen: nur Metadaten, keine build/animate-Logik
-            'sensor_opt': { role: 'input', sensorSteps: 5, color: '#ff9800' },
+            'sensor_opt': { role: 'input', sensorSteps: 5, color: '#ff9800', hideFromPluginManager: true },
 			'hmi_panel': {
                 directSpawn: true, hasHeight: true, noRotate: true, noRodAttach: true,
                 i18n: {
@@ -8960,10 +8998,18 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (iecMenu) iecMenu.style.display = 'none';
             // 4. Prüfen, ob wir in der 2D-Anlage sind
             if (e.target.closest('#factory-wrapper')) {
+                let pinEl = e.target.closest('.fac-pin');
+                if (pinEl) {
+                    let pin = factoryPins.find(p => p.id === pinEl.dataset.pinId);
+                    if (pin) showPinContextMenu(e.clientX, e.clientY, pin);
+                    return;
+                }
                 let target = e.target.closest('.f2d-obj');
                 if (target) {
-                    contextTarget = factoryObjects.find(o => o.el === target) || factoryItems.find(o => o.el === target); 
+                    contextTarget = factoryObjects.find(o => o.el === target) || factoryItems.find(o => o.el === target);
                     if (contextTarget) showContextMenu(e.clientX, e.clientY, contextTarget);
+                } else if (e.target.closest('#factory-canvas-area') || e.target.closest('#factory-content')) {
+                    showCanvasContextMenu(e.clientX, e.clientY);
                 }
                 return; // Nach Treffer sofort abbrechen!
             }
@@ -9391,6 +9437,15 @@ You must output exactly this JSON format. The logic code goes as a single string
                     ctxMenu.style.display = 'none'; 
                 }; 
                 ctxMenu.appendChild(btnMute);
+            }
+            // --- Als Snippet speichern ---
+            {
+                let sepSnip = document.createElement('div'); sepSnip.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sepSnip);
+                const targets = (selectedElements.includes(obj) && selectedElements.length > 1) ? selectedElements : [obj];
+                let btnSnip = document.createElement('div'); btnSnip.className = 'ctx-item'; btnSnip.style.color = '#80cbc4';
+                btnSnip.textContent = targets.length > 1 ? `📚 ${targets.length} Objekte als Snippet speichern` : '📚 Als Snippet speichern';
+                btnSnip.onclick = () => { ctxMenu.style.display = 'none'; saveAsSnippet(targets); };
+                ctxMenu.appendChild(btnSnip);
             }
             let wrapRect = document.getElementById('factory-wrapper').getBoundingClientRect();
             ctxMenu.style.left = (x - wrapRect.left) + 'px'; ctxMenu.style.top = (y - wrapRect.top) + 'px'; ctxMenu.style.display = 'block';
@@ -9987,7 +10042,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             requestAnimationFrame(factoryLoop);
         }
         window.clearFactory = function(force = false) {
-            factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; saveFactoryState();
+            factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; saveFactoryState();
         };
 		// 🌟 NEU: Funktion für den Klick auf den Zuweisungs-Button
         window.assignKey = function(varName) {
@@ -10163,6 +10218,7 @@ You must output exactly this JSON format. The logic code goes as a single string
         function getFactoryStateObj() {
             return {
                 globalViewMode: globalViewMode,
+                pins: factoryPins.map(p => ({ id: p.id, x: p.x, y: p.y, text: p.text, color: p.color, minimized: p.minimized })),
                 items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid, meltTemp: i.meltTemp })),
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
@@ -10207,10 +10263,11 @@ You must output exactly this JSON format. The logic code goes as a single string
         window.loadFactoryState = function() {
             let saved = localStorage.getItem('logikFactoryState');
             if (!saved) return;
-            isLoadingFactory = true; 
+            isLoadingFactory = true;
             try {
                 let state = JSON.parse(saved);
-                factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; clearSelection();
+                factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; clearSelection();
+                if (state.pins) state.pins.forEach(p => { factoryPins.push(p); createPinEl(p); });
                 if (state.globalViewMode) {
                     globalViewMode = state.globalViewMode;
                     const btn = document.getElementById('btn-viewmode');
@@ -10332,6 +10389,309 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             } catch(e) { console.error(e); } finally { isLoadingFactory = false; }
         };
+        // ==========================================
+        // KOMMENTAR-PINS
+        // ==========================================
+        const PIN_COLORS = { yellow: '#ffd740', blue: '#4fc3f7', green: '#69f0ae', pink: '#f48fb1' };
+        function createPinEl(pin) {
+            const col = PIN_COLORS[pin.color] || PIN_COLORS.yellow;
+            const el = document.createElement('div');
+            el.className = 'fac-pin';
+            el.dataset.pinId = pin.id;
+            el.style.cssText = `left:${pin.x}px; top:${pin.y}px; background:${col};`;
+
+            const header = document.createElement('div');
+            header.className = 'fac-pin-header';
+            header.innerHTML = '<span>📌</span>';
+
+            Object.entries(PIN_COLORS).forEach(([name, c]) => {
+                const dot = document.createElement('span');
+                dot.style.cssText = `display:inline-block;width:10px;height:10px;background:${c};border-radius:50%;cursor:pointer;border:${pin.color===name?'2px solid #333':'1px solid rgba(0,0,0,0.3)'};flex-shrink:0;`;
+                dot.onclick = (ev) => {
+                    ev.stopPropagation();
+                    pin.color = name; el.style.background = PIN_COLORS[name];
+                    header.querySelectorAll('.pin-dot').forEach((d, i) => { d.style.border = Object.keys(PIN_COLORS)[i]===name ? '2px solid #333' : '1px solid rgba(0,0,0,0.3)'; });
+                    saveFactoryState();
+                };
+                dot.className = 'pin-dot';
+                header.appendChild(dot);
+            });
+
+            const btnMin = document.createElement('span');
+            btnMin.style.cssText = 'margin-left:auto;cursor:pointer;font-size:11px;padding:0 3px;color:#333;font-weight:bold;';
+            btnMin.textContent = pin.minimized ? '▶' : '▼';
+            btnMin.title = 'Minimieren';
+            btnMin.onclick = (ev) => {
+                ev.stopPropagation();
+                pin.minimized = !pin.minimized;
+                body.style.display = pin.minimized ? 'none' : '';
+                btnMin.textContent = pin.minimized ? '▶' : '▼';
+                saveFactoryState();
+            };
+            header.appendChild(btnMin);
+
+            const btnDel = document.createElement('span');
+            btnDel.style.cssText = 'cursor:pointer;font-size:11px;padding:0 3px;color:#333;font-weight:bold;';
+            btnDel.textContent = '✕';
+            btnDel.title = 'Löschen';
+            btnDel.onclick = (ev) => { ev.stopPropagation(); deletePin(pin.id); };
+            header.appendChild(btnDel);
+
+            el.appendChild(header);
+
+            const body = document.createElement('div');
+            body.className = 'fac-pin-body';
+            body.style.display = pin.minimized ? 'none' : '';
+            const ta = document.createElement('textarea');
+            ta.value = pin.text || '';
+            ta.placeholder = 'Kommentar...';
+            ta.oninput = () => { pin.text = ta.value; saveFactoryState(); };
+            ta.onmousedown = (ev) => ev.stopPropagation();
+            body.appendChild(ta);
+            el.appendChild(body);
+
+            header.addEventListener('mousedown', (ev) => {
+                if (ev.target.classList.contains('pin-dot') || ev.target === btnMin || ev.target === btnDel) return;
+                if (ev.button !== 0) return;
+                ev.stopPropagation();
+                _pinDragActive = { pin, el, startMX: ev.clientX, startMY: ev.clientY, startPX: pin.x, startPY: pin.y };
+            });
+
+            pin.el = el;
+            factoryCanvas.appendChild(el);
+        }
+        function addPin(canvasX, canvasY) {
+            const pin = { id: Date.now().toString(), x: Math.round(canvasX), y: Math.round(canvasY), text: '', color: 'yellow', minimized: false };
+            factoryPins.push(pin);
+            createPinEl(pin);
+            saveFactoryState();
+            setTimeout(() => { const ta = pin.el && pin.el.querySelector('textarea'); if (ta) ta.focus(); }, 50);
+        }
+        function deletePin(id) {
+            const pin = factoryPins.find(p => p.id === id);
+            if (pin && pin.el) pin.el.remove();
+            factoryPins = factoryPins.filter(p => p.id !== id);
+            saveFactoryState();
+        }
+        function showPinContextMenu(x, y, pin) {
+            ctxMenu.innerHTML = '';
+            const title = document.createElement('div');
+            title.style.cssText = 'padding:6px 15px;color:#ffd740;font-size:11px;border-bottom:1px solid #555;cursor:default;';
+            title.textContent = '📌 Kommentar-Pin';
+            ctxMenu.appendChild(title);
+            const colorNames = { yellow: 'Gelb', blue: 'Blau', green: 'Grün', pink: 'Pink' };
+            Object.entries(PIN_COLORS).forEach(([name, c]) => {
+                const btn = document.createElement('div');
+                btn.className = 'ctx-item';
+                btn.style.cssText = `display:flex;align-items:center;gap:8px;${pin.color===name?'font-weight:bold;':''}`;
+                btn.innerHTML = `<span style="display:inline-block;width:10px;height:10px;background:${c};border-radius:50%;"></span> ${colorNames[name]}`;
+                btn.onclick = () => {
+                    pin.color = name; if (pin.el) { pin.el.style.background = c; }
+                    pin.el.querySelectorAll('.pin-dot').forEach((d, i) => { d.style.border = Object.keys(PIN_COLORS)[i]===name ? '2px solid #333' : '1px solid rgba(0,0,0,0.3)'; });
+                    saveFactoryState(); ctxMenu.style.display = 'none';
+                };
+                ctxMenu.appendChild(btn);
+            });
+            const sep = document.createElement('div'); sep.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sep);
+            const btnDel = document.createElement('div'); btnDel.className = 'ctx-item'; btnDel.style.color = '#ff5252';
+            btnDel.textContent = '🗑️ Pin löschen';
+            btnDel.onclick = () => { deletePin(pin.id); ctxMenu.style.display = 'none'; };
+            ctxMenu.appendChild(btnDel);
+            const wrapRect = document.getElementById('factory-wrapper').getBoundingClientRect();
+            ctxMenu.style.left = (x - wrapRect.left) + 'px'; ctxMenu.style.top = (y - wrapRect.top) + 'px'; ctxMenu.style.display = 'block';
+        }
+        function showCanvasContextMenu(x, y) {
+            ctxMenu.innerHTML = '';
+            const canvasRect = factoryCanvas.getBoundingClientRect();
+            const canvasX = (x - canvasRect.left) / factoryScale;
+            const canvasY = (y - canvasRect.top) / factoryScale;
+            const title = document.createElement('div');
+            title.style.cssText = 'padding:5px 15px;color:#aaa;font-size:10px;border-bottom:1px solid #555;cursor:default;';
+            title.textContent = `📍 X: ${Math.round(canvasX)} | Y: ${Math.round(canvasY)}`;
+            ctxMenu.appendChild(title);
+            const btnPin = document.createElement('div'); btnPin.className = 'ctx-item';
+            btnPin.textContent = '📌 Kommentar-Pin einfügen';
+            btnPin.onclick = () => { addPin(canvasX, canvasY); ctxMenu.style.display = 'none'; };
+            ctxMenu.appendChild(btnPin);
+            if (selectedElements.length > 0) {
+                const btnSnip = document.createElement('div'); btnSnip.className = 'ctx-item'; btnSnip.style.color = '#80cbc4';
+                btnSnip.textContent = `📚 Auswahl als Snippet speichern (${selectedElements.length})`;
+                btnSnip.onclick = () => { ctxMenu.style.display = 'none'; saveAsSnippet(selectedElements); };
+                ctxMenu.appendChild(btnSnip);
+            }
+            const btnLib = document.createElement('div'); btnLib.className = 'ctx-item'; btnLib.style.color = '#80cbc4';
+            btnLib.textContent = '📚 Snippet-Bibliothek öffnen';
+            btnLib.onclick = () => { ctxMenu.style.display = 'none'; openSnippetLibrary(); };
+            ctxMenu.appendChild(btnLib);
+            const wrapRect = document.getElementById('factory-wrapper').getBoundingClientRect();
+            ctxMenu.style.left = (x - wrapRect.left) + 'px'; ctxMenu.style.top = (y - wrapRect.top) + 'px'; ctxMenu.style.display = 'block';
+        }
+
+        // ==========================================
+        // SHARE-BIBLIOTHEK (Snippets)
+        // ==========================================
+        function getSnippets() {
+            try { return JSON.parse(localStorage.getItem('valis_snippets') || '[]'); } catch(e) { return []; }
+        }
+        function saveSnippetData(snippets) {
+            localStorage.setItem('valis_snippets', JSON.stringify(snippets));
+        }
+        function saveAsSnippet(targets) {
+            const name = prompt('Name für dieses Snippet:', 'Mein Snippet');
+            if (!name) return;
+            // Bounding-Box berechnen (nur top-level Objekte)
+            const topLevel = targets.filter(t => !t.parent || !targets.includes(t.parent));
+            const minX = Math.min(...topLevel.map(o => o.x));
+            const minY = Math.min(...topLevel.map(o => o.y));
+            // Alle Objekte (inklusive Kinder) relativ zur Bounding-Box speichern
+            const allObjs = [];
+            const visited = new Set();
+            function collectObj(o) {
+                if (visited.has(o)) return;
+                visited.add(o);
+                allObjs.push({
+                    id: o.id, type: o.type, x: Math.round(o.x - minX), y: Math.round(o.y - minY),
+                    width: Math.round(o.width), height: Math.round(o.height || 0), rotation: Math.round(o.rotation || 0),
+                    linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3,
+                    color: o.color, interval: o.interval, spawnSolid: o.spawnSolid, thickness: o.thickness,
+                    speed: o.speed, opening: o.opening, parentId: o.parent ? o.parent.id : null,
+                    attachmentType: o.attachmentType, locked: o.locked || false, labelPinned: o.labelPinned
+                });
+                if (o.children) o.children.forEach(c => collectObj(c));
+            }
+            topLevel.forEach(o => collectObj(o));
+            const snippet = { id: Date.now().toString(), name, ts: Date.now(), objects: allObjs };
+            const snippets = getSnippets();
+            snippets.unshift(snippet);
+            if (snippets.length > 50) snippets.splice(50);
+            saveSnippetData(snippets);
+            alert(`✅ Snippet „${name}" gespeichert!`);
+        }
+        window.openSnippetLibrary = function() {
+            renderSnippetLibrary();
+            document.getElementById('snippet-library-modal').style.display = 'flex';
+        };
+        function renderSnippetLibrary() {
+            const list = document.getElementById('snippet-list');
+            list.innerHTML = '';
+            const snippets = getSnippets();
+            if (snippets.length === 0) {
+                list.innerHTML = '<div style="color:#888;text-align:center;padding:30px;">Noch keine Snippets gespeichert.<br><small>Rechtsklick auf Objekte → „Als Snippet speichern"</small></div>';
+                return;
+            }
+            snippets.forEach(snip => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#2d2d30;border-radius:5px;margin-bottom:6px;';
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1;min-width:0;';
+                const ts = new Date(snip.ts);
+                info.innerHTML = `<div style="color:#fff;font-size:13px;font-weight:bold;">${snip.name}</div>
+                    <div style="color:#888;font-size:10px;">${snip.objects.length} Objekte · ${ts.toLocaleDateString('de-DE')} ${ts.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</div>`;
+                const btnLoad = document.createElement('button');
+                btnLoad.style.cssText = 'background:#26a69a;color:#fff;border:none;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap;';
+                btnLoad.textContent = '📥 Einfügen';
+                btnLoad.onclick = () => { loadSnippet(snip); };
+                const btnShare = document.createElement('button');
+                btnShare.style.cssText = 'background:#555;color:#fff;border:none;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap;';
+                btnShare.textContent = '🔗 Teilen';
+                btnShare.onclick = () => { shareSnippet(snip); };
+                const btnDel = document.createElement('button');
+                btnDel.style.cssText = 'background:#c62828;color:#fff;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;';
+                btnDel.textContent = '🗑️';
+                btnDel.onclick = () => {
+                    const all = getSnippets().filter(s => s.id !== snip.id);
+                    saveSnippetData(all);
+                    renderSnippetLibrary();
+                };
+                row.appendChild(info); row.appendChild(btnLoad); row.appendChild(btnShare); row.appendChild(btnDel);
+                list.appendChild(row);
+            });
+        }
+        function loadSnippet(snip) {
+            // Einfügen in der Mitte des sichtbaren Viewports
+            const areaRect = factoryScrollArea.getBoundingClientRect();
+            const cx = (factoryScrollArea.scrollLeft + areaRect.width / 2) / factoryScale;
+            const cy = (factoryScrollArea.scrollTop + areaRect.height / 2) / factoryScale;
+            // Bounding-Box der Snippet-Objekte berechnen (für Zentrierung)
+            const topObjs = snip.objects.filter(o => !o.parentId);
+            const bbMaxX = Math.max(...snip.objects.map(o => o.x + o.width));
+            const bbMaxY = Math.max(...snip.objects.map(o => o.y + (o.height || o.width)));
+            const offX = bbMaxX / 2;
+            const offY = bbMaxY / 2;
+            const idMap = {};
+            const newObjs = [];
+            snip.objects.filter(o => !o.parentId).forEach(o => {
+                placeSnippetObj(o, cx, cy, offX, offY, idMap, newObjs);
+            });
+            snip.objects.filter(o => o.parentId).forEach(o => {
+                placeSnippetObj(o, cx, cy, offX, offY, idMap, newObjs);
+            });
+            // Parent-Child-Verbindungen wiederherstellen
+            newObjs.forEach(newObj => {
+                const srcId = newObj._srcId;
+                const srcObj = snip.objects.find(o => o.id === srcId);
+                if (srcObj && srcObj.parentId && idMap[srcObj.parentId]) {
+                    newObj.parent = idMap[srcObj.parentId];
+                    if (!newObj.parent.children) newObj.parent.children = [];
+                    newObj.parent.children.push(newObj);
+                    newObj.el.classList.add('is-child');
+                }
+                delete newObj._srcId;
+            });
+            newObjs.forEach(o => updateObjTransform(o));
+            saveFactoryState();
+            clearSelection();
+            newObjs.forEach(o => { selectedElements.push(o); o.el.classList.add('f2d-selected'); });
+            document.getElementById('snippet-library-modal').style.display = 'none';
+        }
+        function placeSnippetObj(o, cx, cy, offsetX2, offsetY2, idMap, newObjs) {
+            let var2 = o.linkedVarRet;
+            if (o.type && o.type.startsWith('spawner_')) var2 = o.spawnSolid ? 'solid' : 'normal';
+            const newId = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+            const newObj = createFactoryObject(o.type, o.linkedVar || o.linkedVarExt, var2, newId, o.color, o.interval, o.linkedVar3);
+            newObj.x = cx - offsetX2 + o.x;
+            newObj.y = cy - offsetY2 + o.y;
+            newObj.width = o.width; newObj.height = o.height || 0; newObj.rotation = o.rotation || 0;
+            if (o.thickness) { newObj.thickness = o.thickness; newObj.el.style.setProperty('--tk', o.thickness + 'px'); }
+            if (o.speed) newObj.speed = o.speed;
+            if (o.opening !== undefined) newObj.opening = o.opening;
+            if (o.locked) { newObj.locked = true; newObj.el.classList.add('f2d-locked'); }
+            if (o.labelPinned && newObj.labelEl) { newObj.labelPinned = true; newObj.labelEl.classList.add('f2d-label-pinned'); }
+            if(newObj.resizerEl || (ComponentRegistry[newObj.type] && ComponentRegistry[newObj.type].build)) newObj.el.style.width = newObj.width + 'px';
+            if(newObj.type && (newObj.type.startsWith('zone_') || newObj.type === 'wall' || newObj.type === 'frame' || (ComponentRegistry[newObj.type] && (ComponentRegistry[newObj.type].hasHeight || ComponentRegistry[newObj.type].build)))) newObj.el.style.height = (newObj.height || 0) + 'px';
+            newObj._srcId = o.id;
+            idMap[o.id] = newObj;
+            newObjs.push(newObj);
+        }
+        function shareSnippet(snip) {
+            const data = LZString.compressToEncodedURIComponent(JSON.stringify(snip));
+            const url = location.origin + location.pathname + '?snippet=' + data;
+            const ta = document.getElementById('snippet-share-url');
+            ta.value = url;
+            document.getElementById('snippet-share-row').style.display = 'flex';
+            ta.select();
+        }
+        // Snippet aus URL laden (beim Seitenstart)
+        (function() {
+            const params = new URLSearchParams(location.search);
+            const raw = params.get('snippet');
+            if (!raw) return;
+            try {
+                const snip = JSON.parse(LZString.decompressFromEncodedURIComponent(raw));
+                if (!snip || !snip.objects) return;
+                const existing = getSnippets();
+                if (!existing.find(s => s.id === snip.id)) {
+                    existing.unshift(snip);
+                    saveSnippetData(existing);
+                }
+                setTimeout(() => {
+                    if (confirm(`📚 Snippet „${snip.name}" aus URL gefunden. Jetzt in die Bibliothek importieren?`)) {
+                        openSnippetLibrary();
+                    }
+                }, 1500);
+            } catch(e) { console.warn('Snippet URL parse error', e); }
+        })();
+
 		// --- NEU: HILFE MODAL STEUERUNG ---
         window.openHelpModal = function() {
             document.getElementById('help-modal').style.display = 'block';
@@ -11460,10 +11820,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                 '#menu-struktur': 'plug_cat_struct',
                 '#menu-werkstuecke': 'plug_cat_items'
             };
-            // Gruppiere alle Plugins
+            // Gruppiere alle Plugins (interne/versteckte Komponenten überspringen)
             let groups = {};
             Object.keys(ComponentRegistry).forEach(key => {
                 let p = ComponentRegistry[key];
+                if (p.hideFromPluginManager) return;
                 let t = p.menuTarget;
                 let catId = catKeys[t] ? t : 'other';
                 if (!groups[catId]) groups[catId] = [];
