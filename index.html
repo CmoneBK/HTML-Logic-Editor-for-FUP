@@ -497,6 +497,24 @@
         .task-mgr-btn.danger { background:#c62828; border-color:#b71c1c; }
         .task-mgr-btn.danger:hover { background:#b71c1c; }
         .task-device-hidden { display: none !important; }
+        .task-area-blocked { position: relative !important; pointer-events: none !important; }
+        .task-area-blocked-code { opacity: 0.55; }
+        .task-block-overlay {
+            position: absolute; inset: 0; z-index: 999; pointer-events: auto; cursor: not-allowed;
+            background: repeating-linear-gradient(135deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 8px,rgba(0,0,0,0.07) 8px,rgba(0,0,0,0.07) 9px);
+            display: flex; align-items: flex-start; justify-content: flex-end; padding: 6px;
+        }
+        .task-block-badge {
+            background: rgba(30,30,30,0.85); color: #ef9a9a; font-size: 11px;
+            border-radius: 3px; padding: 2px 6px; pointer-events: none; user-select: none;
+        }
+        #valis-toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #2e7d32; color: #fff; font-size: 13px; padding: 8px 20px;
+            border-radius: 6px; z-index: 9999; pointer-events: none;
+            opacity: 0; transition: opacity 0.25s;
+        }
+        #valis-toast.show { opacity: 1; }
 		.tb-drop-btn { background: #444; color: #fff; border: 1px solid #666; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.1s; }
         .tb-drop-btn:hover { background: #555; border-color: #888; }
         /* F2D-CSS-START */
@@ -1330,7 +1348,7 @@
         </div>
         <!-- ====== AUFGABEN-MODUS MODALS ====== -->
         <!-- Aufgaben-Panel (aktive Aufgabe) -->
-        <div id="task-panel" style="display:none; position:fixed; top:60px; right:16px; width:280px; background:#1e2a3a; border:1px solid #1565c0; border-radius:8px; z-index:500; font-size:12px; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+        <div id="task-panel" style="display:none; position:fixed; top:60px; right:16px; width:280px; background:#1e2a3a; border:1px solid #1565c0; border-radius:8px; z-index:1100; font-size:12px; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
             <div id="task-panel-header" style="background:#1565c0; padding:8px 12px; border-radius:7px 7px 0 0; display:flex; justify-content:space-between; align-items:center;">
                 <span id="task-panel-name" style="font-weight:bold;"></span>
                 <span id="task-panel-diff" style="font-size:10px; opacity:0.8;"></span>
@@ -1343,6 +1361,7 @@
                     <button id="task-hint-btn" onclick="window._taskShowHint()" style="display:none; background:#37474f; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:11px;">💡 Hinweis</button>
                     <button onclick="window._taskAbandon()" style="background:#c62828; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:11px;">✖ Abbrechen</button>
                 </div>
+                <button id="task-solution-btn" onclick="window._taskShowSolution()" style="display:none; margin-top:6px; width:100%; background:#1565c0; color:#fff; border:none; border-radius:4px; padding:5px 10px; cursor:pointer; font-size:11px; opacity:0.4;" disabled>💡 Musterlösung anzeigen</button>
             </div>
         </div>
         <!-- Erfolgs-Modal -->
@@ -1352,6 +1371,18 @@
             <div id="task-success-name" style="color:#aaa; margin-bottom:8px;"></div>
             <div id="task-success-time" style="color:#ffb300; font-size:12px; margin-bottom:16px;"></div>
             <button onclick="window._taskAbandon()" style="background:#4caf50; color:#fff; border:none; border-radius:6px; padding:8px 20px; cursor:pointer; font-size:13px;">✔ Fertig</button>
+        </div>
+        <div id="valis-toast"></div>
+        <!-- Musterlösung-Modal -->
+        <div id="task-solution-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:4000; align-items:center; justify-content:center;">
+            <div style="background:#1e1e1e; border-radius:8px; padding:20px; max-width:680px; width:95%; max-height:85vh; overflow-y:auto; border:1px solid #555;">
+                <div style="color:#fff; font-weight:bold; margin-bottom:12px; font-size:14px;">💡 Musterlösung</div>
+                <textarea id="task-solution-code" readonly style="width:100%; height:200px; background:#0d0d0d; color:#b0bec5; border:1px solid #333; border-radius:4px; padding:8px; font-family:monospace; font-size:11px; box-sizing:border-box; resize:vertical;"></textarea>
+                <div style="margin-top:12px; display:flex; gap:8px;">
+                    <button onclick="window._taskLoadSolution()" style="background:#1565c0; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:12px;">📂 Musterlösung laden</button>
+                    <button onclick="document.getElementById('task-solution-modal').style.display='none'" style="background:#555; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:12px;">✖ Schließen</button>
+                </div>
+            </div>
         </div>
         <!-- Task-Manager Modal -->
         <div id="task-manager-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2900; justify-content:center; align-items:center;">
@@ -6369,6 +6400,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         if (!taskSolved) { alert('Zeit abgelaufen!'); window._taskAbandon(); }
                     } else {
                         document.getElementById('task-timer-val').textContent = _fmtTaskTime(remaining);
+                        _taskUpdateSolutionBtn();
                     }
                 }, 1000);
             } else {
@@ -6382,6 +6414,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                     .map(c => c.objectType);
                 _taskApplyObjectRestrictions(allowed);
             }
+            // Bearbeitungsbereich-Sperren anwenden
+            if (taskObj.blockAreas) _taskApplyBlockAreas(taskObj.blockAreas);
+            // Musterlösung-Button initialisieren
+            _taskUpdateSolutionBtn();
         };
 
         function _taskAnnotateDeviceItems() {
@@ -6427,6 +6463,144 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
         }
 
+        // ── Bearbeitungsbereich-Sperren ─────────────────────────────────────────
+        function _taskAddBlockOverlay(el) {
+            let ov = document.createElement('div');
+            ov.className = 'task-block-overlay';
+            ov.dataset.taskBlock = '1';
+            ov.innerHTML = '<span class="task-block-badge">🔒 Gesperrt</span>';
+            el.appendChild(ov);
+        }
+
+        function _taskApplyBlockAreas(areas) {
+            if (!areas) return;
+            if (areas.codeEditor) {
+                let ta = document.getElementById('code');
+                if (ta) { ta.readOnly = true; ta.classList.add('task-area-blocked-code'); }
+            }
+            const panelIds = {
+                ioPanel:    'simulator-panel',
+                logikplan:  'fbs-wrapper',
+                schaltplan: 'circuit-wrapper',
+                factory2d:  'factory-wrapper'
+            };
+            for (let [key, id] of Object.entries(panelIds)) {
+                if (areas[key]) {
+                    let el = document.getElementById(id);
+                    if (el) { el.classList.add('task-area-blocked'); _taskAddBlockOverlay(el); }
+                }
+            }
+            if (areas.factoryNewVars && !areas.factory2d) {
+                // Alle addFactoryDevice-Aufrufe blockieren
+                if (!window._origAddFactoryDevice) {
+                    window._origAddFactoryDevice = window.addFactoryDevice;
+                    window.addFactoryDevice = function(type) {
+                        // Im newVars-Sperrmodus: alle neuen Objekte blockieren
+                        if (activeTask && activeTask.blockAreas && activeTask.blockAreas.factoryNewVars) return;
+                        window._origAddFactoryDevice(type);
+                    };
+                }
+                // Sidebar-Buttons ausblenden
+                _taskAnnotateDeviceItems();
+                document.querySelectorAll('[data-device-type]').forEach(el => {
+                    el.classList.add('task-device-hidden');
+                    el.dataset.taskBlockHidden = '1';
+                });
+            }
+        }
+
+        function _taskRestoreBlockAreas() {
+            // Code-Editor freigeben
+            let ta = document.getElementById('code');
+            if (ta) { ta.readOnly = false; ta.classList.remove('task-area-blocked-code'); }
+            // Panel-Sperren entfernen
+            ['simulator-panel','fbs-wrapper','circuit-wrapper','factory-wrapper'].forEach(id => {
+                let el = document.getElementById(id);
+                if (el) el.classList.remove('task-area-blocked');
+            });
+            // Overlays entfernen
+            document.querySelectorAll('[data-task-block="1"]').forEach(el => el.remove());
+            // addFactoryDevice nur wiederherstellen, wenn blockAreas es gewrappt hat
+            // (nicht wenn restrictObjects es bereits hat – das übernimmt _taskRestoreObjectRestrictions)
+            if (window._origAddFactoryDevice && !(activeTask && activeTask.restrictObjects)) {
+                window.addFactoryDevice = window._origAddFactoryDevice;
+                delete window._origAddFactoryDevice;
+            }
+            // blockAreas-versteckte Sidebar-Buttons wiederherstellen
+            document.querySelectorAll('[data-task-block-hidden="1"]').forEach(el => {
+                el.classList.remove('task-device-hidden');
+                delete el.dataset.taskBlockHidden;
+            });
+        }
+
+        // ── Musterlösung ────────────────────────────────────────────────────────
+        function _isSolutionAvailable() {
+            if (!activeTask || !activeTask.solution) return false;
+            const mode = activeTask.solutionMode || 'hidden';
+            if (mode === 'hidden') return false;
+            if (mode === 'always') return true;
+            const elapsedSec = (Date.now() - taskStartTime) / 1000;
+            const timeOk = elapsedSec >= (activeTask.solutionMinTime || 0);
+            const doneCount = (activeTask.conditions || []).filter(c => _checkCondition(c)).length;
+            const partialOk = doneCount >= (activeTask.solutionMinDone || 1);
+            if (mode === 'after_time') return timeOk;
+            if (mode === 'after_partial') return partialOk;
+            if (mode === 'after_both') return timeOk && partialOk;
+            return false;
+        }
+
+        function _taskUpdateSolutionBtn() {
+            const btn = document.getElementById('task-solution-btn');
+            if (!btn) return;
+            const show = !!(activeTask && activeTask.solution && activeTask.solutionMode !== 'hidden');
+            btn.style.display = show ? 'block' : 'none';
+            if (show) {
+                const avail = _isSolutionAvailable();
+                btn.disabled = !avail;
+                btn.style.opacity = avail ? '1' : '0.4';
+                btn.style.cursor = avail ? 'pointer' : 'default';
+            }
+        }
+
+        window._taskCaptureSolution = function() {
+            let modal = document.getElementById('task-editor-modal');
+            if (!modal._editTask) return;
+            modal._editTask.solution = {
+                code: document.getElementById('code') ? document.getElementById('code').value : '',
+                factory: getFactoryStateObj(),
+                types: JSON.parse(JSON.stringify(componentTypes)),
+                layout: currentLayout
+            };
+            let infoEl = document.getElementById('ted-solution-info');
+            if (infoEl) infoEl.textContent = '✅ Musterlösung gespeichert (Code + Fabrik-Zustand)';
+        };
+
+        window._taskShowSolution = function() {
+            if (!_isSolutionAvailable()) return;
+            let codeEl = document.getElementById('task-solution-code');
+            if (codeEl) codeEl.value = (activeTask.solution && activeTask.solution.code) || '';
+            document.getElementById('task-solution-modal').style.display = 'flex';
+        };
+
+        window._taskLoadSolution = function() {
+            if (!activeTask || !activeTask.solution) return;
+            let sol = activeTask.solution;
+            let payload = { code: sol.code || '', factory: sol.factory || null, types: sol.types || {}, layout: sol.layout || 'flex-row' };
+            let saveloadText = document.getElementById('saveload-text');
+            if (saveloadText) { saveloadText.value = JSON.stringify(payload); window.applyRawCode(); }
+            document.getElementById('task-solution-modal').style.display = 'none';
+        };
+
+        window._taskToggleSolFields = function() {
+            let mode = (document.getElementById('ted-sol-mode') || {}).value || 'hidden';
+            let showTime = mode === 'after_time' || mode === 'after_both';
+            let showPart = mode === 'after_partial' || mode === 'after_both';
+            let tr = document.getElementById('ted-sol-time-row');
+            let pr = document.getElementById('ted-sol-partial-row');
+            if (tr) tr.style.display = showTime ? 'flex' : 'none';
+            if (pr) pr.style.display = showPart ? 'flex' : 'none';
+        };
+
         // Lesbare Kurzbezeichnung ohne Spoiler (zeigt WAS zu tun ist, nicht WIE)
         function _condNoSpoilerLabel(cond) {
             switch(cond.type) {
@@ -6448,7 +6622,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 case 'sps_input':       return `${cond.variable} = ${cond.value ? '1 (aktiv)' : '0 (inaktiv)'}`;
                 case 'variable_exists': return `"${cond.variable}" deklariert`;
                 case 'code_contains':   return `Enthält: ${cond.pattern}`;
-                case 'factory_object':  return `${cond.objectType}` + (cond.linkedVar ? ` → ${cond.linkedVar}` : '');
+                case 'factory_object':  return `${_getObjectTypeLabel(cond.objectType)}` + (cond.linkedVar ? ` → ${cond.linkedVar}` : '');
                 case 'sim_running':     return `≥ ${cond.minSeconds} s`;
                 case 'despawner_count': return `${cond.count} Teile`;
                 case 'custom_js':       return cond.expression || '(JS)';
@@ -6494,11 +6668,15 @@ You must output exactly this JSON format. The logic code goes as a single string
 
         window._taskAbandon = function() {
             _taskRestoreObjectRestrictions();
+            _taskRestoreBlockAreas();
             activeTask = null;
             taskSolved = false;
             if (_taskTimerInterval) { clearInterval(_taskTimerInterval); _taskTimerInterval = null; }
             document.getElementById('task-panel').style.display = 'none';
             document.getElementById('task-success-modal').style.display = 'none';
+            document.getElementById('task-solution-modal').style.display = 'none';
+            let solBtn = document.getElementById('task-solution-btn');
+            if (solBtn) solBtn.style.display = 'none';
         };
 
         window._taskShowHint = function() {
@@ -6532,6 +6710,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if (el) el.className = 'task-cond ' + (done ? 'done' : 'pending');
             });
             if (allDone && conds.length > 0) window._taskSolve();
+            _taskUpdateSolutionBtn();
         };
 
         window._taskSolve = function() {
@@ -6561,18 +6740,50 @@ You must output exactly this JSON format. The logic code goes as a single string
             { value:'custom_js',       label:'Eigener JS-Ausdruck' },
         ];
 
-        // Alle verfügbaren Fabrik-Objekttypen: Built-ins + dynamisch aus ComponentRegistry
+        // Anzeigenamen für Built-in Fabrikobjekte
+        const _BUILTIN_OBJ_NAMES = {
+            'conveyor':           'Förderband',
+            'despawner':          'Auswerfer / Ziel',
+            'frame':              'Rahmen',
+            'led':                'Lampe / LED',
+            'nothalt':            'Not-Halt',
+            'schalter':           'Schalter',
+            'taster':             'Taster',
+            'sensor_ind':         'Sensor (Induktiv)',
+            'sensor_kap':         'Sensor (Kapazitiv)',
+            'sensor_mag':         'Sensor (Magnetisch)',
+            'sensor_opt':         'Sensor (Optisch)',
+            'spawner_kunststoff': 'Werkstück-Quelle (Kunststoff)',
+            'spawner_metall':     'Werkstück-Quelle (Metall)',
+            'wall':               'Wand',
+            'zone_side':          'Zone (Seitenansicht)',
+            'zone_top':           'Zone (Draufsicht)',
+            'zylinder_double':    'Zylinder (doppelwirkend)',
+            'zylinder_single':    'Zylinder (einfachwirkend)',
+        };
+
+        function _getObjectTypeLabel(type) {
+            if (_BUILTIN_OBJ_NAMES[type]) return _BUILTIN_OBJ_NAMES[type];
+            if (typeof ComponentRegistry !== 'undefined' && ComponentRegistry[type]) {
+                const i18n = ComponentRegistry[type].i18n;
+                return (i18n && (i18n.de || i18n.en) && ((i18n.de || i18n.en).name)) || type;
+            }
+            return type;
+        }
+        function _getTypeFromLabel(label) {
+            // Anzeigename → interner Typ; Fallback: Eingabe direkt als Typ verwenden
+            const all = _getFactoryObjectTypes();
+            const found = all.find(e => e.label.toLowerCase() === label.toLowerCase());
+            return found ? found.type : label;
+        }
+
+        // Alle verfügbaren Fabrik-Objekttypen: Built-ins + dynamisch aus ComponentRegistry, mit Anzeigenamen
         function _getFactoryObjectTypes() {
-            const builtins = [
-                'conveyor', 'despawner', 'frame',
-                'led', 'nothalt', 'schalter', 'taster',
-                'sensor_ind', 'sensor_kap', 'sensor_mag', 'sensor_opt',
-                'spawner_kunststoff', 'spawner_metall',
-                'wall', 'zone_side', 'zone_top',
-                'zylinder_double', 'zylinder_single',
-            ];
+            const builtins = Object.keys(_BUILTIN_OBJ_NAMES);
             const registry = typeof ComponentRegistry !== 'undefined' ? Object.keys(ComponentRegistry) : [];
-            return [...new Set([...builtins, ...registry])].sort();
+            return [...new Set([...builtins, ...registry])]
+                .map(type => ({ type, label: _getObjectTypeLabel(type) }))
+                .sort((a, b) => a.label.localeCompare(b.label));
         }
 
         function _buildCondExtra(cond) {
@@ -6592,11 +6803,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                     return `<label class="task-ed-label">Regex-Muster</label><input class="task-ed-input cond-pattern" type="text" value="${_escHtml(cond.pattern||'')}" placeholder="z.B. SR oder TON">`;
                 case 'factory_object': {
                     const dlId = 'task-obj-types-dl';
-                    const dlOpts = _getFactoryObjectTypes().map(t => `<option value="${_escHtml(t)}">`).join('');
+                    const dlOpts = _getFactoryObjectTypes().map(({label}) => `<option value="${_escHtml(label)}">`).join('');
                     return `<datalist id="${dlId}">${dlOpts}</datalist>
                     <div style="display:flex;gap:6px;">
-                        <div style="flex:1;"><label class="task-ed-label">Objekttyp</label>
-                            <input class="task-ed-input cond-objtype" type="text" list="${dlId}" value="${_escHtml(cond.objectType||'')}" placeholder="Tippen oder Dropdown ▼" autocomplete="off">
+                        <div style="flex:1;"><label class="task-ed-label">Bauteil</label>
+                            <input class="task-ed-input cond-objtype" type="text" list="${dlId}" value="${_escHtml(_getObjectTypeLabel(cond.objectType||''))}" placeholder="Tippen oder auswählen…" autocomplete="off">
                         </div>
                         <div style="flex:1;"><label class="task-ed-label">Verknüpfte Variable</label><input class="task-ed-input cond-linkedvar" type="text" value="${_escHtml(cond.linkedVar||'')}" placeholder="z.B. A_LAMPE"></div>
                     </div>`;
@@ -6653,7 +6864,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     case 'code_contains':
                         cond.pattern = (row.querySelector('.cond-pattern')||{value:''}).value; break;
                     case 'factory_object':
-                        cond.objectType = (row.querySelector('.cond-objtype')||{value:''}).value.trim();
+                        cond.objectType = _getTypeFromLabel((row.querySelector('.cond-objtype')||{value:''}).value.trim());
                         cond.linkedVar = (row.querySelector('.cond-linkedvar')||{value:''}).value.trim(); break;
                     case 'sim_running':
                         cond.minSeconds = parseFloat((row.querySelector('.cond-minsec')||{value:'5'}).value) || 5; break;
@@ -6680,6 +6891,21 @@ You must output exactly this JSON format. The logic code goes as a single string
             task.conditions = _taskCollectConditions();
             let restrictEl = document.getElementById('ted-restrict');
             task.restrictObjects = restrictEl ? restrictEl.checked : false;
+            // Musterlösung
+            task.solution = (document.getElementById('task-editor-modal')._editTask || {}).solution || null;
+            let solModeEl = document.getElementById('ted-sol-mode');
+            task.solutionMode = solModeEl ? solModeEl.value : 'hidden';
+            task.solutionMinTime = parseInt((document.getElementById('ted-sol-time') || {value:'60'}).value) || 60;
+            task.solutionMinDone = parseInt((document.getElementById('ted-sol-partial') || {value:'1'}).value) || 1;
+            // Bearbeitungsbereiche
+            task.blockAreas = {
+                codeEditor:     !!(document.getElementById('ted-block-code') || {}).checked,
+                ioPanel:        !!(document.getElementById('ted-block-io') || {}).checked,
+                logikplan:      !!(document.getElementById('ted-block-fbs') || {}).checked,
+                schaltplan:     !!(document.getElementById('ted-block-iec') || {}).checked,
+                factory2d:      !!(document.getElementById('ted-block-2d') || {}).checked,
+                factoryNewVars: !!(document.getElementById('ted-block-newvar') || {}).checked,
+            };
             return task;
         }
 
@@ -6697,11 +6923,14 @@ You must output exactly this JSON format. The logic code goes as a single string
         };
 
         window._taskEditorClose = function() {
-            // Formularstand sichern bevor der Modal versteckt wird
+            let modal = document.getElementById('task-editor-modal');
             if (document.getElementById('ted-name')) {
-                _taskCollectFromEditor();
+                let current = JSON.stringify(_taskCollectFromEditor());
+                if (current !== modal._savedSnapshot) {
+                    if (!confirm('Ungespeicherte Änderungen verwerfen?')) return;
+                }
             }
-            document.getElementById('task-editor-modal').style.display = 'none';
+            modal.style.display = 'none';
         };
 
         window._openTaskEditor = function(taskObj) {
@@ -6718,6 +6947,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 timeLimit:null, preset:null, conditions:[]
             };
             modal._editTask = task;
+            modal._savedSnapshot = JSON.stringify(task);
             let body = document.getElementById('task-editor-body');
             body.innerHTML = `
                 <label class="task-ed-label">Name *</label>
@@ -6752,6 +6982,45 @@ You must output exactly this JSON format. The logic code goes as a single string
                         Nur geforderte Objekte (<code style="background:#111;padding:1px 4px;border-radius:2px;font-size:10px;">factory_object</code>-Bedingungen) in den Menüs erlauben
                     </label>
                 </div>
+                <div style="margin-top:14px;padding:10px;background:#151515;border-radius:4px;border:1px solid #333;">
+                    <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">💡 Musterlösung</div>
+                    <div id="ted-solution-info" style="color:#607d8b;font-size:11px;margin-bottom:8px;">${task.solution ? '✅ Musterlösung gespeichert (Code + Fabrik-Zustand)' : '⬜ Keine Musterlösung hinterlegt'}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button onclick="window._taskCaptureSolution()" style="background:#37474f;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:11px;">📸 Aktuellen Zustand als Musterlösung</button>
+                        ${task.solution ? `<button onclick="document.getElementById('task-editor-modal')._editTask.solution=null;document.getElementById('ted-solution-info').textContent='⬜ Keine Musterlösung'" style="background:#c62828;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:11px;">🗑 Löschen</button>` : ''}
+                    </div>
+                    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span style="color:#90a4ae;font-size:11px;">Verfügbarkeit:</span>
+                        <select id="ted-sol-mode" onchange="window._taskToggleSolFields()" style="background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;padding:3px 6px;font-size:11px;">
+                            <option value="hidden" ${(task.solutionMode||'hidden')==='hidden'?'selected':''}>Verborgen</option>
+                            <option value="always" ${task.solutionMode==='always'?'selected':''}>Immer sichtbar</option>
+                            <option value="after_time" ${task.solutionMode==='after_time'?'selected':''}>Nach Zeit</option>
+                            <option value="after_partial" ${task.solutionMode==='after_partial'?'selected':''}>Nach Teillösung</option>
+                            <option value="after_both" ${task.solutionMode==='after_both'?'selected':''}>Nach Zeit UND Teillösung</option>
+                        </select>
+                    </div>
+                    <div id="ted-sol-time-row" style="display:${(task.solutionMode==='after_time'||task.solutionMode==='after_both')?'flex':'none'};align-items:center;gap:6px;margin-top:6px;color:#b0bec5;font-size:11px;">
+                        Nach <input id="ted-sol-time" type="number" min="0" max="3600" value="${task.solutionMinTime||60}" style="width:60px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;padding:3px 5px;font-size:11px;"> Sekunden
+                    </div>
+                    <div id="ted-sol-partial-row" style="display:${(task.solutionMode==='after_partial'||task.solutionMode==='after_both')?'flex':'none'};align-items:center;gap:6px;margin-top:6px;color:#b0bec5;font-size:11px;">
+                        Nach <input id="ted-sol-partial" type="number" min="1" value="${task.solutionMinDone||1}" style="width:50px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;padding:3px 5px;font-size:11px;"> erledigten Bedingungen
+                    </div>
+                </div>
+                <div style="margin-top:14px;padding:10px;background:#151515;border-radius:4px;border:1px solid #333;">
+                    <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">🔒 Bearbeitungsbereiche sperren</div>
+                    ${[
+                        ['ted-block-code', 'Code-Editor (Texteingabe direkt)', '', (task.blockAreas||{}).codeEditor],
+                        ['ted-block-io',   'Ein-/Ausgänge', '', (task.blockAreas||{}).ioPanel],
+                        ['ted-block-fbs',  'Logikplan', '(Code bleibt über Logikplan bearbeitbar, wenn nicht gesperrt)', (task.blockAreas||{}).logikplan],
+                        ['ted-block-iec',  'Schaltplan', '(Code bleibt über Schaltplan bearbeitbar, wenn nicht gesperrt)', (task.blockAreas||{}).schaltplan],
+                        ['ted-block-2d',   '2D Anlage (komplett)', '', (task.blockAreas||{}).factory2d],
+                        ['ted-block-newvar','Neue Objekte zur Anlage hinzufügen sperren', '(nur wirksam wenn 2D Anlage nicht vollständig gesperrt)', (task.blockAreas||{}).factoryNewVars],
+                    ].map(([id,label,hint,checked]) => `
+                        <label style="display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;cursor:pointer;color:#b0bec5;font-size:11px;">
+                            <input type="checkbox" id="${id}" ${checked?'checked':''} style="margin-top:2px;">
+                            <span>${label}${hint?` <span style="color:#607d8b;font-size:10px;">${hint}</span>`:''}
+                        </label>`).join('')}
+                </div>
                 <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #444;padding-top:12px;">
                     <button onclick="window._taskEditorSave()" style="background:#2e7d32;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:bold;">💾 Lokal speichern</button>
                     <button onclick="window._taskEditorExport()" style="background:#1565c0;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:12px;">📤 Als .valitask exportieren</button>
@@ -6761,11 +7030,24 @@ You must output exactly this JSON format. The logic code goes as a single string
             modal.style.display = 'flex';
         };
 
+        function _showToast(msg, color) {
+            let t = document.getElementById('valis-toast');
+            if (!t) return;
+            t.textContent = msg;
+            t.style.background = color || '#2e7d32';
+            t.classList.add('show');
+            clearTimeout(t._hideTimer);
+            t._hideTimer = setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
         window._taskEditorSave = function() {
             let task = _taskCollectFromEditor();
-            if (!task.name) { alert('Bitte einen Aufgabennamen eingeben.'); return; }
+            if (!task.name) { _showToast('⚠ Bitte einen Aufgabennamen eingeben.', '#b71c1c'); return; }
             _saveTaskLocally(task);
-            alert('✅ Aufgabe "' + task.name + '" gespeichert.');
+            let modal = document.getElementById('task-editor-modal');
+            modal._savedSnapshot = JSON.stringify(task);
+            window._openTaskManager();
+            _showToast('✅ Aufgabe "' + task.name + '" gespeichert.');
         };
 
         window._taskEditorExport = function() {
@@ -8300,15 +8582,28 @@ You must output exactly this JSON format. The logic code goes as a single string
                     el.style.width = obj.width + 'px';
                     el.style.height = obj.height + 'px';
                     el.innerHTML = '<div class="f2d-fan-blade"></div><div class="f2d-fan-center"></div>';
+                    obj._bladeEl = el.querySelector('.f2d-fan-blade');
                     let resizer = document.createElement('div'); resizer.className = 'f2d-resize-handle-xy'; obj.resizerEl = resizer; el.appendChild(resizer);
-                    obj.useCollision = false; 
+                    obj.useCollision = false;
                 },
                 animate: function(obj, spsState) {
                     let isActive = !!spsState[obj.linkedVar];
+                    // Anlaufzeit-Ramp (läuft jeden Frame)
+                    let _st = obj.startupTime || 0;
+                    if (obj._speedFactor === undefined) obj._speedFactor = 0;
+                    if (isActive) {
+                        obj._speedFactor = _st > 0 ? Math.min(1, obj._speedFactor + timeScale / (60 * _st)) : 1;
+                    } else {
+                        obj._speedFactor = 0;
+                    }
+                    let blade = obj._bladeEl || (obj._bladeEl = obj.el.querySelector('.f2d-fan-blade'));
+                    obj.el.classList.toggle('active', obj._speedFactor > 0);
+                    if (blade && obj._speedFactor > 0) {
+                        blade.style.animationDuration = (0.5 / Math.max(0.02, obj._speedFactor)).toFixed(2) + 's';
+                    }
                     if (isActive !== obj.isActive) {
                         obj.isActive = isActive;
                         if (isActive) {
-            obj.el.classList.add('active');
             // START CONTINUOUS SOUND (Lüfter Loop)
             if ((window.soundMode === 2 || window.soundMode === 3) && typeof SoundEngine !== 'undefined' && SoundEngine.ctx && !obj.muteSound) {
                 let ctx = SoundEngine.ctx;
@@ -8343,7 +8638,6 @@ You must output exactly this JSON format. The logic code goes as a single string
                 obj.audioGain = gain;
             }
         } else {
-            obj.el.classList.remove('active');
             // STOP SOUND (Sanft ausklingen lassen)
             if (obj.audioGain && typeof SoundEngine !== 'undefined' && SoundEngine.ctx) {
                 let ctx = SoundEngine.ctx;
@@ -8370,9 +8664,17 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                     }
                 },
-                // Die reguläre Trigger-Funktion leeren wir. 
+                // Die reguläre Trigger-Funktion leeren wir.
                 // So wird auch das Standard-Pneumatik-Zischen der Engine elegant unterdrückt.
-                playSound: function(obj, engine) { }
+                playSound: function(obj, engine) { },
+                contextMenu: function(obj, ctxMenu, saveCallback) {
+                    let wrap = document.createElement('div'); wrap.style.padding = '5px 15px'; wrap.onclick = e => e.stopPropagation();
+                    wrap.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">⏱ Anlaufzeit (s)</div>`;
+                    let inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.max = '30'; inp.step = '0.5'; inp.value = obj.startupTime !== undefined ? obj.startupTime : 0;
+                    inp.style.cssText = "width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;";
+                    inp.onchange = e => { obj.startupTime = parseFloat(e.target.value) || 0; saveCallback(); };
+                    wrap.appendChild(inp); ctxMenu.appendChild(wrap);
+                }
             },
 			'mech_sensor': {
                 role: 'input',
@@ -9015,6 +9317,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                 },
                 animate: function(obj, spsState) {
                     let isActive = !!spsState[obj.linkedVar];
+                    let _st = obj.startupTime || 0;
+                    if (obj._speedFactor === undefined) obj._speedFactor = 0;
+                    if (isActive) {
+                        obj._speedFactor = _st > 0 ? Math.min(1, obj._speedFactor + timeScale / (60 * _st)) : 1;
+                    } else {
+                        obj._speedFactor = 0;
+                    }
                     if (isActive !== obj.isActive) {
                         obj.isActive = isActive;
                         obj.el.classList.toggle('active', isActive);
@@ -9041,9 +9350,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (len < 1) return;
                     // Clockwise tangent: (-dy, dx) / len
                     let tx = -dy / len, ty = dx / len;
-                    let spd = 2 * window.simSpeed * timeScale;
+                    let factor = obj._speedFactor !== undefined ? obj._speedFactor : 1;
+                    let spd = 2 * factor * window.simSpeed * timeScale;
                     item.x += tx * spd; item.y += ty * spd;
-                    item.vx = tx * 2; item.vy = ty * 2;
+                    item.vx = tx * 2 * factor; item.vy = ty * 2 * factor;
                 },
                 contextMenu: function(obj, ctxMenu, saveCallback) {
                     let wrap = document.createElement('div'); wrap.style.padding = '5px 15px'; wrap.onclick = e => e.stopPropagation();
@@ -9056,6 +9366,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                         saveCallback();
                     };
                     wrap.appendChild(inp); ctxMenu.appendChild(wrap);
+                    let rampWrap = document.createElement('div'); rampWrap.style.padding = '5px 15px'; rampWrap.onclick = e => e.stopPropagation();
+                    rampWrap.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">⏱ Anlaufzeit (s)</div>`;
+                    let rampInp = document.createElement('input'); rampInp.type = 'number'; rampInp.min = '0'; rampInp.max = '30'; rampInp.step = '0.5'; rampInp.value = obj.startupTime !== undefined ? obj.startupTime : 0;
+                    rampInp.style.cssText = "width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;";
+                    rampInp.onchange = e => { obj.startupTime = parseFloat(e.target.value) || 0; saveCallback(); };
+                    rampWrap.appendChild(rampInp); ctxMenu.appendChild(rampWrap);
                 }
             },
             'conveyor_lift': {
@@ -10325,6 +10641,14 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                 }
                 if (obj.type === 'display') addVarSelect(window.t('ctx_fac_timer'), obj.linkedVar, 'timers', 'linkedVar');
+                if (obj.type === 'conveyor') {
+                    let rampWrap = document.createElement('div'); rampWrap.style.padding = '5px 15px'; rampWrap.onclick = e => e.stopPropagation();
+                    rampWrap.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">⏱ Anlaufzeit (s)</div>`;
+                    let rampInp = document.createElement('input'); rampInp.type = 'number'; rampInp.min = '0'; rampInp.max = '30'; rampInp.step = '0.5'; rampInp.value = obj.startupTime !== undefined ? obj.startupTime : 0;
+                    rampInp.style.cssText = "width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;";
+                    rampInp.onchange = e => { obj.startupTime = parseFloat(e.target.value) || 0; saveFactoryState(); };
+                    rampWrap.appendChild(rampInp); ctxMenu.appendChild(rampWrap);
+                }
                 if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenu) {
                     ComponentRegistry[obj.type].contextMenu(obj, ctxMenu, saveFactoryState);
                 }
@@ -10998,10 +11322,15 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                     if (obj.type === 'conveyor') {
                         obj.isRunning = resolveLinked(obj, spsState);
+                        let _st = obj.startupTime || 0;
+                        if (obj._speedFactor === undefined) obj._speedFactor = 0;
                         if (obj.isRunning) {
-                            obj.beltOffset += (2 * window.simSpeed * timeScale); 
-                            if (obj.beltOffset >= 20) obj.beltOffset -= 20; 
+                            obj._speedFactor = _st > 0 ? Math.min(1, obj._speedFactor + timeScale / (60 * _st)) : 1;
+                            obj.beltOffset += (2 * obj._speedFactor * window.simSpeed * timeScale);
+                            if (obj.beltOffset >= 20) obj.beltOffset -= 20;
                             if (obj.beltEl) obj.beltEl.style.transform = `translateX(${obj.beltOffset}px)`;
+                        } else {
+                            obj._speedFactor = 0;
                         }
                     }
                 });
@@ -11041,8 +11370,9 @@ You must output exactly this JSON format. The logic code goes as a single string
                                 } else {
                                     if (isBlockInLocalRect(item, obj, 0, 0, obj.width, obj.height) && obj.isRunning) {
                                         let rad = (obj.rotation || 0) * Math.PI / 180;
-                                        item.x += Math.cos(rad) * 2 * window.simSpeed; item.y += Math.sin(rad) * 2 * window.simSpeed;
-                                        item.vx = Math.cos(rad) * 2; item.vy = Math.sin(rad) * 2;
+                                        let spd = 2 * (obj._speedFactor !== undefined ? obj._speedFactor : 1);
+                                        item.x += Math.cos(rad) * spd * window.simSpeed; item.y += Math.sin(rad) * spd * window.simSpeed;
+                                        item.vx = Math.cos(rad) * spd; item.vy = Math.sin(rad) * spd;
                                     }
                                 }
                             }
@@ -11426,7 +11756,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 objects: factoryObjects.map(o => ({
                     id: o.id, type: o.type, x: Math.round(o.x), y: Math.round(o.y), width: Math.round(o.width), height: Math.round(o.height||0), rotation: Math.round(o.rotation||0),
                     // 🌟 FIX: opening für Drosseln, extension für Zylinder-Anbauteile hinzugefügt!
-                    thickness: o.thickness, speed: o.speed, heatingPower: o.heatingPower, meltTemp: o.meltTemp, opening: o.opening, extension: (o.extension !== undefined ? Math.round(o.extension) : undefined),
+                    thickness: o.thickness, speed: o.speed, startupTime: o.startupTime || null, heatingPower: o.heatingPower, meltTemp: o.meltTemp, opening: o.opening, extension: (o.extension !== undefined ? Math.round(o.extension) : undefined),
                     linkedVar: o.linkedVar, linkedVarExt: o.linkedVarExt, linkedVarRet: o.linkedVarRet, linkedVar3: o.linkedVar3, spawnSolid: o.spawnSolid, linkedFormula: o.linkedFormula || null,
                     qualityMode: o.qualityMode, qualityChance: o.qualityChance, qualityNth: o.qualityNth,
                     waypoints: o.waypoints || null, pathMode: o.pathMode || null, pathEnabled: o.pathEnabled || false, pathLoop: o.pathLoop || false, arm1Len: o.arm1Len, arm2Len: o.arm2Len, targetX: o.targetX, targetY: o.targetY,
@@ -11559,6 +11889,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (o.waypoints) { newObj.waypoints = o.waypoints; newObj.pathMode = o.pathMode || 'linear'; newObj.pathEnabled = o.pathEnabled || false; newObj.pathLoop = o.pathLoop || false; }
                     if (o.arm1Len) { newObj.arm1Len = o.arm1Len; newObj.arm2Len = o.arm2Len; newObj.targetX = o.targetX || 0; newObj.targetY = o.targetY !== undefined ? o.targetY : (newObj.arm1Len + newObj.arm2Len); }
                     if (o.linkedVarEnable) newObj.linkedVarEnable = o.linkedVarEnable;
+                    if (o.startupTime) newObj.startupTime = o.startupTime;
                     if (o.pathSpeed) newObj.pathSpeed = o.pathSpeed;
                     if (o.labelPinned) {
                         newObj.labelPinned = true;
@@ -13460,10 +13791,16 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             // 3. Anlage umschreiben (Damit Zylinder/Sensoren nicht den Kontakt verlieren!)
             factoryObjects.forEach(obj => {
-                if (obj.linkedVar === oldName) obj.linkedVar = newName;
-                if (obj.linkedVarExt === oldName) obj.linkedVarExt = newName;
-                if (obj.linkedVarRet === oldName) obj.linkedVarRet = newName;
-                if (obj.linkedVar3 === oldName) obj.linkedVar3 = newName;
+                if (obj.linkedVar        === oldName) obj.linkedVar        = newName;
+                if (obj.linkedVarExt     === oldName) obj.linkedVarExt     = newName;
+                if (obj.linkedVarRet     === oldName) obj.linkedVarRet     = newName;
+                if (obj.linkedVar3       === oldName) obj.linkedVar3       = newName;
+                if (obj.linkedVarX_Plus  === oldName) obj.linkedVarX_Plus  = newName;
+                if (obj.linkedVarX_Minus === oldName) obj.linkedVarX_Minus = newName;
+                if (obj.linkedVarY_Plus  === oldName) obj.linkedVarY_Plus  = newName;
+                if (obj.linkedVarY_Minus === oldName) obj.linkedVarY_Minus = newName;
+                if (obj.linkedVarGrab    === oldName) obj.linkedVarGrab    = newName;
+                if (obj.linkedVarEnable  === oldName) obj.linkedVarEnable  = newName;
             });
             updateHighlighting(); updateEditor(); saveFactoryState();
         };
