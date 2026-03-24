@@ -478,6 +478,13 @@
         .tb-dropdown-content.multi-col .dd-col { display: flex; flex-direction: column; min-width: 180px; }
         .tb-dropdown-content.multi-col .dd-col + .dd-col { border-left: 1px solid #444; }
         /* === AUFGABEN-MODUS === */
+        #task-panel { max-height: calc(100vh - 70px); flex-direction: column; }
+        #task-panel-body { overflow-y: auto; min-height: 0; flex: 1; }
+        #task-panel-footer { background: #19253a; border-top: 1px solid #1a3a5a; flex-shrink: 0; }
+        #task-cond-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; cursor:pointer; padding:2px 0; border-bottom:1px solid #263238; }
+        #task-cond-header:hover { background:rgba(255,255,255,0.04); border-radius:3px; }
+        .task-conds-multicol { column-count:2; column-gap:8px; }
+        .task-conds-multicol .task-cond { break-inside:avoid; }
         .task-cond { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:11px; }
         .task-cond-icon { width:16px; text-align:center; flex-shrink:0; }
         .task-cond.done .task-cond-icon::before { content:'✅'; }
@@ -617,6 +624,8 @@
         .fac-pin-body { padding:6px; }
         .fac-pin-body textarea { width:100%; min-height:60px; background:rgba(255,255,255,0.5); border:none; border-radius:3px; font-size:12px; padding:4px; resize:vertical; color:#222; font-family:sans-serif; box-sizing:border-box; outline:none; }
         #factory-wrapper.sim-active .fac-pin { pointer-events:none; opacity:0.7; }
+        /* Pins bleiben auch bei gesperrter 2D-Anlage verschiebbar */
+        #factory-wrapper.task-area-blocked .fac-pin { pointer-events:all !important; opacity:1 !important; }
         /* --- Factory Sidebar --- */
         #factory-sidebar { position:absolute;top:50px;right:0;bottom:0;width:22px;display:flex;background:#252526;border-left:1px solid #444;z-index:100;overflow:hidden;transition:width 0.2s ease;box-shadow:-2px 0 6px rgba(0,0,0,0.3); }
         #factory-sidebar.open { width:230px; }
@@ -1261,6 +1270,7 @@
                     </div>
                     <button id="btn-viewmode" class="tool-btn" onclick="toggleGlobalViewMode()" style="margin-left: auto; background-color: #4caf50;" data-i18n="fac_btn_view_side">🌍 Global: Seitenansicht</button>
                     <button class="tool-btn" style="background-color: #26a69a; margin-left: 10px;" onclick="openSnippetLibrary()">📚 Bibliothek</button>
+                    <button class="tool-btn" style="background-color: #5c6bc0; margin-left: 10px;" onclick="window._openLayerManager()">📐 Ebenen</button>
                     <button class="btn-export" style="background-color: #ff9800; margin-left: 10px;" onclick="openPluginModal()" data-i18n="fac_btn_plugins">🧩 Plugins</button>
                     <button class="tool-btn" onclick="clearFactory()" style="background-color: #b71c1c; margin-left: 10px;" data-i18n="fac_btn_clear">🗑️ Alles löschen</button>
                 </div>
@@ -1305,6 +1315,22 @@
                     </div>
                 </div>
                 <div id="factory-context-menu"></div>
+                <!-- Ebenen-Manager -->
+                <div id="factory-layer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:3500;align-items:center;justify-content:center;">
+                  <div style="background:#1e1e1e;border-radius:8px;padding:18px;width:340px;max-height:70vh;overflow-y:auto;border:1px solid #555;box-shadow:0 4px 20px rgba(0,0,0,0.6);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                      <span style="color:#fff;font-weight:bold;font-size:13px;">📐 Ebenen-Manager</span>
+                      <button onclick="document.getElementById('factory-layer-modal').style.display='none'" style="background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;">✖</button>
+                    </div>
+                    <div id="layer-list" style="margin-bottom:10px;"></div>
+                    <div style="display:flex;gap:6px;">
+                      <input id="layer-name-inp" type="text" placeholder="Ebenenname…" style="flex:1;padding:5px 8px;background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:4px;font-size:12px;">
+                      <input id="layer-z-inp" type="number" placeholder="Z-Offset" value="100" style="width:70px;padding:5px 8px;background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:4px;font-size:12px;">
+                      <button onclick="window._layerAdd()" style="padding:5px 10px;background:#5c6bc0;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">＋</button>
+                    </div>
+                    <div style="color:#607d8b;font-size:10px;margin-top:6px;">Objekte erhalten über das Rechtsklick-Menü ihre Ebene. Der Z-Offset wird zum Basiswert des Objekttyps addiert.</div>
+                  </div>
+                </div>
                 <div id="path-edit-banner" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1565c0;color:#fff;padding:8px 16px;border-radius:20px;z-index:9999;align-items:center;gap:10px;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,0.6);white-space:nowrap;">
                     ✏️ Pfad-Editor: <b>Linksklick</b> = Punkt setzen &nbsp;|&nbsp; <b>Rechtsklick</b> auf Punkt = Löschen &nbsp;|&nbsp;
                     Modus: <select id="path-mode-sel" style="background:#0d47a1;color:#fff;border:1px solid #64b5f6;border-radius:6px;padding:2px 6px;font-size:11px;" onchange="if(window.pathEditingObj){window.pathEditingObj.pathMode=this.value;window._renderPathOverlay();}">
@@ -1353,19 +1379,32 @@
         <!-- ====== AUFGABEN-MODUS MODALS ====== -->
         <!-- Aufgaben-Panel (aktive Aufgabe) -->
         <div id="task-panel" style="display:none; position:fixed; top:60px; right:16px; width:280px; background:#1e2a3a; border:1px solid #1565c0; border-radius:8px; z-index:1100; font-size:12px; color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.5);">
-            <div id="task-panel-header" style="background:#1565c0; padding:8px 12px; border-radius:7px 7px 0 0; display:flex; justify-content:space-between; align-items:center;">
-                <span id="task-panel-name" style="font-weight:bold;"></span>
-                <span id="task-panel-diff" style="font-size:10px; opacity:0.8;"></span>
+            <div id="task-panel-header" style="background:#1565c0; padding:8px 12px; border-radius:7px 7px 0 0; display:flex; justify-content:space-between; align-items:center; cursor:move; user-select:none;">
+                <span id="task-panel-name" style="font-weight:bold; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                    <span id="task-panel-diff" style="font-size:10px; opacity:0.8;"></span>
+                    <button id="task-panel-collapse" onclick="window._taskPanelToggle()" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; opacity:0.85;" title="Auf-/Zuklappen">▼</button>
+                </div>
             </div>
-            <div id="task-panel-body" style="padding:10px 12px;">
-                <div id="task-panel-desc" style="color:#b0bec5; margin-bottom:8px; line-height:1.5;"></div>
-                <div id="task-panel-timer" style="display:none; color:#ffb300; margin-bottom:6px; font-size:11px;">⏱ <span id="task-timer-val">0:00</span></div>
-                <div id="task-conditions-list" style="margin-bottom:8px;"></div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <div id="task-panel-timer" style="display:none; padding:4px 12px; color:#ffb300; font-size:11px; background:#162030; border-bottom:1px solid #1a3a5a;">⏱ <span id="task-timer-val">0:00</span></div>
+            <div id="task-panel-body" style="padding:8px 12px 4px; overflow-y:auto; min-height:0; flex:1;">
+                <div id="task-desc-header" onclick="window._taskToggleDesc()" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; cursor:pointer; padding:2px 0; border-bottom:1px solid #263238;">
+                    <span style="color:#90a4ae; font-size:10px; font-weight:bold; letter-spacing:0.5px;">📋 AUFGABENSTELLUNG</span>
+                    <span id="task-desc-collapse-btn" style="color:#90a4ae; font-size:11px;">▼</span>
+                </div>
+                <div id="task-panel-desc" style="color:#b0bec5; margin-bottom:8px; line-height:1.5; font-size:11px;"></div>
+                <div id="task-cond-header" onclick="window._taskToggleConds()">
+                    <span style="color:#90a4ae; font-size:10px; font-weight:bold; letter-spacing:0.5px;">✅ ERFOLGSKRITERIEN</span>
+                    <span id="task-cond-collapse-btn" style="color:#90a4ae; font-size:11px;">▼</span>
+                </div>
+                <div id="task-conditions-list" style="margin-bottom:4px;"></div>
+            </div>
+            <div id="task-panel-footer" style="padding:8px 12px; border-top:1px solid #1a3a5a; flex-shrink:0;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
                     <button id="task-hint-btn" onclick="window._taskShowHint()" style="display:none; background:#37474f; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:11px;">💡 Hinweis</button>
                     <button onclick="window._taskAbandon()" style="background:#c62828; color:#fff; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-size:11px;">✖ Abbrechen</button>
                 </div>
-                <button id="task-solution-btn" onclick="window._taskShowSolution()" style="display:none; margin-top:6px; width:100%; background:#1565c0; color:#fff; border:none; border-radius:4px; padding:5px 10px; cursor:pointer; font-size:11px; opacity:0.4;" disabled>💡 Musterlösung anzeigen</button>
+                <button id="task-solution-btn" onclick="window._taskShowSolution()" style="display:none; width:100%; background:#1565c0; color:#fff; border:none; border-radius:4px; padding:5px 10px; cursor:pointer; font-size:11px; opacity:0.4;" disabled>💡 Musterlösung anzeigen</button>
             </div>
         </div>
         <!-- Erfolgs-Modal -->
@@ -1382,9 +1421,10 @@
             <div style="background:#1e1e1e; border-radius:8px; padding:20px; max-width:680px; width:95%; max-height:85vh; overflow-y:auto; border:1px solid #555;">
                 <div style="color:#fff; font-weight:bold; margin-bottom:12px; font-size:14px;">💡 Musterlösung</div>
                 <textarea id="task-solution-code" readonly style="width:100%; height:200px; background:#0d0d0d; color:#b0bec5; border:1px solid #333; border-radius:4px; padding:8px; font-family:monospace; font-size:11px; box-sizing:border-box; resize:vertical;"></textarea>
-                <div style="margin-top:12px; display:flex; gap:8px;">
+                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
                     <button onclick="window._taskLoadSolution()" style="background:#1565c0; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:12px;">📂 Musterlösung laden</button>
                     <button onclick="document.getElementById('task-solution-modal').style.display='none'" style="background:#555; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:12px;">✖ Schließen</button>
+                    <button onclick="document.getElementById('task-solution-modal').style.display='none'; window._taskAbandon();" style="background:#c62828; color:#fff; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:12px;">⏹ Aufgabe beenden</button>
                 </div>
             </div>
         </div>
@@ -1399,6 +1439,7 @@
                     <button onclick="document.getElementById('task-upload').click()" class="task-mgr-btn primary">📥 .valitask importieren</button>
                     <button onclick="window._openTaskEditor(null)" class="task-mgr-btn">✏️ Neue Aufgabe erstellen</button>
                     <button onclick="window._loadExampleTasks()" class="task-mgr-btn" style="background:#1b5e20;color:#c8e6c9;border-color:#2e7d32;" title="Mitgelieferte Beispielaufgaben in die Liste laden">📚 Beispiele laden</button>
+                    <button onclick="window._deleteAllTasks()" class="task-mgr-btn" style="background:#4a1010;color:#ef9a9a;border-color:#7f1a1a;" title="Alle Aufgaben aus der Bibliothek löschen">🗑 Alle löschen</button>
                 </div>
                 <div id="task-mgr-tabs" style="display:flex;border-bottom:1px solid #263238;padding:0 8px;flex-shrink:0;background:#172535;">
                     <button class="task-mgr-tab-btn active" data-tab="tasks"    onclick="window._taskMgrRender('tasks')">📋 Aufgaben</button>
@@ -1524,7 +1565,7 @@
 
                     <!-- SCL -->
                     <details class="sl-section">
-                        <summary>📤 Siemens SCL (TIA Portal)</summary>
+                        <summary>📤 Siemens SCL (TIA Portal) [beta]</summary>
                         <div class="sl-section-body">
                             <div class="sl-hint">Exportiert den Logikplan als Function Block für TIA Portal.</div>
                             <button class="sl-btn" style="background:#007acc;" onclick="exportSCL(); closeSaveLoadModal();">📤 SCL generieren &amp; anzeigen</button>
@@ -2496,7 +2537,7 @@ Du musst exakt dieses JSON-Format ausgeben. Der Logik-Code kommt als einzelner S
 \`\`\`json
 {
   "version": "1.0",
-  "code": "S1 := START && ¬STOP\\nR1 := NOTHALT\\nMOTOR := Q1\\nLED_AN := Q1",
+  "code": "S1 := START && ¬STOP\\nR1 := ¬NOTHALT\\nMOTOR := Q1\\nLED_AN := Q1",
   "types": {
     "START": "taster",
     "STOP": "taster_nc",
@@ -2845,7 +2886,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 \`\`\`json
 {
   "version": "1.0",
-  "code": "S1 := START && ¬STOP\\nR1 := NOTHALT\\nMOTOR := Q1\\nLED_AN := Q1",
+  "code": "S1 := START && ¬STOP\\nR1 := ¬NOTHALT\\nMOTOR := Q1\\nLED_AN := Q1",
   "types": {
     "START": "taster",
     "STOP": "taster_nc",
@@ -4462,7 +4503,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             simInputsContainer.innerHTML = `<h3>${window.t('sim_inputs')}</h3><div class="sim-hint">${window.t('sim_hint')}</div>`;
             inputs.forEach(name => {
                 if (!componentTypes[name]) {
-                    const isNotHalt = name === 'NH' || name === 'NA' || name.startsWith('NH_') || name.startsWith('NA_');
+                    const isNotHalt = name === 'NH' || name === 'NA' || name.startsWith('NH_') || name.startsWith('NA_') || name.includes('NOTHALT') || name.includes('NOTAUS');
                     const isSchalter = name.includes('_SCHALTER');
                     componentTypes[name] = isNotHalt ? 'nothalt' : (isSchalter ? 'schalter' : 'taster');
                 }
@@ -4630,10 +4671,27 @@ You must output exactly this JSON format. The logic code goes as a single string
                 customSvg.classList.remove('sim-running');
                 circuitSvg.classList.remove('sim-running');
                 // 2. 2D-Anlage wieder bearbeitbar machen
-                fw.classList.remove('sim-active'); 
+                fw.classList.remove('sim-active');
                 btn.setAttribute('data-i18n', 'btn_sim_start'); // Namensschild aktualisieren
                 btn.textContent = t('btn_sim_start');           // Neuen Text aus dem Wörterbuch holen
                 btn.style.backgroundColor = '#e6194B';
+                // 3. Daueraudio (Lautsprecher, Sirene, Heizelement, …) sofort stoppen
+                if (typeof factoryObjects !== 'undefined') {
+                    factoryObjects.forEach(o => {
+                        if (o.audioNodes) {
+                            try { o.audioNodes.osc.stop(); o.audioNodes.mod.stop(); o.audioNodes.osc.disconnect(); o.audioNodes.mod.disconnect(); o.audioNodes.gain.disconnect(); } catch(e) {}
+                            o.audioNodes = null;
+                        }
+                        if (o.audioNoise) {
+                            try { o.audioNoise.stop(); o.audioNoise.disconnect(); } catch(e) {}
+                            o.audioNoise = null;
+                        }
+                        if (o.audioGain) {
+                            try { o.audioGain.disconnect(); } catch(e) {}
+                            o.audioGain = null;
+                        }
+                    });
+                }
             }
         };
 		// --- BUNTE PFADE LOGIK ---
@@ -6309,6 +6367,11 @@ You must output exactly this JSON format. The logic code goes as a single string
         function _deleteLocalTask(taskId) {
             localStorage.setItem('valisTasks', JSON.stringify(_getLocalTasks().filter(t => t.id !== taskId)));
         }
+        window._deleteAllTasks = function() {
+            if (!confirm('Alle Aufgaben aus der Bibliothek löschen?\nDies kann nicht rückgängig gemacht werden.')) return;
+            localStorage.setItem('valisTasks', '[]');
+            window._taskMgrRender('tasks');
+        };
 
         // === Aufgabenpakete: CRUD ===
         function _getLocalPackages() {
@@ -6340,15 +6403,15 @@ You must output exactly this JSON format. The logic code goes as a single string
           {
             version:'1.0', type:'valitask',
             id:'task-sortieranlage-metall-kunststoff-2026',
-            name:'Sortieranlage: Metall und Kunststoff automatisch trennen [Beta: Nicht fertig erstellt!]',
-            description:'Eine Förderanlage transportiert Werkstücke aus Metall und Kunststoff auf einem gemeinsamen Hauptförderband. Metallteile sollen automatisch erkannt und über einen Zylinder auf ein Sortierförderband umgeleitet werden. Kunststoffteile laufen durch bis zum Ende des Hauptbands.\n\n🎯 DEINE AUFGABE IN 3 SCHRITTEN:\n\n① Fabrikobjekte verknüpfen\nRechtsklick auf jedes Objekt → Einstellungen → Variable eingeben.\nVerwende exakt die unten genannten Variablennamen!\n\n② SPS-Programm schreiben\nDeklariere Eingänge mit INPUT und schreibe die Steuerlogik.\n\n③ Simulation testen\nDrücke Start-Taster, beobachte ob Metallteile korrekt aussortiert werden.\n\n──────────────────────────────\n📋 VARIABLEN (exakt so verwenden!)\n\nEingänge (mit INPUT deklarieren):\n• E_TASTER_START  – Start-Taster (TRUE = gedrückt)\n• E_NOTHALT       – Not-Halt (TRUE = nicht ausgelöst → Anlage darf laufen)\n• E_SENSOR_IND    – Induktiv-Sensor (TRUE = Metallteil erkannt)\n\nAusgänge (durch Zuweisung := definieren):\n• A_BAND_HAUPT    – Hauptförderband-Motor\n• A_BAND_SORT     – Sortierförderband-Motor\n• A_ZYL_VOR       – Zylinder vorfahren (Metallteil ausschleusen)\n• A_ZYL_ZUR       – Zylinder zurückfahren (Grundstellung)\n• A_LAMPE_GRUEN   – Grüne Betriebsmeldeleuchte\n\n──────────────────────────────\n⚙️ STEUERLOGIK\n\nBetriebsbedingung:\n  Beide Förderbänder und die Lampe laufen nur, wenn Start gedrückt UND Not-Halt nicht ausgelöst.\n\nSortiersteuerung:\n  • Metallteil erkannt (E_SENSOR_IND = TRUE) UND Band läuft\n    → Zylinder fährt VOR (A_ZYL_VOR = TRUE)\n  • Kein Metallteil erkannt\n    → Zylinder fährt ZURÜCK (A_ZYL_ZUR = TRUE)\n\n──────────────────────────────\n✅ ERFOLGSKRITERIEN\nAlle 14 Bedingungen müssen gleichzeitig erfüllt sein:\n  – Alle Objekte korrekt verknüpft\n  – Variablen im Code verwendet\n  – Anlage läuft (Hauptband aktiv)\n  – Mindestens 8 Werkstücke verarbeitet\n  – Simulation mindestens 60 Sekunden aktiv',
-            hint:'💡 SCHRITT-FÜR-SCHRITT HILFE:\n\n1. Beginne mit den INPUT-Deklarationen:\n   INPUT E_TASTER_START\n   INPUT E_NOTHALT\n   INPUT E_SENSOR_IND\n\n2. Betriebsbereitschaft (AND-Verknüpfung):\n   A_BAND_HAUPT := E_TASTER_START AND E_NOTHALT\n\n3. Sortierzylinder:\n   A_ZYL_VOR := E_SENSOR_IND AND A_BAND_HAUPT\n   A_ZYL_ZUR := NOT E_SENSOR_IND\n\n4. Vergiss nicht: Not-Halt bedeutet TRUE = Anlage darf laufen (Schließer-Prinzip). Der Zylinder fährt mit A_ZYL_VOR vor und mit A_ZYL_ZUR zurück – beide Signale brauchst du!\n\n5. Nach dem Programmieren: Start-Taster im IO-Panel aktivieren, dann beobachten ob Metallteile (FE) auf das Sortierband umgeleitet werden.',
+            name:'Sortieranlage: Metall und Kunststoff automatisch trennen',
+            description:'Eine Förderanlage transportiert Werkstücke aus Metall und Kunststoff auf einem gemeinsamen Hauptförderband. Metallteile werden automatisch erkannt und über einen Zylinder auf das Sortierförderband umgeleitet. Kunststoffteile laufen durch.\n\n🎯 DEINE AUFGABE:\n\n① Bauteile platzieren\nPlatziere Start-Taster, Not-Halt und Betriebsleuchte (grün) an der Anlage (Seitenleiste links).\n\n② Fabrikobjekte verknüpfen\nRechtsklick auf jedes Objekt → Variable zuweisen.\nNutze exakt die unten stehenden Variablennamen!\n\n③ SPS-Programm schreiben\nSchreibe das Steuerungsprogramm im Code-Editor.\n\n④ Simulation testen\nStart-Taster drücken – beobachte ob Metallteile (FE) korrekt aussortiert werden.\n\n──────────────────────────────\n📋 VARIABLEN (exakt so verwenden!)\n\nEingänge:\n• E_TASTER_START  – Start-Taster (Schließer)\n• E_NOTHALT       – Not-Halt (Öffner, NC)\n• E_SENSOR_IND    – Induktiv-Sensor (TRUE = Metall erkannt)\n\nAusgänge:\n• A_BAND_HAUPT    – Hauptförderband\n• A_BAND_SORT     – Sortierförderband\n• A_ZYL_VOR       – Zylinder ausfahren\n• A_ZYL_ZUR       – Zylinder einfahren\n• A_LAMPE_GRUEN   – Betriebsleuchte\n\n──────────────────────────────\n⚙️ VERHALTEN DER STEUERUNG\n\n• Die Anlage startet per Taster und bleibt aktiv (Selbsthaltung)\n• Der Not-Halt stoppt die Anlage sofort – Achtung: er ist ein Öffner!\n• Solange die Anlage aktiv ist, laufen beide Förderbänder und die Leuchte\n• Der Sortierzylinder fährt aus, wenn ein Metallteil erkannt wird\n• Ohne Metallerkennung fährt der Zylinder zurück',
+            hint:'💡 HINWEISE:\n\n1. Start/Stopp mit Selbsthaltung:\n   Eine Anlage, die nach einmaligem Tastendruck läuft und erst durch\n   den Not-Halt gestoppt wird, braucht ein Speicherglied.\n   In VALIS: S1 := ... setzt den Ausgang Q1, R1 := ... setzt ihn zurück.\n\n2. Not-Halt ist ein Öffner (NC-Kontakt):\n   Im Ruhezustand liefert E_NOTHALT den Wert TRUE.\n   Beim Drücken wird er FALSE.\n   Überlege: Bei welchem Wert soll die Anlage stoppen?\n   → Tipp: Negation (¬) könnte hilfreich sein.\n\n3. Förderbänder und Leuchte:\n   Sie sollen aktiv sein, solange die Anlage läuft.\n   Woran erkennst du ob die Anlage gerade läuft?\n\n4. Sortierzylinder:\n   Zwei Bedingungen müssen gleichzeitig erfüllt sein, damit er ausfährt.\n   Für das Einfahren gilt die entgegengesetzte Logik.\n\n5. Verknüpfung nicht vergessen:\n   Rechtsklick auf jedes Bauteil → Variable aus der Liste wählen.\n   Beim Zylinder gibt es zwei Anschlüsse: Ausfahren und Einfahren!',
             category:'Automatisierungstechnik',
             difficulty:'schwer',
             timeLimit:600,
             solutionMode:'after_time', solutionMinTime:120, solutionMinDone:3,
-            restrictObjects:'none', allowedObjectTypes:[],
-            blockAreas:{codeEditor:false,ioPanel:false,logikplan:false,schaltplan:false,factory2d:false,factoryNewVars:true},
+            restrictObjects:'manual', allowedObjectTypes:['taster','nothalt','led'],
+            blockAreas:{codeEditor:false,ioPanel:false,logikplan:false,schaltplan:false,factory2d:false,factoryNewVars:false},
             conditions:[
                 {type:'factory_object', objectType:'conveyor',        linkedVar:'A_BAND_HAUPT'},
                 {type:'factory_object', objectType:'conveyor',        linkedVar:'A_BAND_SORT'},
@@ -6366,52 +6429,43 @@ You must output exactly this JSON format. The logic code goes as a single string
                 {type:'sim_running',    minSeconds:60}
             ],
             preset:{
-                code:'// ╔══════════════════════════════════════════════════════════╗\n// ║   SORTIERANLAGE – Metall und Kunststoff trennen          ║\n// ╚══════════════════════════════════════════════════════════╝\n//\n// SCHRITT 1: Verknüpfe zunächst alle Fabrikobjekte mit den\n//            Variablennamen (Rechtsklick → Einstellungen)\n//\n// SCHRITT 2: Schreibe hier das SPS-Programm\n//\n// Verfügbare Eingänge (mit INPUT deklarieren):\n//   E_TASTER_START  – Start-Taster\n//   E_NOTHALT       – Not-Halt (TRUE = nicht ausgelöst)\n//   E_SENSOR_IND    – Induktiv-Sensor (TRUE = Metallteil)\n//\n// Verfügbare Ausgänge (per Zuweisung := definieren):\n//   A_BAND_HAUPT    – Hauptförderband-Motor\n//   A_BAND_SORT     – Sortierförderband-Motor\n//   A_ZYL_VOR       – Zylinder vorfahren\n//   A_ZYL_ZUR       – Zylinder zurückfahren\n//   A_LAMPE_GRUEN   – Grüne Betriebsleuchte\n//\n// ── Programm ab hier schreiben ──────────────────────────────\n',
+                code:'// ╔══════════════════════════════════════════════════════════╗\n// ║   SORTIERANLAGE – Metall und Kunststoff trennen          ║\n// ╚══════════════════════════════════════════════════════════╝\n//\n// SCHRITT 1: Start-Taster, Not-Halt und Leuchte platzieren\n//            (Seitenleiste → auf die Anlage ziehen)\n//\n// SCHRITT 2: Alle Bauteile verknüpfen\n//            Rechtsklick auf jedes Objekt → Variable zuweisen\n//\n// SCHRITT 3: Steuerungsprogramm hier schreiben\n//\n// Verfügbare Variablen:\n//   Eingänge:  E_TASTER_START, E_NOTHALT, E_SENSOR_IND\n//   Ausgänge:  A_BAND_HAUPT, A_BAND_SORT, A_ZYL_VOR, A_ZYL_ZUR, A_LAMPE_GRUEN\n//\n// ── Programm ab hier schreiben ──────────────────────────────\n',
                 types:{}, layout:'grid-sim-top',
                 factory:{
                     globalViewMode:'top', items:[],
-                    pins:[{id:'pin_anleitung',x:155,y:155,text:'① Objekte verknüpfen\n② Code schreiben\n③ Start-Taster drücken',color:'#ffd54f',minimized:false}],
+                    pins:[{id:'pin_anleitung',x:155,y:155,text:'① Taster/Not-Halt/LED platzieren\n② Variablen zuweisen\n③ Code schreiben',color:'#ffd54f',minimized:false}],
                     objects:[
-                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,  linkedVar:'', startupTime:1.5, locked:false},
-                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90, linkedVar:'', startupTime:1.0, locked:false},
-                        {id:'obj_spawn_metall',type:'spawner_metall',    x:152,y:264,width:36, height:36, rotation:0,  linkedVar:'', interval:3.5, spawnSolid:true, locked:false},
-                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:152,y:266,width:36, height:36, rotation:0,  linkedVar:'', interval:4.5, spawnSolid:true, locked:false},
-                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:440,y:240,width:26, height:26, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_zylinder',    type:'zylinder_double',   x:600,y:238,width:60, height:26, rotation:90, linkedVar:'', linkedVarRet:'', isDouble:true, locked:false},
-                        {id:'obj_desp_metall', type:'despawner',         x:583,y:504,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_desp_kunst',  type:'despawner',         x:707,y:247,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_led_gruen',   type:'led',               x:278,y:158,width:34, height:34, rotation:0,  linkedVar:'', color:'#4caf50', locked:false},
-                        {id:'obj_taster_start',type:'taster',            x:340,y:160,width:30, height:30, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_nothalt',     type:'nothalt',           x:400,y:152,width:42, height:42, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_label_bedienpult',type:'frame',         x:265,y:145,width:200,height:68, rotation:0,  linkedVar:'', normLabel:'Bedienpult',  locked:true},
-                        {id:'obj_label_sortpunkt', type:'frame',         x:428,y:228,width:200,height:100,rotation:0,  linkedVar:'', normLabel:'Sortierpunkt',locked:true},
-                        {id:'obj_wall_links',  type:'wall',              x:194,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true},
-                        {id:'obj_wall_rechts', type:'wall',              x:706,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true}
+                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,   linkedVar:'', startupTime:1.5, locked:true},
+                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90,  linkedVar:'', startupTime:1.0, locked:true},
+                        {id:'obj_spawn_metall',type:'spawner_metall',    x:174,y:260,width:36, height:36, rotation:270, linkedVar:'', interval:3.5, spawnSolid:true, useCollision:false, locked:true},
+                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:174,y:260,width:36, height:36, rotation:270, linkedVar:'', interval:4.5, spawnSolid:true, useCollision:false, locked:true},
+                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:605,y:296,width:26, height:26, rotation:270, linkedVar:'', useCollision:false, locked:true},
+                        {id:'obj_zylinder',    type:'zylinder_double',   x:584,y:198,width:84, height:26, rotation:90,  linkedVar:'', linkedVarRet:'', isDouble:true, locked:true},
+                        {id:'obj_desp_metall', type:'despawner',         x:601,y:329,width:36, height:36, rotation:0,   linkedVar:'', locked:true},
+                        {id:'obj_desp_kunst',  type:'despawner',         x:670,y:412,width:36, height:36, rotation:0,   linkedVar:'', locked:true}
                     ]
                 }
             },
             solution:{
-                code:'INPUT E_TASTER_START\nINPUT E_NOTHALT\nINPUT E_SENSOR_IND\n\n// Betriebsbereitschaft: Start gedrückt UND Not-Halt nicht ausgelöst\nA_BAND_HAUPT := E_TASTER_START AND E_NOTHALT\nA_BAND_SORT := E_TASTER_START AND E_NOTHALT\nA_LAMPE_GRUEN := E_TASTER_START AND E_NOTHALT\n\n// Sortiersteuerung: Metallteil erkannt → Zylinder vorfahren\nA_ZYL_VOR := E_SENSOR_IND AND A_BAND_HAUPT\nA_ZYL_ZUR := NOT E_SENSOR_IND\n',
-                types:{}, layout:'grid-sim-top',
+                code:'S1:=E_TASTER_START\nR1:=¬E_NOTHALT\n\nA_BAND_HAUPT:= Q1\nA_BAND_SORT:= Q1\nA_ZYL_VOR:= Q1 && E_SENSOR_IND\nA_ZYL_ZUR:= ¬Q1 || ¬E_SENSOR_IND\nA_LAMPE_GRUEN:= Q1\n',
+                types:{E_TASTER_START:'taster', E_NOTHALT:'nothalt', E_SENSOR_IND:'taster', A_BAND_HAUPT:'led', A_BAND_SORT:'led', A_ZYL_VOR:'led', A_ZYL_ZUR:'led', A_LAMPE_GRUEN:'led', Q1:'relais'},
+                layout:'grid-sim-top',
                 factory:{
-                    globalViewMode:'top', items:[],
-                    pins:[{id:'pin_anleitung',x:155,y:155,text:'① Objekte verknüpfen\n② Code schreiben\n③ Start-Taster drücken',color:'#ffd54f',minimized:false}],
+                    globalViewMode:'top',
+                    items:[],
+                    pins:[{id:'pin_anleitung',x:142,y:47,text:'① Objekte verknüpfen\n② Code schreiben\n③ Start-Taster drücken',color:'#ffd54f',minimized:false}],
                     objects:[
-                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,  linkedVar:'A_BAND_HAUPT',   startupTime:1.5, locked:false},
-                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90, linkedVar:'A_BAND_SORT',    startupTime:1.0, locked:false},
-                        {id:'obj_spawn_metall',type:'spawner_metall',    x:152,y:264,width:36, height:36, rotation:0,  linkedVar:'', interval:3.5, spawnSolid:true, locked:false},
-                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:152,y:266,width:36, height:36, rotation:0,  linkedVar:'', interval:4.5, spawnSolid:true, locked:false},
-                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:440,y:240,width:26, height:26, rotation:0,  linkedVar:'E_SENSOR_IND',   locked:false},
-                        {id:'obj_zylinder',    type:'zylinder_double',   x:600,y:238,width:60, height:26, rotation:90, linkedVar:'A_ZYL_VOR', linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
-                        {id:'obj_desp_metall', type:'despawner',         x:583,y:504,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_desp_kunst',  type:'despawner',         x:707,y:247,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
-                        {id:'obj_led_gruen',   type:'led',               x:278,y:158,width:34, height:34, rotation:0,  linkedVar:'A_LAMPE_GRUEN',  color:'#4caf50', locked:false},
-                        {id:'obj_taster_start',type:'taster',            x:340,y:160,width:30, height:30, rotation:0,  linkedVar:'E_TASTER_START', locked:false},
-                        {id:'obj_nothalt',     type:'nothalt',           x:400,y:152,width:42, height:42, rotation:0,  linkedVar:'E_NOTHALT',      locked:false},
-                        {id:'obj_label_bedienpult',type:'frame',         x:265,y:145,width:200,height:68, rotation:0,  linkedVar:'', normLabel:'Bedienpult',  locked:true},
-                        {id:'obj_label_sortpunkt', type:'frame',         x:428,y:228,width:200,height:100,rotation:0,  linkedVar:'', normLabel:'Sortierpunkt',locked:true},
-                        {id:'obj_wall_links',  type:'wall',              x:194,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true},
-                        {id:'obj_wall_rechts', type:'wall',              x:706,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true}
+                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,   linkedVar:'A_BAND_HAUPT',  startupTime:1.5, locked:true},
+                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90,  linkedVar:'A_BAND_SORT',   startupTime:1.0, locked:true},
+                        {id:'obj_spawn_metall',type:'spawner_metall',    x:174,y:260,width:36, height:36, rotation:270, linkedVar:'',              interval:3.5, spawnSolid:true, useCollision:false, locked:true},
+                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:174,y:260,width:36, height:36, rotation:270, linkedVar:null,            interval:4.5, spawnSolid:true, useCollision:false, locked:true},
+                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:605,y:296,width:26, height:26, rotation:270, linkedVar:'E_SENSOR_IND',  useCollision:false, locked:true},
+                        {id:'obj_zylinder',    type:'zylinder_double',   x:584,y:198,width:84, height:26, rotation:90,  linkedVarExt:'A_ZYL_VOR', linkedVarRet:'A_ZYL_ZUR', hasPneumatics:false, locked:true},
+                        {id:'obj_desp_metall', type:'despawner',         x:601,y:329,width:36, height:36, rotation:0,   locked:true},
+                        {id:'obj_desp_kunst',  type:'despawner',         x:670,y:412,width:36, height:36, rotation:0,   locked:true},
+                        {id:'obj_led_gruen',   type:'led',               x:434,y:168,width:30, height:30, rotation:0,   linkedVar:'A_LAMPE_GRUEN', color:'green', locked:true},
+                        {id:'obj_taster_start',type:'taster',            x:340,y:160,width:30, height:30, rotation:0,   linkedVar:'E_TASTER_START', locked:true},
+                        {id:'obj_nothalt',     type:'nothalt',           x:400,y:152,width:42, height:42, rotation:0,   linkedVar:'E_NOTHALT',      locked:true}
                     ]
                 }
             }
@@ -6980,7 +7034,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             } else {
                 document.getElementById('task-panel-timer').style.display = 'none';
             }
-            document.getElementById('task-panel').style.display = 'block';
+            document.getElementById('task-panel').style.display = 'flex';
             // Objektbeschränkung anwenden (falls aktiviert)
             const ro = taskObj.restrictObjects;
             if (ro === 'conditions' || ro === true) {
@@ -7212,10 +7266,28 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
         }
 
+        window._taskToggleDesc = function() {
+            const desc = document.getElementById('task-panel-desc');
+            const btn  = document.getElementById('task-desc-collapse-btn');
+            if (!desc) return;
+            const collapsed = desc.style.display === 'none';
+            desc.style.display = collapsed ? '' : 'none';
+            if (btn) btn.textContent = collapsed ? '▼' : '▶';
+        };
+        window._taskToggleConds = function() {
+            const list = document.getElementById('task-conditions-list');
+            const btn  = document.getElementById('task-cond-collapse-btn');
+            if (!list) return;
+            const collapsed = list.style.display === 'none';
+            list.style.display = collapsed ? '' : 'none';
+            if (btn) btn.textContent = collapsed ? '▼' : '▶';
+        };
+
         function _taskRenderConditions() {
             if (!activeTask) return;
             let list = document.getElementById('task-conditions-list');
             list.innerHTML = '';
+            list.classList.remove('task-conds-multicol');
             (activeTask.conditions || []).forEach((cond, i) => {
                 let div = document.createElement('div');
                 div.className = 'task-cond pending';
@@ -7246,7 +7318,49 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
                 list.appendChild(div);
             });
+            // Mehrspaltig wenn Panel Viewport-Höhe überschreiten würde
+            setTimeout(() => {
+                const panel = document.getElementById('task-panel');
+                if (panel && panel.scrollHeight > window.innerHeight - 80) {
+                    list.classList.add('task-conds-multicol');
+                }
+            }, 0);
         }
+
+        // --- Aufgaben-Panel: Drag + Collapse ---
+        window._taskPanelToggle = function() {
+            const body = document.getElementById('task-panel-body');
+            const btn  = document.getElementById('task-panel-collapse');
+            if (!body) return;
+            const collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            if (btn) btn.textContent = collapsed ? '▼' : '▶';
+        };
+        (function() {
+            let dragging = false, startX, startY, startLeft, startTop;
+            document.addEventListener('mousedown', (e) => {
+                const header = document.getElementById('task-panel-header');
+                if (!header || !header.contains(e.target)) return;
+                if (e.target.id === 'task-panel-collapse') return;
+                dragging = true;
+                const panel = document.getElementById('task-panel');
+                const rect = panel.getBoundingClientRect();
+                startX = e.clientX; startY = e.clientY;
+                startLeft = rect.left; startTop = rect.top;
+                panel.style.right = 'auto';
+                panel.style.left = startLeft + 'px';
+                panel.style.top  = startTop  + 'px';
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                const panel = document.getElementById('task-panel');
+                if (!panel) return;
+                panel.style.left = (startLeft + e.clientX - startX) + 'px';
+                panel.style.top  = (startTop  + e.clientY - startY) + 'px';
+            });
+            document.addEventListener('mouseup', () => { dragging = false; });
+        })();
 
         window._taskAbandon = function() {
             _taskRestoreObjectRestrictions();
@@ -7254,7 +7368,22 @@ You must output exactly this JSON format. The logic code goes as a single string
             activeTask = null;
             taskSolved = false;
             if (_taskTimerInterval) { clearInterval(_taskTimerInterval); _taskTimerInterval = null; }
-            document.getElementById('task-panel').style.display = 'none';
+            // Panel zurücksetzen: Position + Collapse
+            const panel = document.getElementById('task-panel');
+            panel.style.display = 'none';
+            panel.style.left = ''; panel.style.top = '60px'; panel.style.right = '16px';
+            const body = document.getElementById('task-panel-body');
+            if (body) body.style.display = '';
+            const colBtn = document.getElementById('task-panel-collapse');
+            if (colBtn) colBtn.textContent = '▼';
+            const desc = document.getElementById('task-panel-desc');
+            if (desc) desc.style.display = '';
+            const descBtn = document.getElementById('task-desc-collapse-btn');
+            if (descBtn) descBtn.textContent = '▼';
+            const condList = document.getElementById('task-conditions-list');
+            if (condList) { condList.style.display = ''; condList.classList.remove('task-conds-multicol'); }
+            const condBtn = document.getElementById('task-cond-collapse-btn');
+            if (condBtn) condBtn.textContent = '▼';
             document.getElementById('task-success-modal').style.display = 'none';
             document.getElementById('task-solution-modal').style.display = 'none';
             let solBtn = document.getElementById('task-solution-btn');
@@ -8197,11 +8326,72 @@ You must output exactly this JSON format. The logic code goes as a single string
         let factoryObjects = [];
         let factoryItems = [];
         let factoryPins = [];
+        let factoryLayers = []; // { id, name, zOffset }
+        const _TYPE_Z_BASE = {
+            'conveyor': 10,
+            'sensor_ind': 20, 'sensor_kap': 20, 'sensor_opt': 20, 'sensor_mag': 20,
+            'taster': 20, 'schalter': 20, 'nothalt': 20, 'led': 20,
+            'display': 20, 'stacklight': 20,
+            'zylinder_single': 30, 'zylinder_double': 30,
+        };
+        function _typeZBase(type) {
+            if (_TYPE_Z_BASE[type] !== undefined) return _TYPE_Z_BASE[type];
+            if (type && type.startsWith('sensor_')) return 20;
+            if (type && type.startsWith('spawner_')) return 12;
+            if (type && type.startsWith('zylinder')) return 30;
+            if (type && type.startsWith('zone_')) return 1;
+            return 15;
+        }
+        function _applyObjZIndex(obj) {
+            const base = _typeZBase(obj.type);
+            let layerOff = 0;
+            if (obj.layerId) {
+                const layer = factoryLayers.find(l => l.id === obj.layerId);
+                if (layer) layerOff = layer.zOffset || 0;
+            }
+            obj.el.style.zIndex = base + layerOff + (obj.localZ || 0);
+        }
         // =========================================================
         // 🦾 ROBOT ARM – Hilfsfunktionen (IK + Pfadverfolgung)
         // WEGPUNKTE sind in LOKALEN Koordinaten (relativ zur Arm-Basis)
         // → Pfad bewegt sich mit dem Roboter mit
         // =========================================================
+        // ---- Ebenen-Manager ----
+        window._openLayerManager = function() {
+            window._layerRender();
+            document.getElementById('factory-layer-modal').style.display = 'flex';
+        };
+        window._layerRender = function() {
+            const list = document.getElementById('layer-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (factoryLayers.length === 0) {
+                list.innerHTML = '<div style="color:#607d8b;font-size:11px;padding:6px 0;">Noch keine Ebenen angelegt.</div>';
+                return;
+            }
+            factoryLayers.forEach(layer => {
+                let row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 6px;background:#2a2a2a;border-radius:4px;margin-bottom:4px;';
+                let nameSpan = document.createElement('span'); nameSpan.style.cssText = 'flex:1;font-size:12px;color:#ccc;'; nameSpan.textContent = `${layer.name} (Z+${layer.zOffset})`;
+                let btnDel = document.createElement('button'); btnDel.textContent = '🗑'; btnDel.style.cssText = 'background:none;border:none;color:#ef9a9a;cursor:pointer;font-size:13px;';
+                btnDel.onclick = () => {
+                    factoryLayers = factoryLayers.filter(l => l.id !== layer.id);
+                    factoryObjects.forEach(o => { if (o.layerId === layer.id) { o.layerId = null; _applyObjZIndex(o); } });
+                    saveFactoryState(); window._layerRender();
+                };
+                row.appendChild(nameSpan); row.appendChild(btnDel);
+                list.appendChild(row);
+            });
+        };
+        window._layerAdd = function() {
+            const name = document.getElementById('layer-name-inp').value.trim();
+            const zOff = parseInt(document.getElementById('layer-z-inp').value) || 100;
+            if (!name) return;
+            factoryLayers.push({ id: Math.random().toString(36).substr(2,8), name, zOffset: zOff });
+            document.getElementById('layer-name-inp').value = '';
+            saveFactoryState(); window._layerRender();
+        };
+        // ---- Ende Ebenen-Manager ----
         window._robotUpdateIK = function(obj) {
             let l1 = obj.arm1Len || 80, l2 = obj.arm2Len || 60;
             let tx = obj.targetX || 0, ty = obj.targetY || (l1 + l2);
@@ -10556,11 +10746,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                 factoryCanvas.appendChild(selectionBoxEl);
             }
         });
-		window.spawnFactoryItem = function(material, x = 0, y = 200, isSolid = false, meltTemp = null) {
+		window.spawnFactoryItem = function(material, x = 0, y = 200, isSolid = false, meltTemp = null, zIndex = null) {
             let el = document.createElement('div');
-            el.className = `f2d-obj f2d-item item-${material}`; 
+            el.className = `f2d-obj f2d-item item-${material}`;
             if (isSolid) el.classList.add('is-solid');
             el.textContent = material === 'metall' ? 'FE' : 'KU';
+            if (zIndex !== null) el.style.zIndex = zIndex;
             let item = { el: el, x: x, y: y, vx: 0, vy: 0, useGravity: true, useCollision: true, material: material, width: 40, height: 40, isSolid: isSolid };
             item.meltTemp = meltTemp || (material === 'metall' ? 1200 : 150);
             factoryItems.push(item); updateObjTransform(item); factoryCanvas.appendChild(el); makeDraggable(el, item);
@@ -10888,7 +11079,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (foundLabel) obj.labelEl = foundLabel;
             updateObjTransform(obj);
             factoryObjects.push(obj); factoryCanvas.appendChild(el); makeDraggable(el, obj);
-            if(!isLoadingFactory) saveFactoryState(); 
+            _applyObjZIndex(obj);
+            if(!isLoadingFactory) saveFactoryState();
             return obj;
         }
         function updateObjTransform(obj) {
@@ -11253,6 +11445,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                             else valve.innerHTML = `<span>▶ ${v1}</span><span style="color:#f44336;">|</span><span>${v2} ◀</span>`;
                         }
                         saveFactoryState();
+                        if (activeTask && !taskSolved) window._taskCheckConditions();
                     };
                     wrapper.appendChild(sel); ctxMenu.appendChild(wrapper);
                 };
@@ -11282,8 +11475,74 @@ You must output exactly this JSON format. The logic code goes as a single string
                     rampInp.onchange = e => { obj.startupTime = parseFloat(e.target.value) || 0; saveFactoryState(); };
                     rampWrap.appendChild(rampInp); ctxMenu.appendChild(rampWrap);
                 }
+                if (obj.type.startsWith('zylinder')) {
+                    let sepV = document.createElement('div'); sepV.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sepV);
+                    let btnV = document.createElement('div'); btnV.className = 'ctx-item';
+                    btnV.textContent = obj.hideValve ? '👁 Anschlussanzeige einblenden' : '👁 Anschlussanzeige ausblenden';
+                    btnV.onclick = () => {
+                        obj.hideValve = !obj.hideValve;
+                        let valveEl = obj.el.querySelector('.f2d-valve');
+                        if (valveEl) valveEl.style.display = obj.hideValve ? 'none' : '';
+                        saveFactoryState(); ctxMenu.style.display = 'none';
+                    };
+                    ctxMenu.appendChild(btnV);
+                }
                 if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenu) {
                     ComponentRegistry[obj.type].contextMenu(obj, ctxMenu, saveFactoryState);
+                }
+            }
+            // --- Despawner-Filter ---
+            if (obj.type === 'despawner') {
+                let sepDsp = document.createElement('div'); sepDsp.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sepDsp);
+                let lblDsp = document.createElement('div'); lblDsp.style.cssText = 'padding:3px 15px 4px;color:#aaa;font-size:10px;'; lblDsp.textContent = '🗑️ Erlaubte Materialien'; ctxMenu.appendChild(lblDsp);
+                const allMats = ['metall','kunststoff'];
+                const filterWrap = document.createElement('div'); filterWrap.style.cssText = 'padding:2px 15px 6px;'; filterWrap.onclick = e => e.stopPropagation();
+                allMats.forEach(mat => {
+                    let row = document.createElement('label'); row.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;color:#ccc;cursor:pointer;margin-bottom:3px;';
+                    let cb = document.createElement('input'); cb.type = 'checkbox';
+                    cb.checked = !obj.despawnFilter || obj.despawnFilter.includes(mat);
+                    cb.onchange = () => {
+                        const checked = allMats.filter((m,i) => filterWrap.querySelectorAll('input')[i].checked);
+                        obj.despawnFilter = (checked.length === allMats.length) ? null : checked;
+                        saveFactoryState();
+                    };
+                    row.appendChild(cb); row.appendChild(document.createTextNode(mat.charAt(0).toUpperCase() + mat.slice(1)));
+                    filterWrap.appendChild(row);
+                });
+                ctxMenu.appendChild(filterWrap);
+            }
+            // --- Z-Reihenfolge ---
+            {
+                let sepZ = document.createElement('div'); sepZ.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sepZ);
+                let lblZ = document.createElement('div'); lblZ.style.cssText = 'padding:3px 15px 2px;color:#aaa;font-size:10px;'; lblZ.textContent = '⬡ Ebene'; ctxMenu.appendChild(lblZ);
+                const zBtns = [
+                    ['⬆ Ganz vorne', () => { obj.localZ = 200; }],
+                    ['↑ Eine Ebene vor', () => { obj.localZ = (obj.localZ || 0) + 1; }],
+                    ['↓ Eine Ebene zurück', () => { obj.localZ = (obj.localZ || 0) - 1; }],
+                    ['⬇ Ganz hinten', () => { obj.localZ = -200; }],
+                ];
+                let zGrid = document.createElement('div'); zGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px 8px 4px;';
+                zBtns.forEach(([txt, fn]) => {
+                    let b = document.createElement('div'); b.className = 'ctx-item'; b.style.cssText = 'font-size:11px;padding:4px 6px;text-align:center;';
+                    b.textContent = txt;
+                    b.onclick = () => { fn(); _applyObjZIndex(obj); saveFactoryState(); ctxMenu.style.display = 'none'; };
+                    zGrid.appendChild(b);
+                });
+                ctxMenu.appendChild(zGrid);
+                // Ebene zuweisen
+                if (factoryLayers.length > 0) {
+                    let layerWrap = document.createElement('div'); layerWrap.style.cssText = 'padding:2px 15px 6px;'; layerWrap.onclick = e => e.stopPropagation();
+                    layerWrap.innerHTML = '<div style="color:#aaa;font-size:10px;margin-bottom:3px;">Ebene zuweisen</div>';
+                    let layerSel = document.createElement('select');
+                    layerSel.style.cssText = 'width:100%;padding:3px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;';
+                    let optNone = document.createElement('option'); optNone.value = ''; optNone.textContent = '(Keine)'; layerSel.appendChild(optNone);
+                    factoryLayers.forEach(l => {
+                        let o2 = document.createElement('option'); o2.value = l.id; o2.textContent = l.name;
+                        if (obj.layerId === l.id) o2.selected = true;
+                        layerSel.appendChild(o2);
+                    });
+                    layerSel.onchange = () => { obj.layerId = layerSel.value || null; _applyObjZIndex(obj); saveFactoryState(); };
+                    layerWrap.appendChild(layerSel); ctxMenu.appendChild(layerWrap);
                 }
             }
             let btnDel = document.createElement('div'); btnDel.className = 'ctx-item'; btnDel.textContent = window.t('ctx_fac_del');
@@ -11824,7 +12083,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                                 if (obj.qualityMode === 'always_nok') _spQuality = 'NOK';
                                 else if (obj.qualityMode === 'random') _spQuality = Math.random() < (obj.qualityChance ?? 0.8) ? 'OK' : 'NOK';
                                 else if (obj.qualityMode === 'every_n') _spQuality = (obj._spawnCount % (obj.qualityNth || 3) === 0) ? 'NOK' : 'OK';
-                                spawnFactoryItem(obj.type.includes('metall') ? 'metall' : 'kunststoff', obj.x + 5, obj.y + 5, obj.spawnSolid, obj.meltTemp);
+                                spawnFactoryItem(obj.type.includes('metall') ? 'metall' : 'kunststoff', obj.x + 5, obj.y + 5, obj.spawnSolid, obj.meltTemp, parseInt(obj.el.style.zIndex) || 12);
                                 if (factoryItems.length > 0) factoryItems[factoryItems.length - 1].quality = _spQuality;
                             }
                         } else { 
@@ -11833,7 +12092,12 @@ You must output exactly this JSON format. The logic code goes as a single string
                     } else if (obj.type === 'despawner') {
                         factoryItems = factoryItems.filter(item => {
                             if (draggedElement && draggedElement.data === item) return true;
-                            if (isBlockInLocalRect(item, obj, 0, 0, obj.width, obj.height)) { if (activeTask) taskDespawnCount++; item.el.remove(); return false; }
+                            if (isBlockInLocalRect(item, obj, 0, 0, obj.width, obj.height)) {
+                                if (obj.despawnFilter && obj.despawnFilter.length > 0 && !obj.despawnFilter.includes(item.material)) return true;
+                                if (activeTask) taskDespawnCount++;
+                                item.el.remove();
+                                return false;
+                            }
                             return true;
                         });
                     }
@@ -12384,6 +12648,7 @@ You must output exactly this JSON format. The logic code goes as a single string
         function getFactoryStateObj() {
             return {
                 globalViewMode: globalViewMode,
+                layers: factoryLayers,
                 pins: factoryPins.map(p => ({ id: p.id, x: p.x, y: p.y, text: p.text, color: p.color, minimized: p.minimized })),
                 items: factoryItems.map(i => ({ x: Math.round(i.x), y: Math.round(i.y), vx: Math.round(i.vx||0), vy: Math.round(i.vy||0), material: i.material, useGravity: i.useGravity, useCollision: i.useCollision, isSolid: i.isSolid, meltTemp: i.meltTemp })),
                 objects: factoryObjects.map(o => ({
@@ -12398,7 +12663,9 @@ You must output exactly this JSON format. The logic code goes as a single string
                     parentId: o.parent ? o.parent.id : null, attachmentType: o.attachmentType, normLabel: o.normLabel, originalLabelText: o.originalLabelText,
                     color: o.color, interval: o.interval, useCollision: o.useCollision, labelPinned: o.labelPinned, muteSound: o.muteSound, locked: o.locked || false,
 					linkedVarX_Plus: o.linkedVarX_Plus, linkedVarX_Minus: o.linkedVarX_Minus, linkedVarY_Plus: o.linkedVarY_Plus, linkedVarY_Minus: o.linkedVarY_Minus, linkedVarGrab: o.linkedVarGrab, linkedVarEnable: o.linkedVarEnable || null, pathSpeed: o.pathSpeed || null, posX: o.posX, posY: o.posY,
-                    groupId: o.groupId || null
+                    groupId: o.groupId || null,
+                    localZ: o.localZ || 0, layerId: o.layerId || null, despawnFilter: o.despawnFilter || null,
+                    hideValve: o.hideValve || false
                 }))
             };
         }
@@ -12435,6 +12702,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             try {
                 let state = JSON.parse(saved);
                 factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; clearSelection(); _ensurePathSvg();
+                factoryLayers = state.layers || [];
                 if (state.pins) state.pins.forEach(p => { factoryPins.push(p); createPinEl(p); });
                 if (state.globalViewMode) {
                     globalViewMode = state.globalViewMode;
@@ -12533,6 +12801,15 @@ You must output exactly this JSON format. The logic code goes as a single string
                         newObj.el.classList.add('f2d-locked');
                         let b = document.createElement('div'); b.className = 'f2d-lock-badge'; b.textContent = '🔒'; newObj.el.appendChild(b); newObj.lockBadge = b;
                     }
+                    if (o.localZ) newObj.localZ = o.localZ;
+                    if (o.layerId) newObj.layerId = o.layerId;
+                    if (o.despawnFilter) newObj.despawnFilter = o.despawnFilter;
+                    if (o.hideValve) {
+                        newObj.hideValve = true;
+                        let valveEl = newObj.el.querySelector('.f2d-valve');
+                        if (valveEl) valveEl.style.display = 'none';
+                    }
+                    _applyObjZIndex(newObj);
                     if (newObj.type === 'hmi_panel' && o.frameVisible !== undefined) {
                         newObj.frameVisible = o.frameVisible;
                         if (!o.frameVisible) newObj.el.classList.add('frame-hidden');
