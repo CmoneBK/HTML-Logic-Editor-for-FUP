@@ -1394,6 +1394,7 @@
                 <div style="padding:12px 16px; border-bottom:1px solid #263238; flex-shrink:0; display:flex; gap:8px; flex-wrap:wrap;">
                     <button onclick="document.getElementById('task-upload').click()" class="task-mgr-btn primary">📥 .valitask importieren</button>
                     <button onclick="window._openTaskEditor(null)" class="task-mgr-btn">✏️ Neue Aufgabe erstellen</button>
+                    <button onclick="window._loadExampleTasks()" class="task-mgr-btn" style="background:#1b5e20;color:#c8e6c9;border-color:#2e7d32;" title="Mitgelieferte Beispielaufgaben in die Liste laden">📚 Beispiele laden</button>
                 </div>
                 <div id="task-mgr-list" style="overflow-y:auto; padding:12px 16px; flex:1; color:#fff; font-size:12px;"></div>
             </div>
@@ -6297,6 +6298,107 @@ You must output exactly this JSON format. The logic code goes as a single string
         function _deleteLocalTask(taskId) {
             localStorage.setItem('valisTasks', JSON.stringify(_getLocalTasks().filter(t => t.id !== taskId)));
         }
+
+        // === Eingebaute Beispielaufgaben ===
+        const _EXAMPLE_TASKS = [
+          {
+            version:'1.0', type:'valitask',
+            id:'task-sortieranlage-metall-kunststoff-2026',
+            name:'Sortieranlage: Metall und Kunststoff automatisch trennen',
+            description:'Eine Förderanlage transportiert Werkstücke aus Metall und Kunststoff auf einem gemeinsamen Hauptförderband. Metallteile sollen automatisch erkannt und über einen Zylinder auf ein Sortierförderband umgeleitet werden. Kunststoffteile laufen durch bis zum Ende des Hauptbands.\n\n🎯 DEINE AUFGABE IN 3 SCHRITTEN:\n\n① Fabrikobjekte verknüpfen\nRechtsklick auf jedes Objekt → Einstellungen → Variable eingeben.\nVerwende exakt die unten genannten Variablennamen!\n\n② SPS-Programm schreiben\nDeklariere Eingänge mit INPUT und schreibe die Steuerlogik.\n\n③ Simulation testen\nDrücke Start-Taster, beobachte ob Metallteile korrekt aussortiert werden.\n\n──────────────────────────────\n📋 VARIABLEN (exakt so verwenden!)\n\nEingänge (mit INPUT deklarieren):\n• E_TASTER_START  – Start-Taster (TRUE = gedrückt)\n• E_NOTHALT       – Not-Halt (TRUE = nicht ausgelöst → Anlage darf laufen)\n• E_SENSOR_IND    – Induktiv-Sensor (TRUE = Metallteil erkannt)\n\nAusgänge (durch Zuweisung := definieren):\n• A_BAND_HAUPT    – Hauptförderband-Motor\n• A_BAND_SORT     – Sortierförderband-Motor\n• A_ZYL_VOR       – Zylinder vorfahren (Metallteil ausschleusen)\n• A_ZYL_ZUR       – Zylinder zurückfahren (Grundstellung)\n• A_LAMPE_GRUEN   – Grüne Betriebsmeldeleuchte\n\n──────────────────────────────\n⚙️ STEUERLOGIK\n\nBetriebsbedingung:\n  Beide Förderbänder und die Lampe laufen nur, wenn Start gedrückt UND Not-Halt nicht ausgelöst.\n\nSortiersteuerung:\n  • Metallteil erkannt (E_SENSOR_IND = TRUE) UND Band läuft\n    → Zylinder fährt VOR (A_ZYL_VOR = TRUE)\n  • Kein Metallteil erkannt\n    → Zylinder fährt ZURÜCK (A_ZYL_ZUR = TRUE)\n\n──────────────────────────────\n✅ ERFOLGSKRITERIEN\nAlle 14 Bedingungen müssen gleichzeitig erfüllt sein:\n  – Alle Objekte korrekt verknüpft\n  – Variablen im Code verwendet\n  – Anlage läuft (Hauptband aktiv)\n  – Mindestens 8 Werkstücke verarbeitet\n  – Simulation mindestens 60 Sekunden aktiv',
+            hint:'💡 SCHRITT-FÜR-SCHRITT HILFE:\n\n1. Beginne mit den INPUT-Deklarationen:\n   INPUT E_TASTER_START\n   INPUT E_NOTHALT\n   INPUT E_SENSOR_IND\n\n2. Betriebsbereitschaft (AND-Verknüpfung):\n   A_BAND_HAUPT := E_TASTER_START AND E_NOTHALT\n\n3. Sortierzylinder:\n   A_ZYL_VOR := E_SENSOR_IND AND A_BAND_HAUPT\n   A_ZYL_ZUR := NOT E_SENSOR_IND\n\n4. Vergiss nicht: Not-Halt bedeutet TRUE = Anlage darf laufen (Schließer-Prinzip). Der Zylinder fährt mit A_ZYL_VOR vor und mit A_ZYL_ZUR zurück – beide Signale brauchst du!\n\n5. Nach dem Programmieren: Start-Taster im IO-Panel aktivieren, dann beobachten ob Metallteile (FE) auf das Sortierband umgeleitet werden.',
+            category:'Automatisierungstechnik',
+            difficulty:'schwer',
+            timeLimit:600,
+            solutionMode:'after_time', solutionMinTime:120, solutionMinDone:3,
+            restrictObjects:'none', allowedObjectTypes:[],
+            blockAreas:{codeEditor:false,ioPanel:false,logikplan:false,schaltplan:false,factory2d:false,factoryNewVars:true},
+            conditions:[
+                {type:'factory_object', objectType:'conveyor',        linkedVar:'A_BAND_HAUPT'},
+                {type:'factory_object', objectType:'conveyor',        linkedVar:'A_BAND_SORT'},
+                {type:'factory_object', objectType:'sensor_ind',      linkedVar:'E_SENSOR_IND'},
+                {type:'factory_object', objectType:'zylinder_double', linkedVar:'A_ZYL_VOR'},
+                {type:'factory_object', objectType:'led',             linkedVar:'A_LAMPE_GRUEN'},
+                {type:'factory_object', objectType:'taster',          linkedVar:'E_TASTER_START'},
+                {type:'factory_object', objectType:'nothalt',         linkedVar:'E_NOTHALT'},
+                {type:'variable_exists', variable:'A_BAND_HAUPT'},
+                {type:'variable_exists', variable:'E_SENSOR_IND'},
+                {type:'code_contains',  pattern:'A_ZYL_VOR'},
+                {type:'code_contains',  pattern:'E_NOTHALT'},
+                {type:'sps_output',     variable:'A_BAND_HAUPT', value:true},
+                {type:'despawner_count', count:8},
+                {type:'sim_running',    minSeconds:60}
+            ],
+            preset:{
+                code:'// ╔══════════════════════════════════════════════════════════╗\n// ║   SORTIERANLAGE – Metall und Kunststoff trennen          ║\n// ╚══════════════════════════════════════════════════════════╝\n//\n// SCHRITT 1: Verknüpfe zunächst alle Fabrikobjekte mit den\n//            Variablennamen (Rechtsklick → Einstellungen)\n//\n// SCHRITT 2: Schreibe hier das SPS-Programm\n//\n// Verfügbare Eingänge (mit INPUT deklarieren):\n//   E_TASTER_START  – Start-Taster\n//   E_NOTHALT       – Not-Halt (TRUE = nicht ausgelöst)\n//   E_SENSOR_IND    – Induktiv-Sensor (TRUE = Metallteil)\n//\n// Verfügbare Ausgänge (per Zuweisung := definieren):\n//   A_BAND_HAUPT    – Hauptförderband-Motor\n//   A_BAND_SORT     – Sortierförderband-Motor\n//   A_ZYL_VOR       – Zylinder vorfahren\n//   A_ZYL_ZUR       – Zylinder zurückfahren\n//   A_LAMPE_GRUEN   – Grüne Betriebsleuchte\n//\n// ── Programm ab hier schreiben ──────────────────────────────\n',
+                types:{}, layout:'grid-sim-top',
+                factory:{
+                    globalViewMode:'top', items:[],
+                    pins:[{id:'pin_anleitung',x:155,y:155,text:'① Objekte verknüpfen\n② Code schreiben\n③ Start-Taster drücken',color:'#ffd54f',minimized:false}],
+                    objects:[
+                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,  linkedVar:'', startupTime:1.5, locked:false},
+                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90, linkedVar:'', startupTime:1.0, locked:false},
+                        {id:'obj_spawn_metall',type:'spawner_metall',    x:152,y:264,width:36, height:36, rotation:0,  linkedVar:'', interval:3.5, spawnSolid:true, locked:false},
+                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:152,y:266,width:36, height:36, rotation:0,  linkedVar:'', interval:4.5, spawnSolid:true, locked:false},
+                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:440,y:240,width:26, height:26, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_zylinder',    type:'zylinder_double',   x:600,y:238,width:60, height:26, rotation:90, linkedVar:'', linkedVarRet:'', isDouble:true, locked:false},
+                        {id:'obj_desp_metall', type:'despawner',         x:583,y:504,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_desp_kunst',  type:'despawner',         x:707,y:247,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_led_gruen',   type:'led',               x:278,y:158,width:34, height:34, rotation:0,  linkedVar:'', color:'#4caf50', locked:false},
+                        {id:'obj_taster_start',type:'taster',            x:340,y:160,width:30, height:30, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_nothalt',     type:'nothalt',           x:400,y:152,width:42, height:42, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_label_bedienpult',type:'frame',         x:265,y:145,width:200,height:68, rotation:0,  linkedVar:'', normLabel:'Bedienpult',  locked:true},
+                        {id:'obj_label_sortpunkt', type:'frame',         x:428,y:228,width:200,height:100,rotation:0,  linkedVar:'', normLabel:'Sortierpunkt',locked:true},
+                        {id:'obj_wall_links',  type:'wall',              x:194,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true},
+                        {id:'obj_wall_rechts', type:'wall',              x:706,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true}
+                    ]
+                }
+            },
+            solution:{
+                code:'INPUT E_TASTER_START\nINPUT E_NOTHALT\nINPUT E_SENSOR_IND\n\n// Betriebsbereitschaft: Start gedrückt UND Not-Halt nicht ausgelöst\nA_BAND_HAUPT := E_TASTER_START AND E_NOTHALT\nA_BAND_SORT := E_TASTER_START AND E_NOTHALT\nA_LAMPE_GRUEN := E_TASTER_START AND E_NOTHALT\n\n// Sortiersteuerung: Metallteil erkannt → Zylinder vorfahren\nA_ZYL_VOR := E_SENSOR_IND AND A_BAND_HAUPT\nA_ZYL_ZUR := NOT E_SENSOR_IND\n',
+                types:{}, layout:'grid-sim-top',
+                factory:{
+                    globalViewMode:'top', items:[],
+                    pins:[{id:'pin_anleitung',x:155,y:155,text:'① Objekte verknüpfen\n② Code schreiben\n③ Start-Taster drücken',color:'#ffd54f',minimized:false}],
+                    objects:[
+                        {id:'obj_band_haupt',  type:'conveyor',          x:200,y:262,width:510,height:40, rotation:0,  linkedVar:'A_BAND_HAUPT',   startupTime:1.5, locked:false},
+                        {id:'obj_band_sort',   type:'conveyor',          x:600,y:302,width:200,height:40, rotation:90, linkedVar:'A_BAND_SORT',    startupTime:1.0, locked:false},
+                        {id:'obj_spawn_metall',type:'spawner_metall',    x:152,y:264,width:36, height:36, rotation:0,  linkedVar:'', interval:3.5, spawnSolid:true, locked:false},
+                        {id:'obj_spawn_kunst', type:'spawner_kunststoff',x:152,y:266,width:36, height:36, rotation:0,  linkedVar:'', interval:4.5, spawnSolid:true, locked:false},
+                        {id:'obj_sensor_ind',  type:'sensor_ind',        x:440,y:240,width:26, height:26, rotation:0,  linkedVar:'E_SENSOR_IND',   locked:false},
+                        {id:'obj_zylinder',    type:'zylinder_double',   x:600,y:238,width:60, height:26, rotation:90, linkedVar:'A_ZYL_VOR', linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
+                        {id:'obj_desp_metall', type:'despawner',         x:583,y:504,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_desp_kunst',  type:'despawner',         x:707,y:247,width:36, height:36, rotation:0,  linkedVar:'', locked:false},
+                        {id:'obj_led_gruen',   type:'led',               x:278,y:158,width:34, height:34, rotation:0,  linkedVar:'A_LAMPE_GRUEN',  color:'#4caf50', locked:false},
+                        {id:'obj_taster_start',type:'taster',            x:340,y:160,width:30, height:30, rotation:0,  linkedVar:'E_TASTER_START', locked:false},
+                        {id:'obj_nothalt',     type:'nothalt',           x:400,y:152,width:42, height:42, rotation:0,  linkedVar:'E_NOTHALT',      locked:false},
+                        {id:'obj_label_bedienpult',type:'frame',         x:265,y:145,width:200,height:68, rotation:0,  linkedVar:'', normLabel:'Bedienpult',  locked:true},
+                        {id:'obj_label_sortpunkt', type:'frame',         x:428,y:228,width:200,height:100,rotation:0,  linkedVar:'', normLabel:'Sortierpunkt',locked:true},
+                        {id:'obj_wall_links',  type:'wall',              x:194,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true},
+                        {id:'obj_wall_rechts', type:'wall',              x:706,y:262,width:8,  height:40, rotation:0,  linkedVar:'', locked:true}
+                    ]
+                }
+            }
+          }
+        ];
+
+        window._loadExampleTasks = function() {
+            let existing = _getLocalTasks();
+            let added = 0;
+            _EXAMPLE_TASKS.forEach(task => {
+                if (!existing.some(t => t.id === task.id)) {
+                    _saveTaskLocally(task);
+                    added++;
+                }
+            });
+            window._openTaskManager();
+            if (added > 0) {
+                _showToast('✅ ' + added + ' Beispielaufgabe' + (added !== 1 ? 'n' : '') + ' geladen.');
+            } else {
+                _showToast('ℹ️ Bereits vorhanden – keine neuen Beispiele.', '#1565c0');
+            }
+        };
+
         function _exportTask(task) {
             const blob = new Blob([JSON.stringify(task, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -6408,11 +6510,14 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             document.getElementById('task-panel').style.display = 'block';
             // Objektbeschränkung anwenden (falls aktiviert)
-            if (taskObj.restrictObjects) {
+            const ro = taskObj.restrictObjects;
+            if (ro === 'conditions' || ro === true) {
                 const allowed = (taskObj.conditions || [])
                     .filter(c => c.type === 'factory_object' && c.objectType)
                     .map(c => c.objectType);
                 _taskApplyObjectRestrictions(allowed);
+            } else if (ro === 'manual') {
+                _taskApplyObjectRestrictions(taskObj.allowedObjectTypes || []);
             }
             // Bearbeitungsbereich-Sperren anwenden
             if (taskObj.blockAreas) _taskApplyBlockAreas(taskObj.blockAreas);
@@ -6442,11 +6547,16 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (!window._origAddFactoryDevice) {
                 window._origAddFactoryDevice = window.addFactoryDevice;
                 window.addFactoryDevice = function(type) {
-                    if (activeTask && activeTask.restrictObjects) {
-                        const allowed = (activeTask.conditions || [])
-                            .filter(c => c.type === 'factory_object' && c.objectType)
-                            .map(c => c.objectType);
-                        if (!allowed.includes(type)) return;
+                    if (activeTask) {
+                        const ro = activeTask.restrictObjects;
+                        if (ro === 'conditions' || ro === true) {
+                            const allowed = (activeTask.conditions || [])
+                                .filter(c => c.type === 'factory_object' && c.objectType)
+                                .map(c => c.objectType);
+                            if (!allowed.includes(type)) return;
+                        } else if (ro === 'manual') {
+                            if (!(activeTask.allowedObjectTypes || []).includes(type)) return;
+                        }
                     }
                     window._origAddFactoryDevice(type);
                 };
@@ -6889,8 +6999,14 @@ You must output exactly this JSON format. The logic code goes as a single string
             let tl = parseInt(document.getElementById('ted-time').value) || 0;
             task.timeLimit = tl > 0 ? tl : null;
             task.conditions = _taskCollectConditions();
-            let restrictEl = document.getElementById('ted-restrict');
-            task.restrictObjects = restrictEl ? restrictEl.checked : false;
+            const selectedRadio = document.querySelector('input[name="ted-restrict"]:checked');
+            task.restrictObjects = selectedRadio ? selectedRadio.value : 'none';
+            task.allowedObjectTypes = [];
+            if (task.restrictObjects === 'manual') {
+                document.querySelectorAll('.ted-allow-type:checked').forEach(cb => {
+                    task.allowedObjectTypes.push(cb.dataset.type);
+                });
+            }
             // Musterlösung
             task.solution = (document.getElementById('task-editor-modal')._editTask || {}).solution || null;
             let solModeEl = document.getElementById('ted-sol-mode');
@@ -6944,7 +7060,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                 version:'1.0', type:'valitask',
                 id:'task-' + Date.now() + '-' + Math.random().toString(36).substr(2,6),
                 name:'', description:'', hint:'', category:'', difficulty:'leicht',
-                timeLimit:null, preset:null, conditions:[]
+                timeLimit:null, preset:null, conditions:[],
+                restrictObjects:'none', allowedObjectTypes:[]
             };
             modal._editTask = task;
             modal._savedSnapshot = JSON.stringify(task);
@@ -6977,10 +7094,24 @@ You must output exactly this JSON format. The logic code goes as a single string
                     <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">✅ Bedingungen (alle müssen erfüllt sein)</div>
                     <div id="ted-cond-list"></div>
                     <button onclick="window._taskAddCondition()" style="background:#1565c0;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:11px;">+ Bedingung hinzufügen</button>
-                    <label style="display:flex;align-items:center;gap:7px;margin-top:10px;cursor:pointer;color:#b0bec5;font-size:11px;">
-                        <input type="checkbox" id="ted-restrict" ${task.restrictObjects ? 'checked' : ''}>
-                        Nur geforderte Objekte (<code style="background:#111;padding:1px 4px;border-radius:2px;font-size:10px;">factory_object</code>-Bedingungen) in den Menüs erlauben
-                    </label>
+                    ${(() => {
+                        const rm = task.restrictObjects === true ? 'conditions' : (task.restrictObjects || 'none');
+                        const typeOpts = _getFactoryObjectTypes().map(({type, label}) =>
+                            `<label style="display:flex;align-items:center;gap:6px;margin-bottom:3px;cursor:pointer;color:#b0bec5;font-size:11px;">
+                                <input type="checkbox" class="ted-allow-type" data-type="${_escHtml(type)}" ${(task.allowedObjectTypes||[]).includes(type)?'checked':''}>${_escHtml(label)}
+                            </label>`).join('');
+                        return `<div style="margin-top:10px;">
+                            <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">🔩 Objekt-Einschränkung</div>
+                            ${[['none','Keine Einschränkung'],['conditions','Nur geforderte Objekte (factory_object-Bedingungen)'],['manual','Manuell festlegen']].map(([val,lbl])=>
+                                `<label style="display:flex;align-items:center;gap:7px;margin-bottom:4px;cursor:pointer;color:#b0bec5;font-size:11px;">
+                                    <input type="radio" name="ted-restrict" value="${val}" ${rm===val?'checked':''} onchange="document.getElementById('ted-restrict-manual').style.display=this.value==='manual'?'block':'none'">
+                                    ${lbl}
+                                </label>`).join('')}
+                            <div id="ted-restrict-manual" style="display:${rm==='manual'?'block':'none'};margin-top:6px;max-height:150px;overflow-y:auto;border:1px solid #333;border-radius:3px;padding:6px;background:#111;">
+                                ${typeOpts}
+                            </div>
+                        </div>`;
+                    })()}
                 </div>
                 <div style="margin-top:14px;padding:10px;background:#151515;border-radius:4px;border:1px solid #333;">
                     <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">💡 Musterlösung</div>
@@ -12085,11 +12216,17 @@ You must output exactly this JSON format. The logic code goes as a single string
             let allComponents = [...builtins, ...registryComponents]
                 .sort((a, b) => a.label.localeCompare(b.label));
             // Aufgaben-Objektbeschränkung: nur erlaubte Typen anzeigen
-            if (activeTask && activeTask.restrictObjects) {
-                const allowed = (activeTask.conditions || [])
-                    .filter(c => c.type === 'factory_object' && c.objectType)
-                    .map(c => c.objectType);
-                allComponents = allComponents.filter(c => allowed.includes(c.key));
+            if (activeTask) {
+                const ro = activeTask.restrictObjects;
+                if (ro === 'conditions' || ro === true) {
+                    const allowed = (activeTask.conditions || [])
+                        .filter(c => c.type === 'factory_object' && c.objectType)
+                        .map(c => c.objectType);
+                    allComponents = allComponents.filter(c => allowed.includes(c.key));
+                } else if (ro === 'manual') {
+                    const allowed = activeTask.allowedObjectTypes || [];
+                    allComponents = allComponents.filter(c => allowed.includes(c.key));
+                }
             }
             const renderSuggestions = (filter) => {
                 suggestList.innerHTML = '';
