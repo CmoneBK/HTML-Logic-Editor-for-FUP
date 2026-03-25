@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"node.id === ''''TRUE''''\\\\|node.id === ''''FALSE''''\\\\|''''TRUE''''\\\\|''''FALSE''''\" index.html)"
+    ]
+  }
+}

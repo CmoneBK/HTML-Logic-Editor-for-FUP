@@ -5121,6 +5121,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             if (!simulationFunction || !currentGraph) return;
             // Führe die Logik aus und übergebe Zeit und Timer-Speicher
             if (!_pbActive) {
+                spsState['TRUE'] = true;
+                spsState['FALSE'] = false;
                 simulationFunction(spsState, deltaMs, window.simTimers);
                 // 🎬 Recording: Snapshot alle ~50ms (≈20fps)
                 if (_recActive) {
@@ -6555,7 +6557,7 @@ You must output exactly this JSON format. The logic code goes as a single string
               {
                 version:'1.0', type:'valitask',
                 id:'task-t2-sort-fbs-2026',
-                name:'② Sortieranlage – Logik per FBS aufbauen [Beta: Nicht fertig erstellt!]',
+                name:'② Sortieranlage – Logik per FBS aufbauen',
                 description:'Eine Sortieranlage mit zwei Sensoren ist vollständig verdrahtet. Die Bänder laufen bereits. Die Sortierlogik fehlt noch – sie muss im LOGIKPLAN (FBS) aufgebaut werden.\n\nDer Code-Editor und der Schaltplan sind für diese Aufgabe gesperrt!\n\n🎯 AUFGABE:\nBaue im Logikplan-Editor folgende Ausgänge auf:\n\n• A_ZYL_VOR   = Zylinder fährt aus\n  Bedingung: Teil erkannt (E_SENSOR_OPT) UND Metallerkennung (E_SENSOR_IND)\n\n• A_ZYL_ZUR   = Zylinder fährt zurück\n  Bedingung: NICHT (E_SENSOR_OPT UND E_SENSOR_IND)\n\n• A_LAMPE_IND = Metallerkennungs-LED leuchtet\n  Bedingung: Metallerkennung aktiv (E_SENSOR_IND)\n\n🛠 SO GEHTS MIT DEM LOGIKPLAN:\n① Klicke im Logikplan-Panel auf das ➕-Symbol (Baustein hinzufügen)\n② Wähle den Typ (AND, OR, direkte Verbindung etc.)\n③ Trage Ziel-Variable (Ausgang) und Eingänge ein\n④ Klicke Generieren\n\n⚙ BESCHRÄNKUNGEN:\nNur der Logikplan-Editor ist verfügbar.\nCode-Editor und Schaltplan sind gesperrt.',
                 hint:'Für A_ZYL_VOR: Typ = AND, Ziel = A_ZYL_VOR, Eingang 1 = E_SENSOR_OPT, Eingang 2 = E_SENSOR_IND\n\nFür A_ZYL_ZUR: Typ = AND, Ziel = A_ZYL_ZUR, Eingang 1 = ¬E_SENSOR_OPT, Eingang 2 = ¬E_SENSOR_IND\n  → oder einfacher: direkter Eingang mit NOT: Eingang 1 = ¬(E_SENSOR_OPT && E_SENSOR_IND)\n\nFür A_LAMPE_IND: Typ = direkt (kein Gatter), Ziel = A_LAMPE_IND, Eingang 1 = E_SENSOR_IND',
                 category:'Grundlagen', difficulty:'mittel',
@@ -6579,13 +6581,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                     objects:[
                       {id:'t2_b1',  type:'conveyor',          x:175,y:265,width:490,height:38,rotation:0,  linkedVar:'A_BAND',      startupTime:null, locked:false},
                       {id:'t2_b2',  type:'conveyor',          x:556,y:303,width:180,height:38,rotation:90, linkedVar:'A_BAND_SORT', startupTime:null, locked:false},
-                      {id:'t2_sm',  type:'spawner_metall',    x:133,y:267,width:34, height:34,rotation:0,  linkedVar:'',            interval:2.5, spawnSolid:true, locked:false},
-                      {id:'t2_sk',  type:'spawner_kunststoff',x:133,y:299,width:34, height:34,rotation:0,  linkedVar:'',            interval:3.5, spawnSolid:true, locked:false},
-                      {id:'t2_so',  type:'sensor_opt',        x:390,y:243,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_OPT',locked:false},
-                      {id:'t2_si',  type:'sensor_ind',        x:460,y:243,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_IND',locked:false},
-                      {id:'t2_zyl', type:'zylinder_double',   x:556,y:241,width:58, height:26,rotation:90, linkedVar:'A_ZYL_VOR',   linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
-                      {id:'t2_dm',  type:'despawner',         x:539,y:487,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
-                      {id:'t2_dk',  type:'despawner',         x:663,y:250,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
+                      {id:'t2_sm',  type:'spawner_metall',    x:142,y:261,width:34, height:34,rotation:270,  linkedVar:'',            interval:2.5, spawnSolid:true, locked:false},
+                      {id:'t2_sk',  type:'spawner_kunststoff',x:142,y:261,width:34, height:34,rotation:270,  linkedVar:'',            interval:3.5, spawnSolid:true, locked:false},
+                      {id:'t2_so',  type:'sensor_opt',        x:525,y:277,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_OPT',locked:false},
+                      {id:'t2_si',  type:'sensor_ind',        x:557,y:265,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_IND',locked:false},
+                      {id:'t2_zyl', type:'zylinder_double',   x:545,y:210,width:79, height:26,rotation:90, linkedVar:'A_ZYL_VOR',   linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
+                      {id:'t2_dm',  type:'despawner',         x:561,y:315,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
+                      {id:'t2_dk',  type:'despawner',         x:621,y:407,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
                       {id:'t2_led', type:'led',               x:240,y:168,width:34, height:34,rotation:0,  linkedVar:'A_LAMPE_IND', color:'#ffc107', locked:false}
                     ]
                   }
@@ -6599,13 +6601,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                     objects:[
                       {id:'t2_b1',  type:'conveyor',          x:175,y:265,width:490,height:38,rotation:0,  linkedVar:'A_BAND',      startupTime:null, locked:false},
                       {id:'t2_b2',  type:'conveyor',          x:556,y:303,width:180,height:38,rotation:90, linkedVar:'A_BAND_SORT', startupTime:null, locked:false},
-                      {id:'t2_sm',  type:'spawner_metall',    x:133,y:267,width:34, height:34,rotation:0,  linkedVar:'',            interval:2.5, spawnSolid:true, locked:false},
-                      {id:'t2_sk',  type:'spawner_kunststoff',x:133,y:299,width:34, height:34,rotation:0,  linkedVar:'',            interval:3.5, spawnSolid:true, locked:false},
-                      {id:'t2_so',  type:'sensor_opt',        x:390,y:243,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_OPT',locked:false},
-                      {id:'t2_si',  type:'sensor_ind',        x:460,y:243,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_IND',locked:false},
-                      {id:'t2_zyl', type:'zylinder_double',   x:556,y:241,width:58, height:26,rotation:90, linkedVar:'A_ZYL_VOR',   linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
-                      {id:'t2_dm',  type:'despawner',         x:539,y:487,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
-                      {id:'t2_dk',  type:'despawner',         x:663,y:250,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
+                      {id:'t2_sm',  type:'spawner_metall',    x:142,y:261,width:34, height:34,rotation:270,  linkedVar:'',            interval:2.5, spawnSolid:true, locked:false},
+                      {id:'t2_sk',  type:'spawner_kunststoff',x:142,y:261,width:34, height:34,rotation:270,  linkedVar:'',            interval:3.5, spawnSolid:true, locked:false},
+                      {id:'t2_so',  type:'sensor_opt',        x:525,y:277,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_OPT',locked:false},
+                      {id:'t2_si',  type:'sensor_ind',        x:557,y:265,width:26, height:26,rotation:0,  linkedVar:'E_SENSOR_IND',locked:false},
+                      {id:'t2_zyl', type:'zylinder_double',   x:545,y:210,width:79, height:26,rotation:90, linkedVar:'A_ZYL_VOR',   linkedVarRet:'A_ZYL_ZUR', isDouble:true, locked:false},
+                      {id:'t2_dm',  type:'despawner',         x:561,y:315,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
+                      {id:'t2_dk',  type:'despawner',         x:621,y:407,width:34, height:34,rotation:0,  linkedVar:'',            locked:false},
                       {id:'t2_led', type:'led',               x:240,y:168,width:34, height:34,rotation:0,  linkedVar:'A_LAMPE_IND', color:'#ffc107', locked:false}
                     ]
                   }
@@ -6637,7 +6639,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                   types:{}, layout:'grid-sim-top',
                   factory:{
                     globalViewMode:'top', items:[],
-                    pins:[{id:'p3',x:148,y:148,text:'① Schaltplan-Panel öffnen\n② 🎨 Palette aktivieren\n③ Reihen hinzufügen',color:'#ffd54f',minimized:false}],
+                    pins:[{id:'p3',x:148,y:155,text:'① Schaltplan-Panel öffnen\n② 🎨 Palette aktivieren\n③ Reihen hinzufügen',color:'#ffd54f',minimized:false}],
                     objects:[
                       {id:'t3_zyl', type:'zylinder_single', x:355,y:230,width:70, height:30,rotation:90, linkedVar:'A_ZYLINDER',   locked:false},
                       {id:'t3_tl',  type:'taster',          x:225,y:185,width:30, height:30,rotation:0,  linkedVar:'E_TASTE_L',    locked:false},
@@ -8468,7 +8470,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 const layer = factoryLayers.find(l => l.id === obj.layerId);
                 if (layer) layerOff = layer.zOffset || 0;
             }
-            obj.el.style.zIndex = base + layerOff + (obj.localZ || 0);
+            obj.el.style.zIndex = Math.max(1, base + layerOff + (obj.localZ || 0));
         }
         // =========================================================
         // 🦾 ROBOT ARM – Hilfsfunktionen (IK + Pfadverfolgung)
@@ -11443,11 +11445,25 @@ You must output exactly this JSON format. The logic code goes as a single string
         });
         document.addEventListener('click', () => { ctxMenu.style.display = 'none'; });
         function showContextMenu(x, y, obj) {
-            // Factory items (workpieces from factoryItems) have no .type — skip device-specific menu
-            if (!obj.type) return;
+            // Factory items (workpieces from factoryItems) have no .type but have .material
+            if (!obj.type) {
+                if (!obj.material) return;
+                ctxMenu.innerHTML = '';
+                let infoBox = document.createElement('div');
+                infoBox.style.cssText = 'padding:6px 15px;color:#ffeb3b;font-size:10px;border-bottom:1px solid #555;cursor:default;font-family:monospace;';
+                infoBox.innerHTML = `📦 ${obj.material === 'metall' ? 'Metall (FE)' : 'Kunststoff (KU)'}<br>📍 X: ${Math.round(obj.x)} | Y: ${Math.round(obj.y)}`;
+                ctxMenu.appendChild(infoBox);
+                let delItem = document.createElement('div'); delItem.className = 'ctx-item'; delItem.style.color = '#ef5350'; delItem.textContent = '🗑 Block löschen';
+                delItem.onclick = () => { const idx = factoryItems.indexOf(obj); if (idx !== -1) { factoryItems.splice(idx, 1); obj.el.remove(); saveFactoryState(); } ctxMenu.style.display = 'none'; };
+                ctxMenu.appendChild(delItem);
+                _positionContextMenu(x, y);
+                return;
+            }
             ctxMenu.innerHTML = '';
             let infoBox = document.createElement('div'); infoBox.style.padding = '6px 15px'; infoBox.style.color = '#ffeb3b'; infoBox.style.fontSize = '10px'; infoBox.style.borderBottom = '1px solid #555'; infoBox.style.cursor = 'default'; infoBox.style.fontFamily = 'monospace';
-            infoBox.innerHTML = `📍 X: ${Math.round(obj.x)} | Y: ${Math.round(obj.y)}<br>📏 W: ${Math.round(obj.width)} | H: ${Math.round(obj.height || obj.width)} | R: ${Math.round(obj.rotation)}°`;
+            const _ctxLayer = obj.layerId ? factoryLayers.find(l => l.id === obj.layerId) : null;
+            const _ctxZ = parseInt(obj.el.style.zIndex) || 0;
+            infoBox.innerHTML = `📍 X: ${Math.round(obj.x)} | Y: ${Math.round(obj.y)}<br>📏 W: ${Math.round(obj.width)} | H: ${Math.round(obj.height || obj.width)} | R: ${Math.round(obj.rotation)}°<br>🗂 Ebene: ${_ctxLayer ? _ctxLayer.name : '–'} | Z: ${_ctxZ}`;
             if (selectedElements.includes(obj) && selectedElements.length > 1) {
                 infoBox.innerHTML += `<br><br><span style="color:#007acc;font-weight:bold;">📦 ${window.t('ctx_fac_group')} (${selectedElements.length} ${window.t('ctx_fac_objects')})</span>`;
             }
@@ -12527,8 +12543,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                         factoryItems.forEach(item => {
                             if (isBlockInLocalRect(item, obj, lx, ly, lw, lh)) {
                                 if (obj.type === 'sensor_ind' && item.material === 'metall') isTriggered = true;
-                                if (obj.type === 'sensor_opt') isTriggered = true;
-                                if (obj.type === 'sensor_kap') isTriggered = true; 
+                                if (obj.type === 'sensor_opt' && item.isSolid) isTriggered = true;
+                                if (obj.type === 'sensor_kap') isTriggered = true;
                             }
                         });
                         if (!isTriggered && obj.type !== 'sensor_mag') {
@@ -12547,6 +12563,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                             }
                             factoryObjects.forEach(targetObj => {
                                 if (targetObj === obj || targetObj.type.startsWith('zone_') || targetObj.type === 'despawner' || targetObj.type.startsWith('spawner_') || targetObj.type === 'led') return;
+                                if (obj.type === 'sensor_opt' && targetObj.type === 'conveyor') return;
                                 if (ComponentRegistry[targetObj.type] && ComponentRegistry[targetObj.type].customSensorHit) {
                                     if (ComponentRegistry[targetObj.type].customSensorHit(targetObj, obj, lx, ly, lw, lh)) {
                                         isTriggered = true;
@@ -15641,9 +15658,11 @@ You must output exactly this JSON format. The logic code goes as a single string
             document.getElementById('fbs-add-type').value = type;
             document.getElementById('custom-svg').style.cursor = 'crosshair';
             // Felder zurücksetzen
+            document.getElementById('fbs-add-out').value = '';
             document.getElementById('fbs-add-out').placeholder = window.t('dyn_ph_out');
-            document.getElementById('fbs-add-in2').placeholder = window.t('dyn_ph_opt');
+            document.getElementById('fbs-add-in1').value = '';
             document.getElementById('fbs-add-in2').value = '';
+            document.getElementById('fbs-add-in2').placeholder = window.t('dyn_ph_opt');
             document.getElementById('fbs-add-in2-grp').style.display = '';
             const title = document.getElementById('fbs-add-title');
             const lbl1 = document.getElementById('fbs-add-in1-lbl');
