@@ -3621,7 +3621,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
                 return evaluateFlat(parsed);
             }
-            lines.forEach(line => {
+            const errorLines = new Set();
+            lines.forEach((line, lineIdx) => {
+                const _savedJs = jsCompiledCode;
+                try {
                 let cleanLine = line.split('//')[0].trim();
                 cleanLine = cleanLine.replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
                 if (!cleanLine || !cleanLine.includes(':=')) return;
@@ -3710,6 +3713,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                 } else {
                     jsCompiledCode += `    state['${targetId}'] = ${sourceObj.inverted ? '!' : ''}state['${sourceObj.id}'];\n`;
                 }
+                } catch(e) {
+                    jsCompiledCode = _savedJs;
+                    const _cl = line.split('//')[0].trim().replace(/(:=|=|<-|\bIST\b|\bIS\b|\bGLEICH\b)/i, ':=');
+                    if (_cl && _cl.includes(':=')) errorLines.add(lineIdx);
+                }
             });
             // Generiere SPS-Code für RS und SR Hardware-Logik (Abgesichert)
             rsBlocks.forEach((type, key) => {
@@ -3772,7 +3780,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 if (src) edge.color = src.color;
             });
             // FIX: Filtere die neuen GATE_ Variablen aus der UI-Liste heraus!
-            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_') && !i.startsWith('GATE_')), outputs: [...definedOutputs], duplicates: [...duplicateOutputs] };
+            return { graph, jsCompiledCode, inputs: [...allUsedInputs].filter(i => !definedOutputs.has(i) && !i.startsWith('AND_') && !i.startsWith('OR_') && !i.startsWith('GATE_')), outputs: [...definedOutputs], duplicates: [...duplicateOutputs], errorLines };
         }
         function calculateLayout(graph) {
             graph.nodes.forEach(node => { if (node.type === 'PURE_INPUT') node.level = 0; });
@@ -4476,19 +4484,26 @@ You must output exactly this JSON format. The logic code goes as a single string
             document.getElementById('examples-modal-overlay').classList.remove('open');
         };
         function updateHighlighting() {
-            let text = textarea.value;
-            if(text[text.length-1] === "\n") text += " ";
-            text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            text = text.replace(/(:=|=|&lt;-|\bIST\b|\bIS\b|\bGLEICH\b)/gi, '<span class="token assign">$1</span>');
-            text = text.replace(/(:=)/g, '<span class="token assign">$1</span>');
-			// NEU: Syntax-Highlighting für die neuen Schlüsselwörter inkl. ∧ und ∨
-            text = text.replace(/(&amp;&amp;|&amp;|\|\||\||\^|∧|\bv\b|∨|¬|!|\bAND\b|\bOR\b|\bUND\b|\bODER\b|\bNOT\b|\bNICHT\b)/gi, '<span class="token operator">$1</span>');
-            text = text.replace(/(\(|\))/g, '<span class="token paren">$1</span>');
-            text = text.replace(/\b([SRQ]\d+(?:_(?:SR|RS))?)\b/gi, '<span class="token rs">$1</span>');
-      			text = text.replace(/\b(TON|TOF|TP|CTU|INPUT)\b/gi, '<span class="token func">$1</span>');
-            // NEU: TRUE und FALSE als Warn-Platzhalter rot markieren
-            text = text.replace(/\b(FALSE|TRUE)\b/gi, '<span class="token fallback">$1</span>');
-            highlightingContent.innerHTML = text;
+            const rawLines = textarea.value.split('\n');
+            const cursorLine = textarea.value.substring(0, textarea.selectionStart).split('\n').length - 1;
+            const errLines = window._errorLines || new Set();
+            const processLine = (line) => {
+                let t = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                t = t.replace(/(:=|=|&lt;-|\bIST\b|\bIS\b|\bGLEICH\b)/gi, '<span class="token assign">$1</span>');
+                t = t.replace(/(:=)/g, '<span class="token assign">$1</span>');
+                t = t.replace(/(&amp;&amp;|&amp;|\|\||\||\^|∧|\bv\b|∨|¬|!|\bAND\b|\bOR\b|\bUND\b|\bODER\b|\bNOT\b|\bNICHT\b)/gi, '<span class="token operator">$1</span>');
+                t = t.replace(/(\(|\))/g, '<span class="token paren">$1</span>');
+                t = t.replace(/\b([SRQ]\d+(?:_(?:SR|RS))?)\b/gi, '<span class="token rs">$1</span>');
+                t = t.replace(/\b(TON|TOF|TP|CTU|INPUT)\b/gi, '<span class="token func">$1</span>');
+                t = t.replace(/\b(FALSE|TRUE)\b/gi, '<span class="token fallback">$1</span>');
+                return t || ' ';
+            };
+            const html = rawLines.map((line, idx) => {
+                const isError = errLines.has(idx) && idx !== cursorLine;
+                const bg = isError ? 'background:rgba(220,50,50,0.18);' : '';
+                return `<span style="display:block;${bg}">${processLine(line)}</span>`;
+            }).join('');
+            highlightingContent.innerHTML = html;
         }
 		// Funktion zum Einfügen von Symbolen an der aktuellen Cursor-Position
         window.insertSymbol = function(symbol) {
@@ -7969,12 +7984,14 @@ You must output exactly this JSON format. The logic code goes as a single string
             window.simTimers = {}; // Zurücksetzen beim Tippen
             try {
                 const parsed = parseToGraph(code);
+                window._errorLines = parsed.errorLines || new Set();
+                updateHighlighting();
                 // FIX: Wir übergeben deltaMs und den timer-Speicher an die simulierte SPS!
-                try { 
-                    simulationFunction = new Function('state', 'deltaMs', 'timers', parsed.jsCompiledCode); 
-                } catch(e) { 
-                    console.error(e); 
-                    simulationFunction = null; 
+                try {
+                    simulationFunction = new Function('state', 'deltaMs', 'timers', parsed.jsCompiledCode);
+                } catch(e) {
+                    console.error(e);
+                    simulationFunction = null;
                 }
                 buildSimulatorUI(parsed.inputs, parsed.outputs, parsed.graph);
                 globalInputs = parsed.inputs;
@@ -14155,6 +14172,10 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
         };
         textarea.addEventListener('input', () => { updateHighlighting(); updateEditor(); saveToStorage(); });
+        // Cursor-Bewegung: Fehler-Highlight verschwindet wenn Cursor in die Zeile wechselt
+        textarea.addEventListener('keyup', updateHighlighting);
+        textarea.addEventListener('mouseup', updateHighlighting);
+        textarea.addEventListener('click', updateHighlighting);
         // --- AUTO-LOADER AUS URL-LINK ---
         function checkUrlForState() {
             if (window.location.hash && window.location.hash.startsWith('#state=')) {
