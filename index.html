@@ -7822,6 +7822,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 const v = parseInt(inp.value);
                 if (!isNaN(v) && v >= 0) task.objectMaxCounts[inp.dataset.type] = v;
             });
+            task.preventDelete = !!(document.getElementById('ted-prevent-delete') || {}).checked;
             // Musterlösung
             task.solution = (document.getElementById('task-editor-modal')._editTask || {}).solution || null;
             let solModeEl = document.getElementById('ted-sol-mode');
@@ -7919,7 +7920,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     ${task.preset ? '<button onclick="document.getElementById(\'task-editor-modal\')._editTask.preset=null;document.getElementById(\'ted-preset-info\').textContent=\'⬜ Kein Preset\'" style="background:#c62828;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:11px;margin-left:6px;">🗑 Preset löschen</button>' : ''}
                 </div>
                 <div style="margin-top:14px;">
-                    <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">✅ Bedingungen (alle müssen erfüllt sein)</div>
+                    <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">✅ Erfolgsbedingungen (alle müssen erfüllt sein), mind. eine muss vorhanden sein</div>
                     <div id="ted-cond-list"></div>
                     <button onclick="window._taskAddCondition()" style="background:#1565c0;color:#fff;border:none;border-radius:4px;padding:5px 10px;cursor:pointer;font-size:11px;">+ Bedingung hinzufügen</button>
                     ${(() => {
@@ -7947,7 +7948,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }).join('');
                         return `<div style="margin-top:10px;">
                             <div style="color:#90a4ae;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">🔩 Objekt-Einschränkung</div>
-                            ${[['none','Keine Einschränkung'],['conditions','Nur geforderte Objekte (factory_object-Bedingungen)'],['manual','Manuell festlegen']].map(([val,lbl])=>
+                            ${[['none','Keine Einschränkung'],['conditions','Nur geforderte Objekte ("Fabrikobjekt vorhanden"-Erfolgsbedingungen)'],['manual','Manuell festlegen']].map(([val,lbl])=>
                                 `<label style="display:flex;align-items:center;gap:7px;margin-bottom:4px;cursor:pointer;color:#b0bec5;font-size:11px;">
                                     <input type="radio" name="ted-restrict" value="${val}" ${rm===val?'checked':''} onchange="window._taskToggleRestrictMode(this.value)">
                                     ${lbl}
@@ -7959,6 +7960,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                             <div id="ted-restrict-manual" style="display:${rm==='manual'?'block':'none'};margin-top:6px;max-height:180px;overflow-y:auto;border:1px solid #333;border-radius:3px;padding:6px;background:#111;">
                                 ${typeOpts}
                             </div>
+                            <label style="display:flex;align-items:center;gap:7px;margin-top:8px;cursor:pointer;color:#b0bec5;font-size:11px;">
+                                <input type="checkbox" id="ted-prevent-delete" ${task.preventDelete ? 'checked' : ''}>
+                                Löschen von nicht gesperrten Objekten während der Aufgabe verhindern (Relevant bei Aufgaben, die das Entfernen von Objekten nicht erlauben, z.B. durch "max count" Einschränkungen oder wenn wichtige Objekte als Teil der Aufgabe vorgegeben werden)
+                            </label>
                         </div>`;
                     })()}
                 </div>
@@ -8043,6 +8048,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     <button onclick="window._taskEditorClose()" style="background:#555;color:#fff;border:none;border-radius:4px;padding:6px 14px;cursor:pointer;font-size:12px;">✖ Schließen</button>
                 </div>`;
             (task.conditions || []).forEach((cond, i) => _taskRenderCondRow(cond, i));
+            modal._savedSnapshot = JSON.stringify(_taskCollectFromEditor()); // Nach DOM-Aufbau normalisieren
             modal.style.display = 'flex';
         };
 
@@ -8056,14 +8062,44 @@ You must output exactly this JSON format. The logic code goes as a single string
             t._hideTimer = setTimeout(() => t.classList.remove('show'), 2200);
         }
 
+        function _showNoCritWarning(onProceed) {
+            const skipKey = 'valis_skip_no_cond_warn';
+            if (localStorage.getItem(skipKey)) { onProceed(); return; }
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            ov.innerHTML = `<div style="background:#1e1e1e;border:1px solid #555;border-radius:8px;padding:20px 24px;max-width:380px;color:#cfd8dc;font-size:13px;box-shadow:0 4px 24px rgba(0,0,0,0.6);">
+                <div style="font-weight:bold;margin-bottom:10px;color:#ffb74d;">⚠ Keine Erfolgskriterien</div>
+                <div style="margin-bottom:14px;line-height:1.5;">Diese Übung hat keine Erfolgskriterien definiert und kann so nicht erfolgreich abgeschlossen werden.</div>
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;font-size:11px;color:#90a4ae;">
+                    <input type="checkbox" id="_no-crit-skip"> Diese Meldung künftig nicht mehr anzeigen
+                </label>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="_no-crit-ok" style="background:#37474f;color:#fff;border:none;border-radius:4px;padding:6px 16px;cursor:pointer;font-size:12px;">Trotzdem speichern</button>
+                </div>
+            </div>`;
+            document.body.appendChild(ov);
+            ov.querySelector('#_no-crit-ok').onclick = () => {
+                if (ov.querySelector('#_no-crit-skip').checked) localStorage.setItem(skipKey, '1');
+                document.body.removeChild(ov);
+                onProceed();
+            };
+        }
+
         window._taskEditorSave = function() {
             let task = _taskCollectFromEditor();
             if (!task.name) { _showToast('⚠ Bitte einen Aufgabennamen eingeben.', '#b71c1c'); return; }
-            _saveTaskLocally(task);
-            let modal = document.getElementById('task-editor-modal');
-            modal._savedSnapshot = JSON.stringify(task);
-            window._openTaskManager();
-            _showToast('✅ Aufgabe "' + task.name + '" gespeichert.');
+            const doSave = () => {
+                _saveTaskLocally(task);
+                let modal = document.getElementById('task-editor-modal');
+                modal._savedSnapshot = JSON.stringify(task);
+                window._openTaskManager();
+                _showToast('✅ Aufgabe "' + task.name + '" gespeichert.');
+            };
+            if (!task.conditions || task.conditions.length === 0) {
+                _showNoCritWarning(doSave);
+            } else {
+                doSave();
+            }
         };
 
         window._taskEditorExport = function() {
@@ -11910,15 +11946,21 @@ You must output exactly this JSON format. The logic code goes as a single string
                 }
             }
             let btnDel = document.createElement('div'); btnDel.className = 'ctx-item'; btnDel.textContent = window.t('ctx_fac_del');
-            btnDel.onclick = () => { 
-                if (selectedElements.includes(obj)) {
-                    selectedElements.forEach(sel => deleteObjRecursive(sel));
-                    clearSelection();
-                } else {
-                    deleteObjRecursive(obj); 
-                }
-                saveFactoryState(); 
-            }; 
+            if (activeTask && activeTask.preventDelete) {
+                btnDel.style.opacity = '0.4';
+                btnDel.style.cursor = 'default';
+                btnDel.title = 'Löschen ist in dieser Aufgabe gesperrt';
+            } else {
+                btnDel.onclick = () => {
+                    if (selectedElements.includes(obj)) {
+                        selectedElements.forEach(sel => deleteObjRecursive(sel));
+                        clearSelection();
+                    } else {
+                        deleteObjRecursive(obj);
+                    }
+                    saveFactoryState();
+                };
+            }
             ctxMenu.appendChild(btnDel);
             if (!noRotateTypes.has(obj.type)) {
                 let btnRot = document.createElement('div'); btnRot.className = 'ctx-item'; btnRot.textContent = window.t('ctx_fac_rot');
@@ -12905,9 +12947,11 @@ You must output exactly this JSON format. The logic code goes as a single string
             // ENTF / BACKSPACE: Löschen
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (selectedElements.length > 0) {
-                    selectedElements.forEach(sel => deleteObjRecursive(sel));
-                    clearSelection();
-                    saveFactoryState();
+                    if (!(activeTask && activeTask.preventDelete)) {
+                        selectedElements.forEach(sel => deleteObjRecursive(sel));
+                        clearSelection();
+                        saveFactoryState();
+                    }
                     e.preventDefault();
                 }
             }
