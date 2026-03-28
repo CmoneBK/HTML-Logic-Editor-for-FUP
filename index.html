@@ -227,6 +227,10 @@
             background-image: radial-gradient(#b0bec5 1.5px, transparent 1.5px); 
             background-size: 20px 20px;
         }
+        /* --- Fluid Simulation Styles --- */
+        .f2d-u-container { background: transparent !important; box-shadow: none !important; overflow: visible; border: none !important; }
+        .f2d-fluid-outlet { background: #1565c0; border: 2px solid #42a5f5 !important; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; cursor: move; }
+        .f2d-spawner-fluid { background: linear-gradient(135deg, #0d47a1, #1565c0) !important; }
         /* --- NEU: Feste CSS-Grid Layouts für Profi-Ansichten (inkl. Resizer-Support) --- */
         #workspace-container.layout-grid {
             display: grid !important; gap: 0; background: #333; 
@@ -535,11 +539,11 @@
         .f2d-obj { position: absolute; top: 0; left: 0; box-sizing: border-box; cursor: move; user-select: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
         .f2d-sensor { width: 20px; height: 40px; border-radius: 3px; color: white; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 2px; font-weight: bold; border: 2px solid; z-index: 10; }
         /* NEU: Sichtbare Sensor-Reichweiten (Detektionskeulen) */
-        .f2d-range { position: absolute; pointer-events: none; background: rgba(255, 255, 0, 0.2); border: 1px dashed rgba(255, 200, 0, 0.8); box-sizing: border-box; }
-        .range-ind { width: 15px; height: 10px; top: 15px; left: 20px; border-radius: 0 10px 10px 0; }
-        .range-kap { width: 25px; height: 20px; top: 10px; left: 20px; border-radius: 0 10px 10px 0; }
-        .range-opt { width: 80px; height: 10px; top: 15px; left: 20px; background: rgba(255,0,0,0.1); border-color: rgba(255,0,0,0.5); border-radius: 0 10px 10px 0; }
-        .range-mag { width: 30px; height: 30px; top: 5px; left: -5px; background: rgba(33,150,243,0.2); border-color: rgba(33,150,243,0.5); border-radius: 50%; }
+        .f2d-range { position: absolute; pointer-events: none; background: transparent; border: 2px dashed transparent; box-sizing: border-box; }
+        .range-ind { width: 15px; height: 10px; top: 15px; left: 20px; border-radius: 0 10px 10px 0; background: rgba(255,193,7,0.45); border-color: rgba(255,193,7,0.95); }
+        .range-kap { width: 25px; height: 20px; top: 10px; left: 20px; border-radius: 0 10px 10px 0; background: rgba(76,175,80,0.35); border-color: rgba(76,175,80,0.95); }
+        .range-opt { width: 80px; height: 10px; top: 15px; left: 20px; background: rgba(244,67,54,0.2); border-color: rgba(244,67,54,0.8); border-radius: 0 10px 10px 0; }
+        .range-mag { width: 30px; height: 30px; top: 5px; left: -5px; background: rgba(33,150,243,0.25); border-color: rgba(33,150,243,0.8); border-radius: 50%; }
         /* Zylinder skalierbar machen */
         .f2d-zylinder-wrapper { height: 30px; box-sizing: border-box; }
         .f2d-zylinder { position: absolute; width: 100%; height: 30px; background: rgba(144, 164, 174, 0.9); border: 2px solid #546e7a; border-radius: 4px; display: flex; align-items: center; z-index: 2; box-sizing: border-box; }
@@ -893,9 +897,34 @@
         .tut-progress { font-size:11px; color:#546e7a; }
         .tut-code-wrap { margin:12px 0; }
         .tut-code-wrap > .tut-code { margin:0; border-radius:6px 6px 0 0; border-bottom:none; }
-        .tut-code-insert { display:block; width:100%; background:#162818; border:1px solid #2a4a2a; border-top:1px solid #1e361e; border-radius:0 0 6px 6px; color:#81c784; font-size:11px; padding:7px 14px; cursor:pointer; text-align:left; box-sizing:border-box; transition:background 0.15s, color 0.15s; }
+        .tut-code-btns { display:flex; border:1px solid #2a4a2a; border-top:none; border-radius:0 0 6px 6px; overflow:hidden; }
+        .tut-code-insert { flex:1; background:#162818; border:none; border-right:1px solid #2a4a2a; color:#81c784; font-size:11px; padding:7px 10px; cursor:pointer; text-align:center; box-sizing:border-box; transition:background 0.15s, color 0.15s; }
+        .tut-code-insert:last-child { border-right:none; }
         .tut-code-insert:hover { background:#1e3820; color:#a5d6a7; }
-        .tut-code-insert.tut-inserted { color:#80cbc4; background:#162826; border-color:#2a5044; }
+        .tut-code-insert.tut-inserted { color:#80cbc4; background:#162826; }
+        .tut-code-replace { color:#ef9a9a; background:#1e1214; }
+        .tut-code-replace:hover { background:#2a1418; color:#ffccbc; }
+        .tut-code-replace.tut-inserted { color:#80cbc4; background:#162826; }
+        /* Tutorial Index Modal */
+        #tut-index-overlay { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.88); z-index:3600; justify-content:center; align-items:center; }
+        #tut-index-overlay.open { display:flex; }
+        .tut-index-box { background:#161b22; border:1px solid #30363d; border-radius:12px; width:min(92vw,700px); max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.9); }
+        .tut-index-header { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid #21262d; background:#1c2128; flex-shrink:0; }
+        .tut-index-header-title { font-size:16px; font-weight:700; color:#fff; }
+        .tut-index-header-sub { font-size:11px; color:#546e7a; margin-top:3px; }
+        .tut-index-body { padding:18px 22px 22px; overflow-y:auto; }
+        .tut-index-cat { margin-bottom:24px; }
+        .tut-index-cat:last-child { margin-bottom:0; }
+        .tut-index-cat-title { font-size:10px; font-weight:700; color:#42a5f5; text-transform:uppercase; letter-spacing:1px; padding-bottom:10px; border-bottom:1px solid #21262d; margin-bottom:12px; }
+        .tut-index-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(185px,1fr)); gap:10px; }
+        .tut-card { background:#1c2128; border:1px solid #30363d; border-radius:8px; padding:16px; cursor:pointer; transition:border-color 0.15s, background 0.15s, transform 0.1s; }
+        .tut-card:hover { border-color:#42a5f5; background:#1f2937; transform:translateY(-1px); }
+        .tut-card-icon { font-size:26px; margin-bottom:9px; }
+        .tut-card-title { font-size:13px; font-weight:600; color:#fff; margin-bottom:5px; }
+        .tut-card-desc { font-size:11px; color:#8b949e; line-height:1.55; }
+        .tut-card-badge { display:inline-block; margin-top:9px; background:#21262d; border-radius:10px; padding:2px 9px; font-size:10px; color:#58a6ff; }
+        .tut-back-btn { background:#1e2a3a; border:1px solid #3a4a5a; border-radius:5px; color:#90caf9; padding:5px 12px; cursor:pointer; font-size:11px; flex-shrink:0; transition:background 0.15s; }
+        .tut-back-btn:hover { background:#253545; }
         .example-card:hover { border-color: #007acc; box-shadow: 0 0 12px rgba(0,122,204,0.3); }
         .example-card canvas { width: 100%; display: block; }
         .example-card-body { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -1294,9 +1323,15 @@
                             <div onclick="spawnFactoryItem('kunststoff', 0, 200, false)" data-i18n="fac_item_plastic">🟨 Block Normal (Kunststoff)</div>
                             <div onclick="spawnFactoryItem('metall', 0, 200, true)" data-i18n="fac_item_metal_solid">🧱 Block Massiv (Metall)</div>
                             <div onclick="spawnFactoryItem('kunststoff', 0, 200, true)" data-i18n="fac_item_plastic_solid">🧱 Block Massiv (Kunststoff)</div>
+                            <div class="tb-menu-cat" id="menu-items-cat-fluid">💧 Flüssigkeiten</div>
+                            <div onclick="enterFluidPlacementMode('water')">💧 Wasser platzieren</div>
+                            <div onclick="enterFluidPlacementMode('oil')">🫙 Öl platzieren</div>
+                            <div onclick="enterFluidPlacementMode('coolant')">🟢 Kühlmittel platzieren</div>
+                            <div onclick="enterFluidPlacementMode('honey')">🍯 Honig platzieren</div>
                             <div id="menu-items-cat-spawner" class="tb-menu-cat">Spawner / Entfernen</div>
                             <div onclick="addFactoryDevice('spawner_metall')" data-i18n="fac_spawner_metal">⏳ Spawner (Metall)</div>
                             <div onclick="addFactoryDevice('spawner_kunststoff')" data-i18n="fac_spawner_plastic">⏳ Spawner (Kunststoff)</div>
+                            <div onclick="addFactoryDevice('spawner_fluid')">💧 Spawner (Flüssigkeit)</div>
                             <div onclick="addFactoryDevice('despawner')" data-i18n="fac_despawner">🗑️ Despawner (Entferner)</div>
                         </div>
                     </div>
@@ -1335,9 +1370,17 @@
                             <div class="tb-menu-cat">Wände / Böden</div>
                             <div onclick="addFactoryDevice('wall')" data-i18n="fac_struct_wall">🧱 Ziegelwand (Mauer)</div>
                             <div onclick="addFactoryDevice('frame')" data-i18n="fac_struct_frame">⛓️ Metallrahmen / Boden</div>
+                            <div class="tb-menu-cat" id="menu-struct-cat-behaelter">Behälter</div>
                             <div id="menu-struct-cat-zones" class="tb-menu-cat">Zonen</div>
                             <div onclick="addFactoryDevice('zone_top')" data-i18n="fac_struct_zone_top">🛸 Zone (Draufsicht)</div>
                             <div onclick="addFactoryDevice('zone_side')" data-i18n="fac_struct_zone_side">🌍 Zone (Seitenansicht)</div>
+                        </div>
+                    </div>
+                    <div class="tb-dropdown" id="dd-fluessigkeiten" style="display:none;">
+                        <button class="tb-drop-btn">💧 Flüssigkeiten ▼</button>
+                        <div class="tb-dropdown-content" id="menu-fluessigkeiten">
+                            <div class="tb-menu-cat">Anschlüsse</div>
+                            <div onclick="addFactoryDevice('fluid_outlet')">🔩 Auslass</div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px; border-left: 1px solid #555; padding-left: 10px;">
@@ -1346,7 +1389,7 @@
                     </div>
                     <button id="btn-viewmode" class="tool-btn" onclick="toggleGlobalViewMode()" style="margin-left: auto; background-color: #4caf50;" data-i18n="fac_btn_view_side">🌍 Global: Seitenansicht</button>
                     <button class="tool-btn" onclick="clearFactory()" style="background-color: #b71c1c; margin-left: 10px;" data-i18n="fac_btn_clear">🗑️ Alles löschen</button>
-                    <button class="tool-btn" onclick="openCompTutorial('zylinder')" style="background-color: #1565c0; margin-left: 10px;" title="Komponenten-Tutorials">📚 Tutorials</button>
+                    <button class="tool-btn" onclick="openTutIndex()" style="background-color: #1565c0; margin-left: 10px;" title="Komponenten-Tutorials">📚 Tutorials</button>
                 </div>
                 <div id="factory-modal" style="display: none; position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: #2d2d30; padding: 20px; border: 1px solid #444; border-radius: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; width: 300px;">
                     <h3 id="fm-title" style="margin-top: 0; font-size: 14px; color: #fff;">Bauteil zuweisen</h3>
@@ -1426,7 +1469,7 @@
                     &nbsp;<button onclick="if(window.pathEditingObj){window.pathEditingObj.waypoints=[];window._renderPathOverlay();}" style="background:#c62828;color:#fff;border:none;border-radius:10px;padding:3px 10px;cursor:pointer;">🗑 Alle Punkte</button>
                 </div>
                 <div id="factory-canvas-area">
-                    <div id="factory-content"><svg id="factory-path-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:98;overflow:visible;"></svg></div>
+                    <div id="factory-content"><canvas id="fluid-canvas" width="4000" height="3000" style="position:absolute;top:0;left:0;pointer-events:none;z-index:5;image-rendering:pixelated;filter:blur(4px) contrast(15);opacity:0.88;"></canvas><svg id="factory-path-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:98;overflow:visible;"></svg></div>
                 </div>
                 <!-- Minimap (innerhalb factory-wrapper, nicht canvas-area, damit kein Mitscrollen) -->
                 <div id="factory-minimap" style="display:none;">
@@ -1450,6 +1493,14 @@
                                 <input id="inp-snap-size" type="number" min="5" max="200" step="5" value="20" onchange="setGridSize(this.value)" style="width:50px;background:#1e1e1e;color:#ddd;border:1px solid #555;border-radius:3px;font-size:11px;padding:3px 5px;text-align:center;">
                                 <span style="color:#aaa;font-size:11px;">px</span>
                             </div>
+                        </div>
+                        <!-- Flüssigkeiten -->
+                        <div style="margin-bottom:14px;">
+                            <div style="color:#90a4ae;font-size:10px;margin-bottom:6px;font-weight:bold;">💧 Flüssigkeiten</div>
+                            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#ccc;cursor:pointer;">
+                                <input type="checkbox" id="cb-show-fluid-menu" onchange="updateFluidMenuVisibility()">
+                                Flüssigkeits-Menü anzeigen
+                            </label>
                         </div>
                         <!-- Spacer pushes bottom sections down -->
                         <div style="flex:1;"></div>
@@ -1613,13 +1664,26 @@
 				<button onclick="closeHelpModal()" style="background: #007acc; color: white; border: none; padding: 6px 16px; border-radius: 3px; cursor: pointer; font-weight: bold;">Verstanden</button>
 			</div>
 		</div>
+        <!-- Tutorial-Index Modal -->
+        <div id="tut-index-overlay" onclick="if(event.target===this)closeTutIndex()">
+            <div class="tut-index-box">
+                <div class="tut-index-header">
+                    <div>
+                        <div class="tut-index-header-title">📚 Tutorials</div>
+                        <div class="tut-index-header-sub">Wähle ein Tutorial aus einer Kategorie</div>
+                    </div>
+                    <button onclick="closeTutIndex()" style="background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;" title="Schließen">✕</button>
+                </div>
+                <div class="tut-index-body" id="tut-index-body"></div>
+            </div>
+        </div>
         <!-- Tutorial Modal -->
         <div id="comp-tut-overlay" onclick="if(event.target===this)closeCompTutorial()">
             <div class="tut-box">
                 <div class="tut-header">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="font-size:15px;font-weight:700;color:#fff;">📚 Komponenten-Tutorial</span>
-                        <span id="tut-comp-label" style="font-size:11px;color:#546e7a;background:#12121e;border:1px solid #2a2a3a;border-radius:4px;padding:3px 10px;"></span>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <button class="tut-back-btn" onclick="closeCompTutorial();openTutIndex()">← Übersicht</button>
+                        <span id="tut-comp-title" style="font-size:14px;font-weight:700;color:#fff;"></span>
                     </div>
                     <button onclick="closeCompTutorial()" style="background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;padding:0 4px;" title="Schließen">✕</button>
                 </div>
@@ -3475,7 +3539,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 let snapped = Math.round(newRotation / 45) * 45;
                 if (Math.abs(newRotation - snapped) < 10 || Math.abs(newRotation - snapped) > 350) { newRotation = snapped % 360; }
                 let deltaR = newRotation - (rotatingElement.data.rotation || 0);
-                if (deltaR !== 0) rotateObjRecursive(rotatingElement.data, deltaR, rotatingElement.cx, rotatingElement.cy);
+                if (deltaR !== 0) { rotateObjRecursive(rotatingElement.data, deltaR, rotatingElement.cx, rotatingElement.cy); fluidGridDirty = true; }
                 return;
             }
             // 4. 1D Skalierung (Zylinder, Förderbänder)
@@ -3510,7 +3574,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                     });
                 }
-                return; 
+                fluidGridDirty = true;
+                return;
             }
             // 5. 2D Skalierung (Wände, Zonen)
             if (resizingElementXY) {
@@ -3527,14 +3592,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                 resizingElementXY.data.x = startX + (totalDw / 2) * (Math.cos(pRad) - 1) - (totalDh / 2) * Math.sin(pRad);
                 resizingElementXY.data.y = startY + (totalDw / 2) * Math.sin(pRad) + (totalDh / 2) * (Math.cos(pRad) - 1);
                 updateObjTransform(resizingElementXY.data);
-                // Plugin-Resize-Hook: Hubpalette passt liftHeight proportional zur neuen Höhe an
-                if (resizingElementXY.data.type === 'lift_palette') {
-                    resizingElementXY.data.liftHeight = Math.max(10, newHeight - 14);
+                // Plugin-Resize-Hook
+                if (ComponentRegistry[resizingElementXY.data.type] && ComponentRegistry[resizingElementXY.data.type].onResize) {
+                    ComponentRegistry[resizingElementXY.data.type].onResize(resizingElementXY.data);
                 }
-                // Rollenbahn: SVG-Rollen neu berechnen
-                if (resizingElementXY.data.type === 'conveyor_roller') {
-                    _rebuildRollerSvg(resizingElementXY.data);
-                }
+                fluidGridDirty = true;
                 return;
             }
             // 5b. Pin-Drag
@@ -3566,13 +3628,29 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let moveDy = newY - draggedElement.data.y;
                     moveObjRecursive(draggedElement.data, moveDx, moveDy);
                 }
+                fluidGridDirty = true;
+            }
+            // Fluid paint stream (held mouse button while in placement mode)
+            if (_fluidPainting && fluidPlacementMode) {
+                let cr = factoryCanvas.getBoundingClientRect();
+                let px = (e.clientX - cr.left) / factoryScale;
+                let py = (e.clientY - cr.top) / factoryScale;
+                let dist = Math.hypot(px - _lastFluidPaintX, py - _lastFluidPaintY);
+                if (dist >= FLUID_CELL) {
+                    addFluidBlob(fluidPlacementMode, px, py, 1, true);
+                    _lastFluidPaintX = px; _lastFluidPaintY = py;
+                }
             }
         }); // Ende des Mousemove-Blocks
         document.addEventListener('mouseup', () => {
             if(draggedElement || resizingElement) saveFactoryState();
+            if (draggedElement) _endFluidDragForObjRecursive(draggedElement.data);
             if (_pinDragActive) { saveFactoryState(); _pinDragActive = null; }
+            let wasInteracting = !!(draggedElement || resizingElement || resizingElementXY || rotatingElement);
             draggedElement = null;
             resizingElement = null;
+            if (wasInteracting) fluidGridDirty = true; // trigger final eviction now that drag is done
+            if (_fluidPainting) { _fluidPainting = false; saveFactoryState(); updateFluidMenuVisibility(); }
         });
         window.toggleSection = function(id, headerEl) {
             const el = document.getElementById(id);
@@ -4623,19 +4701,25 @@ You must output exactly this JSON format. The logic code goes as a single string
         // TUTORIAL-SYSTEM
         // ==========================================
         window._tutCodes = {
-            zyl_basic:  '// Einfachwirkender Zylinder\nZYL_AUS := TASTER\n\n// Doppeltwirkender Zylinder\nZYL_AUS := TASTER_VOR\nZYL_EIN := TASTER_ZURUECK',
-            zyl_reed:   '// Automatik-Zyklus mit Reed-Kontakten\nS1 := START && S_ZYL_HINTEN\nR1 := S_ZYL_VORN\n\nZYL_AUS := Q1\nZYL_EIN := \u00acQ1',
-            zyl_attach: '// Anbauteil-Zyklus (Reed-gesteuert)\nS1 := START && S_ZYL_HINTEN\nR1 := S_ZYL_VORN\n\nZYL_AUS := Q1\nZYL_EIN := \u00acQ1\n// Anbauteile folgen automatisch dem Zylinder',
-            zyl_pneu:   '// Pneumatik-Zyklus\nS1 := START && S_ZYL_HINTEN\nR1 := S_ZYL_VORN\n\nZYL_AUS := Q1\nZYL_EIN := \u00acQ1\n// Geschwindigkeit wird \u00fcber Drossel geregelt'
+            zyl_basic:  '// Kap.2: Einfachwirkend\nEINFACH_AUS := TASTER\n\n// Kap.2: Doppeltwirkend\nDOPPELT_AUS := TASTER_VOR\nDOPPELT_EIN := TASTER_ZURUECK',
+            zyl_reed:   '// Kap.4: Reed-Automatik\nS1 := START && S_REED_HINTEN\nR1 := S_REED_VORN\n\nREED_AUS := Q1\nREED_EIN := \u00acQ1',
+            zyl_attach: '// Kap.5: Anbauteil-Zyklus\nS2 := START && S_ANBAU_HINTEN\nR2 := S_ANBAU_VORN\n\nANBAU_AUS := Q2\nANBAU_EIN := \u00acQ2',
+            zyl_pneu:   '// Kap.6: Pneumatik-Zyklus\nS3 := START && S_PNEU_HINTEN\nR3 := S_PNEU_VORN\n\nPNEU_AUS := Q3\nPNEU_EIN := \u00acQ3\n// Geschwindigkeit wird \u00fcber Drossel geregelt',
+            sens_basic: '// Kap.S2: Sensor-Eingang verwenden\nBAND_AUS := S_IND_METALL\n\n// Band stoppt wenn Lichtschranke ausl\u00f6st\nSCHUTZ_BAND := \u00acS_OPT_LICHT',
+            sens_auto:  '// Kap.S4: Zylinder per Sensor steuern\nS4 := S_IND_TEIL && START\nR4 := S_ZYL_SENS_VORN\n\nSENS_ZYL_AUS := Q4\nSENS_ZYL_EIN := \u00acQ4'
         };
-        window._tutInsertCode = function(key) {
+        window._tutInsertCode = function(key, mode) {
             const code = window._tutCodes[key]; if (!code) return;
             const ta = document.getElementById('code'); if (!ta) return;
             if (ta.readOnly) { alert('Code-Editor ist schreibgesch\u00fctzt.'); return; }
-            if (ta.value.trim() && !confirm('Vorhandenen Code ersetzen?')) return;
-            ta.value = code;
+            if (mode === 'replace') {
+                ta.value = code;
+            } else {
+                const existing = ta.value.trim();
+                ta.value = existing ? existing + '\n\n' + code : code;
+            }
             ta.dispatchEvent(new Event('input'));
-            const btn = document.querySelector('.tut-code-insert[data-tut-key="' + key + '"]');
+            const btn = document.querySelector('.tut-code-insert[data-tut-key="' + key + '"][data-tut-mode="' + mode + '"]');
             if (btn) { const orig = btn.textContent; btn.textContent = '\u2713 \u00dcbernommen!'; btn.classList.add('tut-inserted'); setTimeout(() => { btn.textContent = orig; btn.classList.remove('tut-inserted'); }, 2000); }
         };
         window._tutData = { zylinder: { title: 'Zylinder', icon: '🔩', chapters: [
@@ -4691,12 +4775,12 @@ You must output exactly this JSON format. The logic code goes as a single string
   <div class="tut-step"><div class="tut-step-n">4</div><p><strong>Doppeltwirkend:</strong> zwei Felder – erstes = Ausfahren, zweites = Einfahren.</p></div>
 </div>
 <h3>Beispiel-Code</h3>
-<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Einfachwirkender Zylinder</span>
-<span style="color:#79c0ff">ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER</span>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.2: Einfachwirkend</span>
+<span style="color:#79c0ff">EINFACH_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER</span>
 
-<span style="color:#8b949e">// Doppeltwirkender Zylinder</span>
-<span style="color:#79c0ff">ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER_VOR</span>
-<span style="color:#79c0ff">ZYL_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER_ZURUECK</span></div><button class="tut-code-insert" data-tut-key="zyl_basic" onclick="_tutInsertCode('zyl_basic')">→ In Editor übernehmen</button></div>
+<span style="color:#8b949e">// Kap.2: Doppeltwirkend</span>
+<span style="color:#79c0ff">DOPPELT_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER_VOR</span>
+<span style="color:#79c0ff">DOPPELT_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">TASTER_ZURUECK</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="zyl_basic" data-tut-mode="append" onclick="_tutInsertCode('zyl_basic','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="zyl_basic" data-tut-mode="replace" onclick="_tutInsertCode('zyl_basic','replace')">↺ Ersetzen</button></div></div>
 <div class="tut-tip">💡 Neu eingetippte Namen werden automatisch als SPS-Variable angelegt – du musst sie nicht vorher definieren.</div>
 <h3>Zuweisung nachträglich ändern</h3>
 <div class="tut-steps">
@@ -4760,13 +4844,12 @@ You must output exactly this JSON format. The logic code goes as a single string
 </div>
 <div class="tut-tip">💡 Beide Endlagen können gleichzeitig bestückt sein – für vollständige Positions-Rückmeldung an die SPS.</div>
 <h3>Automatik-Zyklus im SPS-Code</h3>
-<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Automatik-Zyklus mit Reed-Kontakten</span>
-<span style="color:#8b949e">// SR-Flipflop Q1 steuert den Zylinder</span>
-<span style="color:#ff7b72">S1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_ZYL_HINTEN</span>
-<span style="color:#ff7b72">R1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_ZYL_VORN</span>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.4: Reed-Automatik</span>
+<span style="color:#ff7b72">S1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_REED_HINTEN</span>
+<span style="color:#ff7b72">R1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_REED_VORN</span>
 
-<span style="color:#79c0ff">ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q1</span>
-<span style="color:#79c0ff">ZYL_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q1</span></div><button class="tut-code-insert" data-tut-key="zyl_reed" onclick="_tutInsertCode('zyl_reed')">→ In Editor übernehmen</button></div>
+<span style="color:#79c0ff">REED_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q1</span>
+<span style="color:#79c0ff">REED_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q1</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="zyl_reed" data-tut-mode="append" onclick="_tutInsertCode('zyl_reed','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="zyl_reed" data-tut-mode="replace" onclick="_tutInsertCode('zyl_reed','replace')">↺ Ersetzen</button></div></div>
 <h3>Reed-Kontakt entfernen</h3>
 <div class="tut-steps">
   <div class="tut-step"><div class="tut-step-n">1</div><p><strong>Rechtsklick</strong> auf den Zylinder</p></div>
@@ -4787,13 +4870,12 @@ You must output exactly this JSON format. The logic code goes as a single string
 <h3>Verhalten</h3>
 <div class="tut-info">📐 Position und Rotation des Anbauteils werden relativ zur Kolbenstange gespeichert. Wird der Zylinder gedreht oder verschoben, folgt das Anbauteil automatisch.</div>
 <h3>Beispiel-Code</h3>
-<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Anbauteil-Zyklus (Reed-gesteuert)</span>
-<span style="color:#ff7b72">S1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_ZYL_HINTEN</span>
-<span style="color:#ff7b72">R1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_ZYL_VORN</span>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.5: Anbauteil-Zyklus</span>
+<span style="color:#ff7b72">S2</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_ANBAU_HINTEN</span>
+<span style="color:#ff7b72">R2</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_ANBAU_VORN</span>
 
-<span style="color:#79c0ff">ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q1</span>
-<span style="color:#79c0ff">ZYL_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q1</span>
-<span style="color:#8b949e">// Anbauteile folgen automatisch dem Zylinder</span></div><button class="tut-code-insert" data-tut-key="zyl_attach" onclick="_tutInsertCode('zyl_attach')">→ In Editor übernehmen</button></div>
+<span style="color:#79c0ff">ANBAU_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q2</span>
+<span style="color:#79c0ff">ANBAU_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q2</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="zyl_attach" data-tut-mode="append" onclick="_tutInsertCode('zyl_attach','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="zyl_attach" data-tut-mode="replace" onclick="_tutInsertCode('zyl_attach','replace')">↺ Ersetzen</button></div></div>
 <h3>Anbauteil lösen</h3>
 <div class="tut-steps">
   <div class="tut-step"><div class="tut-step-n">1</div><p><strong>Rechtsklick</strong> auf das Anbauteil</p></div>
@@ -4835,13 +4917,13 @@ You must output exactly this JSON format. The logic code goes as a single string
 </div>
 <div class="tut-tip">💡 Eine geringere Drossel-Öffnung = langsamerer Zylinder. 100 % = maximaler Durchfluss = maximale Geschwindigkeit.</div>
 <h3>Beispiel-Code</h3>
-<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Pneumatik-Zyklus</span>
-<span style="color:#ff7b72">S1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_ZYL_HINTEN</span>
-<span style="color:#ff7b72">R1</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_ZYL_VORN</span>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.6: Pneumatik-Zyklus</span>
+<span style="color:#ff7b72">S3</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">START</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">S_PNEU_HINTEN</span>
+<span style="color:#ff7b72">R3</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_PNEU_VORN</span>
 
-<span style="color:#79c0ff">ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q1</span>
-<span style="color:#79c0ff">ZYL_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q1</span>
-<span style="color:#8b949e">// Geschwindigkeit wird über Drossel geregelt</span></div><button class="tut-code-insert" data-tut-key="zyl_pneu" onclick="_tutInsertCode('zyl_pneu')">→ In Editor übernehmen</button></div>
+<span style="color:#79c0ff">PNEU_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q3</span>
+<span style="color:#79c0ff">PNEU_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q3</span>
+<span style="color:#8b949e">// Geschwindigkeit wird über Drossel geregelt</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="zyl_pneu" data-tut-mode="append" onclick="_tutInsertCode('zyl_pneu','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="zyl_pneu" data-tut-mode="replace" onclick="_tutInsertCode('zyl_pneu','replace')">↺ Ersetzen</button></div></div>
 `},
         { num:7, title:'Pneumatik-Physik', content:`
 <h2>Pneumatik-Physik</h2><p class="tut-chapsubtitle">Wie die Zylindergeschwindigkeit berechnet wird</p>
@@ -4891,10 +4973,158 @@ You must output exactly this JSON format. The logic code goes as a single string
 </div>
 <div class="tut-tip">💡 Den Öffnungsgrad der Drossel (Rechtsklick → Drossel) ist der einfachste Weg, die Geschwindigkeit im laufenden Betrieb fein abzustimmen.</div>
 `}
+        ]}, sensor_ber: { title: 'Ber. Sensoren', icon: '📡', chapters: [
+        { num:1, title:'Überblick', content:`
+<h2>📡 Berührungslose Sensoren</h2><p class="tut-chapsubtitle">Objekte erkennen – ohne physischen Kontakt</p>
+<p>Berührungslose Sensoren erkennen Objekte durch physikalische Felder oder Licht. VALIS bietet vier Typen mit unterschiedlichen Erkennungsprinzipien.</p>
+<h3>Vier Sensor-Typen</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;">
+  <div style="background:#1a2230;border:1px solid #2a3a4a;border-radius:6px;padding:12px;">
+    <div style="color:#ffc107;font-weight:600;font-size:13px;margin-bottom:5px;">🧲 Induktiv</div>
+    <div style="color:#90a4ae;font-size:12px;line-height:1.6;">Erkennt <strong style="color:#fff;">Metall-Werkstücke und metallische Bauteile</strong> durch ein elektromagnetisches Wechselfeld. Zuverlässig und verschleißfrei.</div>
+  </div>
+  <div style="background:#1a2230;border:1px solid #2a3a4a;border-radius:6px;padding:12px;">
+    <div style="color:#ffb300;font-weight:600;font-size:13px;margin-bottom:5px;">🔋 Kapazitiv</div>
+    <div style="color:#90a4ae;font-size:12px;line-height:1.6;">Erkennt <strong style="color:#fff;">alle Materialien</strong> (Metall, Kunststoff, Flüssigkeiten) durch Kapazitätsänderung.</div>
+  </div>
+  <div style="background:#1a2230;border:1px solid #2a3a4a;border-radius:6px;padding:12px;">
+    <div style="color:#64b5f6;font-weight:600;font-size:13px;margin-bottom:5px;">🔦 Optisch</div>
+    <div style="color:#90a4ae;font-size:12px;line-height:1.6;">Lichtschranke: erkennt Objekte durch <strong style="color:#fff;">Unterbrechung eines Lichtstrahls</strong>. Große Reichweite möglich.</div>
+  </div>
+  <div style="background:#1a2230;border:1px solid #2a3a4a;border-radius:6px;padding:12px;">
+    <div style="color:#ce93d8;font-weight:600;font-size:13px;margin-bottom:5px;">🧲 Magnetisch (Reed)</div>
+    <div style="color:#90a4ae;font-size:12px;line-height:1.6;">Reagiert auf <strong style="color:#fff;">Permanentmagnete</strong>. Typisch an Zylindern für Endlagenabfrage.</div>
+  </div>
+</div>
+<div class="tut-info">📍 Alle vier Typen liefern eine <strong>binäre SPS-Eingangsvariable</strong>: <code style="color:#80cbc4;background:#12121e;padding:1px 5px;border-radius:3px;">TRUE</code> wenn detektiert, <code style="color:#80cbc4;background:#12121e;padding:1px 5px;border-radius:3px;">FALSE</code> wenn nicht.</div>
+`},
+        { num:2, title:'Platzieren & Zuweisen', content:`
+<h2>Platzieren & Zuweisen</h2><p class="tut-chapsubtitle">Sensor auf der Anlage positionieren und verknüpfen</p>
+<p>Sensoren werden aus dem Menü auf die Arbeitsfläche gezogen und dann mit einer SPS-Variable verknüpft.</p>
+<h3>Schritte</h3>
+<div class="tut-steps">
+  <div class="tut-step"><div class="tut-step-n">1</div><p>Menü <strong>Sensoren ▼</strong> in der Werkzeugleiste öffnen</p></div>
+  <div class="tut-step"><div class="tut-step-n">2</div><p>Sensor-Typ auswählen und auf die Arbeitsfläche ziehen</p></div>
+  <div class="tut-step"><div class="tut-step-n">3</div><p>Im <strong>Zuweisungsdialog</strong> Variable aus der Liste wählen oder neu eintippen – den passenden Typ <strong>(Ind. / Kap. / Opt.)</strong> auswählen</p></div>
+  <div class="tut-step"><div class="tut-step-n">4</div><p>Sensor ausrichten: <strong>Rechtsklick → Drehen</strong> um die Erkennungsrichtung anzupassen</p></div>
+</div>
+<h3>Sensor-Ausrichtung</h3>
+<div class="tut-diagram">
+<svg width="340" height="80" viewBox="0 0 340 80" font-family="monospace" font-size="9" fill="none">
+  <rect x="10" y="25" width="20" height="36" rx="3" fill="#ffc107" stroke="#e65100" stroke-width="1.5"/>
+  <text x="20" y="20" fill="#ffc107" text-anchor="middle" font-size="9">Sensor</text>
+  <polygon points="30,43 65,35 65,51" fill="#ffc107" opacity="0.35"/>
+  <line x1="30" y1="43" x2="95" y2="43" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="100" y="47" fill="#80cbc4" font-size="9">Detektionszone</text>
+  <rect x="190" y="28" width="28" height="28" rx="3" fill="#37474f" stroke="#78909c" stroke-width="1.5"/>
+  <text x="204" y="68" fill="#90a4ae" text-anchor="middle" font-size="9">Objekt</text>
+  <text x="228" y="47" fill="#81c784" font-size="9">→ Variable = TRUE</text>
+</svg>
+</div>
+<div class="tut-tip">💡 Die farbige Detektionszone zeigt den Sichtbereich. Reichweite und Breite lassen sich über <strong>Rechtsklick → Erfassungsbereich</strong> individuell einstellen.</div>
+<h3>Beispiel-Code</h3>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.S2: Sensor-Eingang verwenden</span>
+<span style="color:#79c0ff">BAND_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_IND_METALL</span>
+
+<span style="color:#8b949e">// Band stoppt wenn Lichtschranke auslöst</span>
+<span style="color:#79c0ff">SCHUTZ_BAND</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">S_OPT_LICHT</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="sens_basic" data-tut-mode="append" onclick="_tutInsertCode('sens_basic','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="sens_basic" data-tut-mode="replace" onclick="_tutInsertCode('sens_basic','replace')">↺ Ersetzen</button></div></div>
+`},
+        { num:3, title:'Sensortypen im Detail', content:`
+<h2>Sensortypen im Detail</h2><p class="tut-chapsubtitle">Was erkennt welcher Typ?</p>
+<p>Die Wahl des Sensortyps bestimmt, welche Materialien erkannt werden.</p>
+<h3>Vergleich</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <tr style="background:#1a2230;">
+    <th style="padding:8px;border:1px solid #2a3a4a;color:#64b5f6;text-align:left;">Typ</th>
+    <th style="padding:8px;border:1px solid #2a3a4a;color:#64b5f6;text-align:left;">Erkennt</th>
+    <th style="padding:8px;border:1px solid #2a3a4a;color:#64b5f6;text-align:left;">Typischer Einsatz</th>
+  </tr>
+  <tr>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ffc107;">🧲 Induktiv</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ccc;">Metall-Werkstücke &amp; metallische Bauteile</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#90a4ae;">Metallteile zählen, Positionen prüfen, metallische Komponenten erkennen</td>
+  </tr>
+  <tr style="background:#111827;">
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ffb300;">🔋 Kapazitiv</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ccc;">Alle Materialien</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#90a4ae;">Füllstand, Kunststoff, Lebensmittel</td>
+  </tr>
+  <tr>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#64b5f6;">🔦 Optisch</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ccc;">Lichtstrahl-Unterbrechung</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#90a4ae;">Stückzählung, Schutzfelder, Bandende</td>
+  </tr>
+  <tr style="background:#111827;">
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ce93d8;">🧲 Magnetisch</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#ccc;">Nur Magnete</td>
+    <td style="padding:7px 8px;border:1px solid #1e2a38;color:#90a4ae;">Zylinder-Endlagen (Reed-Kontakt)</td>
+  </tr>
+</table>
+</div>
+<div class="tut-warn">⚠️ Ein induktiver Sensor reagiert auf <strong>Metall-Werkstücke</strong> und auf <strong>metallische Bauteile</strong> (z.B. Zylinder, die als metallisch markiert sind). Kapazitive Sensoren reagieren dagegen auf <strong>alle Werkstück-Typen</strong>.</div>
+<h3>Reichweite anpassen</h3>
+<div class="tut-steps">
+  <div class="tut-step"><div class="tut-step-n">1</div><p><strong>Rechtsklick</strong> auf den platzierten Sensor</p></div>
+  <div class="tut-step"><div class="tut-step-n">2</div><p>Im Abschnitt <strong>„📡 Erfassungsbereich"</strong> die Werte für <strong>Reichweite</strong> (wie weit) und <strong>Breite</strong> (wie breit der Strahl ist) eintragen</p></div>
+  <div class="tut-step"><div class="tut-step-n">3</div><p>Die farbige Detektionszone passt sich sofort an. Mit <strong>↩ Standard</strong> werden die Typ-Standardwerte wiederhergestellt.</p></div>
+</div>
+<div class="tut-tip">💡 Für eine präzise Positionserkennung: Sensor so ausrichten, dass die Detektionszone genau über der Zielfläche liegt, und die Reichweite klein halten.</div>
+`},
+        { num:4, title:'Sensor im SPS-Code', content:`
+<h2>Sensor im SPS-Code</h2><p class="tut-chapsubtitle">Sensorsignale für Steuerlogik verwenden</p>
+<p>Sensoren liefern <strong>Eingangssignale</strong>. Im Code steht der Sensor-Variablenname immer <strong>rechts</strong> vom <code style="color:#ff7b72;">:=</code>.</p>
+<h3>Grundprinzip</h3>
+<div class="tut-info">📘 Sensor-Variablen sind <strong>immer Eingänge</strong> – sie stehen rechts vom <code style="color:#ff7b72;background:#12121e;padding:1px 5px;border-radius:3px;">:=</code>. Ausgänge (Aktoren) stehen links.</div>
+<h3>Zylinder per Sensor steuern</h3>
+<div class="tut-code-wrap"><div class="tut-code"><span style="color:#8b949e">// Kap.S4: Zylinder per Sensor steuern</span>
+<span style="color:#ff7b72">S4</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_IND_TEIL</span> <span style="color:#d2a8ff">&amp;&amp;</span> <span style="color:#79c0ff">START</span>
+<span style="color:#ff7b72">R4</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">S_ZYL_SENS_VORN</span>
+
+<span style="color:#79c0ff">SENS_ZYL_AUS</span> <span style="color:#ff7b72">:=</span> <span style="color:#79c0ff">Q4</span>
+<span style="color:#79c0ff">SENS_ZYL_EIN</span> <span style="color:#ff7b72">:=</span> <span style="color:#d2a8ff">¬</span><span style="color:#79c0ff">Q4</span></div><div class="tut-code-btns"><button class="tut-code-insert" data-tut-key="sens_auto" data-tut-mode="append" onclick="_tutInsertCode('sens_auto','append')">+ Hinzufügen</button><button class="tut-code-insert tut-code-replace" data-tut-key="sens_auto" data-tut-mode="replace" onclick="_tutInsertCode('sens_auto','replace')">↺ Ersetzen</button></div></div>
+<h3>Logik-Kombinationen</h3>
+<div class="tut-steps">
+  <div class="tut-step"><div class="tut-step-n">&amp;&amp;</div><p><strong>UND:</strong> Zylinder fährt nur aus wenn <em>Sensor erkennt</em> UND <em>Start gedrückt</em></p></div>
+  <div class="tut-step"><div class="tut-step-n">||</div><p><strong>ODER:</strong> Band läuft wenn Sensor 1 ODER Sensor 2 aktiv ist</p></div>
+  <div class="tut-step"><div class="tut-step-n">¬</div><p><strong>NICHT:</strong> Band läuft solange Lichtschranke <em>nicht</em> unterbrochen ist</p></div>
+</div>
+<div class="tut-tip">💡 Sensor-Variablen erscheinen im <strong>Variablenbereich</strong> links automatisch als Eingang, sobald sie einem Sensor-Bauteil zugewiesen sind.</div>
+`}
         ]}};
         let _tutComp = 'zylinder', _tutCh = 0;
-        window.openCompTutorial = function(comp) { _tutComp = comp || 'zylinder'; _tutCh = 0; _tutRender(); document.getElementById('comp-tut-overlay').classList.add('open'); };
+        window.openCompTutorial = function(comp) {
+            _tutComp = comp || 'zylinder'; _tutCh = 0; _tutRender();
+            document.getElementById('comp-tut-overlay').classList.add('open');
+        };
         window.closeCompTutorial = function() { document.getElementById('comp-tut-overlay').classList.remove('open'); };
+        window._tutIndex = [
+            { cat: 'Aktoren – Pneumatik', entries: [
+                { key: 'zylinder', icon: '🔩', title: 'Zylinder', desc: 'Einfach- & doppeltwirkend, Reed-Kontakte, Anbauteile, Pneumatik-System' }
+            ]},
+            { cat: 'Sensorik', entries: [
+                { key: 'sensor_ber', icon: '📡', title: 'Berühr. Sensoren', desc: 'Induktiv, Kapazitiv, Optisch, Magnetisch – Erfassung & SPS-Code' }
+            ]}
+        ];
+        window.openTutIndex = function() {
+            const body = document.getElementById('tut-index-body');
+            body.innerHTML = '';
+            window._tutIndex.forEach(cat => {
+                const sec = document.createElement('div'); sec.className = 'tut-index-cat';
+                const ctl = document.createElement('div'); ctl.className = 'tut-index-cat-title'; ctl.textContent = cat.cat; sec.appendChild(ctl);
+                const grid = document.createElement('div'); grid.className = 'tut-index-grid';
+                cat.entries.forEach(e => {
+                    const data = window._tutData[e.key]; if (!data) return;
+                    const card = document.createElement('div'); card.className = 'tut-card';
+                    card.innerHTML = `<div class="tut-card-icon">${e.icon}</div><div class="tut-card-title">${e.title}</div><div class="tut-card-desc">${e.desc}</div><span class="tut-card-badge">${data.chapters.length} Kapitel</span>`;
+                    card.onclick = () => { closeTutIndex(); openCompTutorial(e.key); };
+                    grid.appendChild(card);
+                });
+                sec.appendChild(grid); body.appendChild(sec);
+            });
+            document.getElementById('tut-index-overlay').classList.add('open');
+        };
+        window.closeTutIndex = function() { document.getElementById('tut-index-overlay').classList.remove('open'); };
         window._tutNav = function(d) { const chs = window._tutData[_tutComp].chapters; _tutCh = Math.max(0, Math.min(chs.length - 1, _tutCh + d)); _tutRender(); };
         function _tutRender() {
             const data = window._tutData[_tutComp]; if (!data) return;
@@ -4912,7 +5142,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             document.getElementById('tut-progress').textContent = `${_tutCh + 1} / ${data.chapters.length}`;
             document.getElementById('tut-btn-prev').disabled = _tutCh === 0;
             document.getElementById('tut-btn-next').disabled = _tutCh === data.chapters.length - 1;
-            document.getElementById('tut-comp-label').textContent = `${data.icon} ${data.title}`;
+            const titleEl = document.getElementById('tut-comp-title'); if (titleEl) titleEl.textContent = data.icon + ' ' + data.title;
         }
         function updateHighlighting() {
             const rawLines = textarea.value.split('\n');
@@ -5945,33 +6175,19 @@ You must output exactly this JSON format. The logic code goes as a single string
                     pinTop = isNC ? prefix + '1' : prefix + '3'; pinBot = isNC ? prefix + '2' : prefix + '4';
                 }
                 drawSmallText(g, x - 5, y - 10, pinTop, 'end'); drawSmallText(g, x - 5, y + 15, pinBot, 'end');
-                if (type === 'taster' || type === 'schalter' || type === 'nothalt' || type === 'mech_sensor' || type === 'key_switch' || type === 'light_curtain') {
-                    let dashEndX = isNC ? x + 3 : x - 5; 
+                if (type === 'taster' || type === 'schalter' || type === 'nothalt' || (ComponentRegistry[type] && ComponentRegistry[type].iecSymbol)) {
+                    let dashEndX = isNC ? x + 3 : x - 5;
                     g.appendChild(createSvgElement('line', {x1: dashEndX, y1: y + 2.5, x2: x - 18, y2: y + 2.5, stroke: '#000', 'stroke-width': 1.5, 'stroke-dasharray': '2,2'}));
                     if (type === 'nothalt') {
                         g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
                         g.appendChild(createSvgElement('path', {d: `M ${x - 18} ${y - 2.5} A 5 5 0 0 0 ${x - 18} ${y + 7.5} Z`, fill: '#000'}));
                         g.appendChild(createSvgElement('path', {d: `M ${x - 12} ${y - 0.5} L ${x - 9} ${y + 2.5} L ${x - 12} ${y + 5.5}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
-                    } else if (type === 'mech_sensor') {
-                        g.appendChild(createSvgElement('circle', {cx: x - 21, cy: y + 2.5, r: 3, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
-                        g.appendChild(createSvgElement('line', {x1: x - 24, y1: y - 2.5, x2: x - 24, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
-                    } else if (type === 'key_switch') {
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 14, y2: y - 2.5, stroke: '#000', 'stroke-width': 1.5})); 
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y + 7.5, x2: x - 14, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
-                        g.appendChild(createSvgElement('path', {d: `M ${x - 12} ${y - 0.5} L ${x - 9} ${y + 2.5} L ${x - 12} ${y + 5.5}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
-                        g.appendChild(createSvgElement('rect', {x: x - 20.5, y: y - 4, width: 5, height: 7, fill: '#fff', stroke: '#000', 'stroke-width': 1})); 
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2, x2: x - 18, y2: y + 1, stroke: '#000', 'stroke-width': 1})); 
-                    } else if (type === 'light_curtain') {
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
-                        g.appendChild(createSvgElement('rect', {x: x - 24, y: y - 1.5, width: 6, height: 8, fill: 'none', stroke: '#000', 'stroke-width': 1}));
-                        g.appendChild(createSvgElement('line', {x1: x - 30, y1: y, x2: x - 25, y2: y, stroke: '#000', 'stroke-width': 1}));
-                        g.appendChild(createSvgElement('line', {x1: x - 30, y1: y + 2.5, x2: x - 25, y2: y + 2.5, stroke: '#000', 'stroke-width': 1}));
-                        g.appendChild(createSvgElement('line', {x1: x - 30, y1: y + 5, x2: x - 25, y2: y + 5, stroke: '#000', 'stroke-width': 1}));
+                    } else if (ComponentRegistry[type] && ComponentRegistry[type].iecSymbol) {
+                        ComponentRegistry[type].iecSymbol(g, x, y, isNC, createSvgElement);
                     } else {
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 14, y2: y - 2.5, stroke: '#000', 'stroke-width': 1.5})); 
-                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y + 7.5, x2: x - 14, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5})); 
+                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
+                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y - 2.5, x2: x - 14, y2: y - 2.5, stroke: '#000', 'stroke-width': 1.5}));
+                        g.appendChild(createSvgElement('line', {x1: x - 18, y1: y + 7.5, x2: x - 14, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
                         if (type === 'schalter') { g.appendChild(createSvgElement('path', {d: `M ${x - 12} ${y - 0.5} L ${x - 9} ${y + 2.5} L ${x - 12} ${y + 5.5}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5})); }
                     }
                 }
@@ -9589,6 +9805,14 @@ You must output exactly this JSON format. The logic code goes as a single string
                         saveCallback();
                     };
                     wrap.appendChild(slider); wrap.appendChild(valDisplay); ctxMenu.appendChild(wrap);
+                },
+                onLoadState: function(obj, savedData) {
+                    if (savedData.opening !== undefined) {
+                        let knob = obj.el.querySelector('.f2d-throttle-knob');
+                        let valD = obj.el.querySelector('.f2d-throttle-val');
+                        if (knob) knob.style.transform = `rotate(${savedData.opening * 2.7}deg)`;
+                        if (valD) valD.textContent = savedData.opening + '%';
+                    }
                 }
             },
             'valve_pneu': {
@@ -9711,6 +9935,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                         obj.el.classList.toggle('active', isActive);
                         if (typeof SoundEngine !== 'undefined') SoundEngine.clack();
                     }
+                },
+                getVar2ForRestore: function(savedData) {
+                    let wasDouble = savedData.isDouble !== undefined ? savedData.isDouble : !!savedData.linkedVarRet;
+                    return wasDouble ? 'double' : 'single';
                 }
             },
             'manifold': {
@@ -9809,6 +10037,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                     obj.el.children[0].classList.toggle('on', !!spsState[obj.linkedVar]); // Rot
                     obj.el.children[1].classList.toggle('on', !!spsState[obj.linkedVarRet]); // Gelb
                     obj.el.children[2].classList.toggle('on', !!spsState[obj.linkedVar3]); // Grün
+                },
+                contextMenuVarSection: function(obj, ctxMenu, helpers) {
+                    helpers.addVarSelect(window.t('ctx_fac_color_r'), obj.linkedVar, 'out', 'linkedVar');
+                    helpers.addVarSelect(window.t('ctx_fac_color_y'), obj.linkedVarRet, 'out', 'linkedVarRet');
+                    helpers.addVarSelect(window.t('ctx_fac_color_g'), obj.linkedVar3, 'out', 'linkedVar3');
                 }
             },
             'display': {
@@ -9837,8 +10070,11 @@ You must output exactly this JSON format. The logic code goes as a single string
                         let t = window.simTimers[obj.linkedVar];
                         obj.el.textContent = t.cv !== undefined ? t.cv : (t.et / 1000).toFixed(1);
                     } else { 
-                        obj.el.textContent = '---'; 
+                        obj.el.textContent = '---';
                     }
+                },
+                contextMenuVarSection: function(obj, ctxMenu, helpers) {
+                    helpers.addVarSelect(window.t('ctx_fac_timer'), obj.linkedVar, 'timers', 'linkedVar');
                 }
             },
 			'window': {
@@ -10003,7 +10239,44 @@ You must output exactly this JSON format. The logic code goes as a single string
                         }
                     }
                     return false;
-                }
+                },
+                getFluidSolidCells: function(obj) {
+                    let cells = [];
+                    let tk = obj.thickness || 20;
+                    let w = obj.width, h = obj.height;
+                    let rad = (obj.rotation || 0) * Math.PI / 180;
+                    let cos = Math.cos(rad), sin = Math.sin(rad);
+                    let ocx = obj.x + w / 2, ocy = obj.y + h / 2;
+                    // Rasterize a rotated rectangle into grid cells
+                    function addRotatedRect(lx, ly, rw, rh) {
+                        let cx = ocx + lx * cos - ly * sin;
+                        let cy = ocy + lx * sin + ly * cos;
+                        let ex = rw / 2 * Math.abs(cos) + rh / 2 * Math.abs(sin);
+                        let ey = rw / 2 * Math.abs(sin) + rh / 2 * Math.abs(cos);
+                        let gx0 = Math.floor((cx - ex) / FLUID_CELL), gx1 = Math.ceil((cx + ex) / FLUID_CELL);
+                        let gy0 = Math.floor((cy - ey) / FLUID_CELL), gy1 = Math.ceil((cy + ey) / FLUID_CELL);
+                        for (let gx = gx0; gx <= gx1; gx++) {
+                            for (let gy = gy0; gy <= gy1; gy++) {
+                                // Test all 4 corners of cell against this rotated rect
+                                let hit = false;
+                                for (let px = gx * FLUID_CELL; px <= gx * FLUID_CELL + FLUID_CELL && !hit; px += FLUID_CELL) {
+                                    for (let py = gy * FLUID_CELL; py <= gy * FLUID_CELL + FLUID_CELL && !hit; py += FLUID_CELL) {
+                                        let dx = px - cx, dy = py - cy;
+                                        let llx = dx * cos + dy * sin, lly = -dx * sin + dy * cos;
+                                        if (Math.abs(llx) <= rw / 2 && Math.abs(lly) <= rh / 2) hit = true;
+                                    }
+                                }
+                                if (hit) cells.push([gx, gy]);
+                            }
+                        }
+                    }
+                    // Vertical arm (left column, top portion)
+                    let hh1 = Math.max(1, (h - tk) / 2);
+                    addRotatedRect(tk / 2 - w / 2, -tk / 2, tk, hh1 * 2);
+                    // Horizontal arm (full width, bottom strip)
+                    addRotatedRect(0, h / 2 - tk / 2, w, tk);
+                    return cells;
+                },
             },
             'press': {
                 role: 'output', color: '#455a64',
@@ -10435,6 +10708,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                             obj.el.classList.remove('active');
                         }
                     }
+                },
+                iecSymbol: function(g, x, y, isNC, fn) {
+                    g.appendChild(fn('circle', {cx: x - 21, cy: y + 2.5, r: 3, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('line', {x1: x - 24, y1: y - 2.5, x2: x - 24, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
                 }
             },
 			'key_switch': {
@@ -10466,6 +10743,14 @@ You must output exactly this JSON format. The logic code goes as a single string
                     let isActuated = !!spsState[obj.linkedVar];
                     if (isActuated) obj.el.classList.add('active');
                     else obj.el.classList.remove('active');
+                },
+                iecSymbol: function(g, x, y, isNC, fn) {
+                    g.appendChild(fn('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('line', {x1: x - 18, y1: y - 2.5, x2: x - 14, y2: y - 2.5, stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('line', {x1: x - 18, y1: y + 7.5, x2: x - 14, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('path', {d: `M ${x - 12} ${y - 0.5} L ${x - 9} ${y + 2.5} L ${x - 12} ${y + 5.5}`, fill: 'none', stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('rect', {x: x - 20.5, y: y - 4, width: 5, height: 7, fill: '#fff', stroke: '#000', 'stroke-width': 1}));
+                    g.appendChild(fn('line', {x1: x - 18, y1: y - 2, x2: x - 18, y2: y + 1, stroke: '#000', 'stroke-width': 1}));
                 }
             },
 			'light_curtain': {
@@ -10541,6 +10826,13 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (spsState[obj.linkedVar] !== isClear) spsState[obj.linkedVar] = isClear;
                     if (isBroken) obj.el.classList.add('broken');
                     else obj.el.classList.remove('broken');
+                },
+                iecSymbol: function(g, x, y, isNC, fn) {
+                    g.appendChild(fn('line', {x1: x - 18, y1: y - 2.5, x2: x - 18, y2: y + 7.5, stroke: '#000', 'stroke-width': 1.5}));
+                    g.appendChild(fn('rect', {x: x - 24, y: y - 1.5, width: 6, height: 8, fill: 'none', stroke: '#000', 'stroke-width': 1}));
+                    g.appendChild(fn('line', {x1: x - 30, y1: y, x2: x - 25, y2: y, stroke: '#000', 'stroke-width': 1}));
+                    g.appendChild(fn('line', {x1: x - 30, y1: y + 2.5, x2: x - 25, y2: y + 2.5, stroke: '#000', 'stroke-width': 1}));
+                    g.appendChild(fn('line', {x1: x - 30, y1: y + 5, x2: x - 25, y2: y + 5, stroke: '#000', 'stroke-width': 1}));
                 }
             },
 			'siren': {
@@ -10905,6 +11197,9 @@ You must output exactly this JSON format. The logic code goes as a single string
                     inp.style.cssText = "width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;";
                     inp.onchange = e => { obj.rollerSpeed = parseFloat(e.target.value); saveCallback(); };
                     wrap.appendChild(inp); ctxMenu.appendChild(wrap);
+                },
+                onResize: function(obj) {
+                    _rebuildRollerSvg(obj);
                 }
             },
             'conveyor_curve': {
@@ -11214,6 +11509,9 @@ You must output exactly this JSON format. The logic code goes as a single string
                     inpH.style.cssText = "width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;";
                     inpH.onchange = e => { obj.liftHeight = parseFloat(e.target.value); saveCallback(); };
                     wrapH.appendChild(inpH); ctxMenu.appendChild(wrapH);
+                },
+                onResize: function(obj) {
+                    obj.liftHeight = Math.max(10, obj.height - 14);
                 }
             },
             'sorter_flap': {
@@ -11616,8 +11914,211 @@ You must output exactly this JSON format. The logic code goes as a single string
                         saveCallback();
                     };
                     ctxMenu.appendChild(btn);
+                },
+                onLoadState: function(obj, savedData) {
+                    if (savedData.frameVisible !== undefined) {
+                        obj.frameVisible = savedData.frameVisible;
+                        if (!savedData.frameVisible) obj.el.classList.add('frame-hidden');
+                    }
                 }
             },
+        // ==================== FLUID PLUGINS ====================
+        'spawner_fluid': {
+            i18n: {
+                de: { name: 'Flüssigkeits-Spawner', desc: 'Erzeugt Flüssigkeit im Takt' },
+                en: { name: 'Fluid Spawner', desc: 'Spawns fluid on interval' }
+            },
+            meta: { icon: '💧' },
+            menuTarget: '#menu-werkstuecke',
+            build: function(obj, el, var1) {
+                obj.width = 50; obj.height = 50;
+                obj.linkedVar = var1;
+                obj.fluidMat = obj.fluidMat || 'water'; // set by onLoadState or default
+                obj.useCollision = false;
+                el.className = 'f2d-obj f2d-spawner f2d-spawner-fluid';
+                let matLabel = { water: 'H₂O', oil: 'OIL', coolant: 'CLT', honey: 'HON' }[obj.fluidMat] || 'FLD';
+                el.innerHTML = `<span>SPAWN<br>${matLabel}</span><div style="font-size:16px;">💧</div>`;
+                let label = document.createElement('div'); label.className = 'f2d-label';
+                label.textContent = var1 ? `${var1} (${obj.interval}s)` : `Immer an (${obj.interval}s)`;
+                el.appendChild(label);
+            },
+            contextMenu: function(obj, ctxMenu, saveCallback) {
+                let sep = document.createElement('div'); sep.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(sep);
+                // Interval input
+                let intW = document.createElement('div'); intW.style.padding = '4px 15px'; intW.onclick = e => e.stopPropagation();
+                intW.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">⏱️ Intervall (Sekunden)</div>`;
+                let intI = document.createElement('input'); intI.type = 'number'; intI.min = '0.1'; intI.step = '0.5'; intI.value = obj.interval || 1;
+                intI.style.cssText = 'width:100%;padding:4px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;';
+                intI.onchange = e => { let v = parseFloat(e.target.value); if (v > 0) { obj.interval = v; saveCallback(); } };
+                intW.appendChild(intI); ctxMenu.appendChild(intW);
+                // Material selector
+                let matW = document.createElement('div'); matW.style.padding = '4px 15px'; matW.onclick = e => e.stopPropagation();
+                matW.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">💧 Flüssigkeit</div>`;
+                let sel = document.createElement('select'); sel.style.cssText = 'width:100%;background:#222;color:#ddd;border:1px solid #555;padding:3px;border-radius:3px;font-size:11px;';
+                [['water','Wasser'],['oil','Öl'],['coolant','Kühlmittel'],['honey','Honig']].forEach(([v,l]) => {
+                    let opt = document.createElement('option'); opt.value = v; opt.textContent = l;
+                    if (v === obj.fluidMat) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+                sel.onchange = () => {
+                    obj.fluidMat = sel.value;
+                    let matLabel = { water: 'H₂O', oil: 'OIL', coolant: 'CLT', honey: 'HON' }[obj.fluidMat] || 'FLD';
+                    let sp = obj.el.querySelector('span'); if (sp) sp.innerHTML = `SPAWN<br>${matLabel}`;
+                    saveCallback();
+                };
+                matW.appendChild(sel); ctxMenu.appendChild(matW);
+            },
+            onLoadState: function(obj, savedData) {
+                if (savedData.fluidMat) {
+                    obj.fluidMat = savedData.fluidMat;
+                    let matLabel = { water: 'H₂O', oil: 'OIL', coolant: 'CLT', honey: 'HON' }[obj.fluidMat] || 'FLD';
+                    let sp = obj.el.querySelector('span'); if (sp) sp.innerHTML = `SPAWN<br>${matLabel}`;
+                }
+            },
+        },
+        'u_container': {
+            i18n: {
+                de: { name: 'U-Behälter', desc: 'Wannenförmiger Behälter (oben offen) für Flüssigkeiten und Werkstücke' },
+                en: { name: 'U-Container', desc: 'Trough-shaped container (open top) for fluids and workpieces' }
+            },
+            meta: { icon: '🪣' },
+            menuTarget: '#menu-struktur',
+            menuHtml: `<div onclick="addFactoryDevice('u_container')">🪣 U-Behälter (Wanne)</div>`,
+            insertBefore: '#menu-struct-cat-zones',
+            directSpawn: true, hasHeight: true,
+            noContainerStyle: true,
+            useCollision: true,
+            build: function(obj, el) {
+                obj.width = 120; obj.height = 80; obj.wallThickness = 8;
+                el.className = 'f2d-obj f2d-u-container';
+                el.style.width = obj.width + 'px'; el.style.height = obj.height + 'px';
+                el.innerHTML = `<svg width="${obj.width}" height="${obj.height}" style="overflow:visible;display:block;">
+                    <rect x="0" y="0" width="8" height="${obj.height}" fill="#78909c" stroke="#455a64" stroke-width="1"/>
+                    <rect x="${obj.width - 8}" y="0" width="8" height="${obj.height}" fill="#78909c" stroke="#455a64" stroke-width="1"/>
+                    <rect x="0" y="${obj.height - 8}" width="${obj.width}" height="8" fill="#78909c" stroke="#455a64" stroke-width="1"/>
+                </svg>`;
+            },
+            onResize: function(obj) {
+                let svg = obj.el.querySelector('svg');
+                if (!svg) return;
+                let w = obj.width, h = obj.height;
+                svg.setAttribute('width', w); svg.setAttribute('height', h);
+                let rects = svg.querySelectorAll('rect');
+                if (rects[0]) { rects[0].setAttribute('height', h); }
+                if (rects[1]) { rects[1].setAttribute('x', w - 8); rects[1].setAttribute('height', h); }
+                if (rects[2]) { rects[2].setAttribute('y', h - 8); rects[2].setAttribute('width', w); }
+                fluidGridDirty = true;
+            },
+            getFluidSolidCells: function(obj) {
+                let cells = [];
+                let wt = obj.wallThickness || 8;
+                let w = obj.width, h = obj.height;
+                let rot = (obj.rotation || 0) * Math.PI / 180;
+                let cos = Math.cos(rot), sin = Math.sin(rot);
+                let ocx = obj.x + w / 2, ocy = obj.y + h / 2;
+                function addRotatedRect(lx, ly, rw, rh) {
+                    let cx = ocx + lx * cos - ly * sin;
+                    let cy = ocy + lx * sin + ly * cos;
+                    let ex = rw / 2 * Math.abs(cos) + rh / 2 * Math.abs(sin);
+                    let ey = rw / 2 * Math.abs(sin) + rh / 2 * Math.abs(cos);
+                    let gx0 = Math.floor((cx - ex) / FLUID_CELL), gx1 = Math.ceil((cx + ex) / FLUID_CELL);
+                    let gy0 = Math.floor((cy - ey) / FLUID_CELL), gy1 = Math.ceil((cy + ey) / FLUID_CELL);
+                    for (let gx = gx0; gx <= gx1; gx++) {
+                        for (let gy = gy0; gy <= gy1; gy++) {
+                            let hit = false;
+                            for (let px = gx * FLUID_CELL; px <= gx * FLUID_CELL + FLUID_CELL && !hit; px += FLUID_CELL) {
+                                for (let py = gy * FLUID_CELL; py <= gy * FLUID_CELL + FLUID_CELL && !hit; py += FLUID_CELL) {
+                                    let ddx = px - cx, ddy = py - cy;
+                                    let llx = ddx * cos + ddy * sin, lly = -ddx * sin + ddy * cos;
+                                    if (Math.abs(llx) <= rw / 2 && Math.abs(lly) <= rh / 2) hit = true;
+                                }
+                            }
+                            if (hit) cells.push([gx, gy]);
+                        }
+                    }
+                }
+                addRotatedRect(-w / 2 + wt / 2, 0, wt, h);  // left wall
+                addRotatedRect(w / 2 - wt / 2, 0, wt, h);   // right wall
+                addRotatedRect(0, h / 2 - wt / 2, w, wt);   // bottom wall
+                return cells;
+            },
+            physics: function(obj, item, isActive, rad) {
+                let wt = obj.wallThickness || 8;
+                let w = obj.width || 120, h = obj.height || 80;
+                resolveOBBCollision(item, obj.x + wt / 2,     obj.y + h / 2, wt / 2, h / 2, rad);
+                resolveOBBCollision(item, obj.x + w - wt / 2, obj.y + h / 2, wt / 2, h / 2, rad);
+                resolveOBBCollision(item, obj.x + w / 2, obj.y + h - wt / 2, w / 2, wt / 2, rad);
+            },
+            customSensorHit: function(targetObj, sensorObj, lx, ly, lw, lh) {
+                let wt = targetObj.wallThickness || 8;
+                let w = targetObj.width, h = targetObj.height;
+                let walls = [
+                    { cx: targetObj.x + wt / 2,     cy: targetObj.y + h / 2, hw: wt / 2, hh: h / 2 },
+                    { cx: targetObj.x + w - wt / 2, cy: targetObj.y + h / 2, hw: wt / 2, hh: h / 2 },
+                    { cx: targetObj.x + w / 2,      cy: targetObj.y + h - wt / 2, hw: w / 2, hh: wt / 2 },
+                ];
+                let tRad = (targetObj.rotation || 0) * Math.PI / 180;
+                let cos_t = Math.cos(tRad), sin_t = Math.sin(tRad);
+                let sRad = (sensorObj.rotation || 0) * Math.PI / 180;
+                let cos_s = Math.cos(sRad), sin_s = Math.sin(sRad);
+                let sCx = sensorObj.x + sensorObj.width / 2, sCy = sensorObj.y + (sensorObj.height || sensorObj.width) / 2;
+                let testPts = [
+                    { x: sCx + lx * cos_s - ly * sin_s,         y: sCy + lx * sin_s + ly * cos_s },
+                    { x: sCx + (lx + lw) * cos_s - ly * sin_s,  y: sCy + (lx + lw) * sin_s + ly * cos_s },
+                    { x: sCx + lx * cos_s - (ly + lh) * sin_s,  y: sCy + lx * sin_s + (ly + lh) * cos_s },
+                    { x: sCx + (lx + lw) * cos_s - (ly + lh) * sin_s, y: sCy + (lx + lw) * sin_s + (ly + lh) * cos_s },
+                ];
+                for (let wall of walls) {
+                    for (let pt of testPts) {
+                        let dx = pt.x - wall.cx, dy = pt.y - wall.cy;
+                        let localX = dx * cos_t + dy * sin_t, localY = -dx * sin_t + dy * cos_t;
+                        if (Math.abs(localX) <= wall.hw && Math.abs(localY) <= wall.hh) return true;
+                    }
+                }
+                return false;
+            },
+        },
+        'fluid_outlet': {
+            i18n: {
+                de: { name: 'Flüssigkeits-Auslass', desc: 'Steuerbare Öffnung — lässt Flüssigkeit ablaufen wenn aktiv' },
+                en: { name: 'Fluid Outlet', desc: 'Controllable drain — lets fluid flow out when active' }
+            },
+            meta: { icon: '🔩' },
+            menuTarget: '#menu-fluessigkeiten',
+            build: function(obj, el, var1) {
+                obj.width = 16; obj.height = 16;
+                obj.linkedVar = var1;
+                obj._isOpen = false;
+                el.className = 'f2d-obj f2d-fluid-outlet';
+                el.title = 'Flüssigkeits-Auslass';
+                el.innerHTML = '▼';
+            },
+            animate: function(obj, spsState) {
+                let open = obj.linkedVar ? resolveLinked(obj, spsState) : false;
+                if (obj._isOpen !== open) {
+                    obj._isOpen = open;
+                    obj.el.style.borderColor = open ? '#ff5252' : '#42a5f5';
+                    obj.el.textContent = open ? '💧' : '▼';
+                    fluidGridDirty = true;
+                }
+            },
+            getFluidSolidCells: function(obj) {
+                if (obj._isOpen) return [];
+                let cells = [];
+                let gx0 = Math.floor(obj.x / FLUID_CELL);
+                let gx1 = Math.floor((obj.x + obj.width - 1) / FLUID_CELL);
+                let gy0 = Math.floor(obj.y / FLUID_CELL);
+                let gy1 = Math.floor((obj.y + obj.height - 1) / FLUID_CELL);
+                for (let gx = gx0; gx <= gx1; gx++)
+                    for (let gy = gy0; gy <= gy1; gy++)
+                        cells.push([gx, gy]);
+                return cells;
+            },
+            contextMenuVarSection: function(obj, ctxMenu, helpers) {
+                helpers.addVarSelect('🔩 Auslass-Variable', obj.linkedVar, 'out', 'linkedVar');
+            },
+        },
+        // ====================================================
         }; //Ende von Component Registry
         // Einmalig berechnet: Typen die keine Rotation brauchen (Built-ins + ComponentRegistry-Plugins mit noRotate:true)
         const noRotateTypes = new Set([
@@ -11639,7 +12140,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 factoryItems.forEach(i => i.vy += 1);
             }
             factoryCanvas.classList.toggle('view-side', globalViewMode === 'side');
-            factoryObjects.forEach(o => { if (o.type === 'conveyor_roller') _rebuildRollerSvg(o); });
+            factoryObjects.forEach(o => { if (ComponentRegistry[o.type] && ComponentRegistry[o.type].onResize) ComponentRegistry[o.type].onResize(o); });
         };
         window.updateSimSpeed = function(val) {
             window.simSpeed = parseFloat(val);
@@ -11647,6 +12148,7 @@ You must output exactly this JSON format. The logic code goes as a single string
         };
         function startFactoryEngine() {
             if (engineRunning) return;
+            initFluidCanvas();
 			// Schläuche live nachziehen
             if (window.drawPneumaticHoses) window.drawPneumaticHoses();
             requestAnimationFrame(factoryLoop);
@@ -11688,7 +12190,19 @@ You must output exactly this JSON format. The logic code goes as a single string
         })();
         // NEU: Event-Listener für das Aufziehen der Auswahl-Box auf dem Hintergrund
         factoryCanvas.addEventListener('mousedown', (e) => {
-            if (e.button !== 0 || isSimulationActive) return;
+            if (e.button !== 0) return;
+            // Fluid placement mode works even during simulation
+            if (fluidPlacementMode) {
+                let rect = factoryCanvas.getBoundingClientRect();
+                let px = (e.clientX - rect.left) / factoryScale;
+                let py = (e.clientY - rect.top) / factoryScale;
+                addFluidBlob(fluidPlacementMode, px, py, 2, true);
+                _fluidPainting = true;
+                _lastFluidPaintX = px; _lastFluidPaintY = py;
+                e.stopPropagation();
+                return;
+            }
+            if (isSimulationActive) return;
             let targetObj = e.target.closest('.f2d-obj');
             if (!targetObj) {
                 if (!e.shiftKey && !e.ctrlKey) clearSelection();
@@ -12062,7 +12576,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             let foundLabel = el.querySelector('.f2d-label');
             if (foundLabel) obj.labelEl = foundLabel;
             updateObjTransform(obj);
-            factoryObjects.push(obj); factoryCanvas.appendChild(el); makeDraggable(el, obj);
+            factoryObjects.push(obj); fluidGridDirty = true; factoryCanvas.appendChild(el); makeDraggable(el, obj);
             _applyObjZIndex(obj);
             if(!isLoadingFactory) saveFactoryState();
             return obj;
@@ -12082,8 +12596,13 @@ You must output exactly this JSON format. The logic code goes as a single string
         }
         window.updateObjTransform = updateObjTransform; // Für Plugin-Zugriff in animate()
         function moveObjRecursive(obj, dx, dy) {
+            _translateFluidWithObj(obj, dx, dy); // must run BEFORE x/y update
             obj.x += dx; obj.y += dy; updateObjTransform(obj);
             if (obj.children) obj.children.forEach(child => moveObjRecursive(child, dx, dy));
+        }
+        function _endFluidDragForObjRecursive(obj) {
+            _endFluidDragForObj(obj);
+            if (obj.children) obj.children.forEach(c => _endFluidDragForObjRecursive(c));
         }
         function makeDraggable(el, dataObj) {
             el.addEventListener('mousedown', (e) => {
@@ -12250,14 +12769,18 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                 }
             }
-            if(draggedElement || resizingElement || resizingElementXY || rotatingElement) saveFactoryState(); 
-            draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; 
+            if(draggedElement || resizingElement || resizingElementXY || rotatingElement) { fluidGridDirty = true; saveFactoryState(); }
+            // Release fluid snapshots for any group-dragged objects
+            selectedElements.forEach(o => _endFluidDragForObjRecursive(o));
+            draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null;
         });
         document.addEventListener('contextmenu', (e) => {
             // 1. In Textfeldern erlauben wir das normale Browser-Menü (für Copy/Paste)
             if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
             // 2. Überall sonst: Normales Browser-Menü strikt blockieren!
-            e.preventDefault(); 
+            e.preventDefault();
+            // Fluid-Platziermodus per Rechtsklick abbrechen
+            if (fluidPlacementMode) { exitFluidPlacementMode(); return; }
             // 3. ABBRUCH-LOGIK: Immer zuerst ALLE Menüs schließen!
             ctxMenu.style.display = 'none';
             let fbsMenu = document.getElementById('fbs-context-menu');
@@ -12477,15 +13000,37 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (obj.type.startsWith('zylinder')) {
                         addVarSelect(window.t('ctx_fac_valve_ext'), obj.linkedVarExt, 'out', 'linkedVarExt');
                         if (obj.type === 'zylinder_double') addVarSelect(window.t('ctx_fac_valve_ret'), obj.linkedVarRet, 'out', 'linkedVarRet');
-                    } else if (obj.type === 'stacklight') {
-                        addVarSelect(window.t('ctx_fac_color_r'), obj.linkedVar, 'out', 'linkedVar');
-                        addVarSelect(window.t('ctx_fac_color_y'), obj.linkedVarRet, 'out', 'linkedVarRet');
-                        addVarSelect(window.t('ctx_fac_color_g'), obj.linkedVar3, 'out', 'linkedVar3');
+                    } else if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenuVarSection) {
+                        ComponentRegistry[obj.type].contextMenuVarSection(obj, ctxMenu, { addVarSelect });
                     } else {
                         addVarSelect(window.t('ctx_fac_var_out'), obj.linkedVar, 'out', 'linkedVar');
                     }
                 }
-                if (obj.type === 'display') addVarSelect(window.t('ctx_fac_timer'), obj.linkedVar, 'timers', 'linkedVar');
+                if (['sensor_ind','sensor_kap','sensor_opt','sensor_mag'].includes(obj.type)) {
+                    let _sepSens = document.createElement('div'); _sepSens.style.cssText = 'border-top:1px solid #555;margin:5px 0;'; ctxMenu.appendChild(_sepSens);
+                    let _lblSens = document.createElement('div'); _lblSens.style.cssText = 'padding:3px 15px 4px;color:#aaa;font-size:10px;'; _lblSens.textContent = '📡 Erfassungsbereich'; ctxMenu.appendChild(_lblSens);
+                    let _rangeWrap = document.createElement('div'); _rangeWrap.style.cssText = 'padding:2px 15px 6px;'; _rangeWrap.onclick = e => e.stopPropagation();
+                    const _sDefW = obj.type==='sensor_kap'?25:obj.type==='sensor_opt'?80:obj.type==='sensor_mag'?30:15;
+                    const _sDefH = obj.type==='sensor_kap'?20:obj.type==='sensor_mag'?30:10;
+                    const _mkRI = (lTxt, prop, dv) => {
+                        let row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+                        let lbl = document.createElement('span'); lbl.style.cssText = 'color:#607d8b;font-size:9px;flex-shrink:0;width:70px;'; lbl.textContent = lTxt;
+                        let inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.max = '500'; inp.value = obj[prop] !== undefined ? obj[prop] : dv;
+                        inp.style.cssText = 'flex:1;padding:3px;background:#1e1e1e;color:#fff;border:1px solid #555;border-radius:3px;font-size:11px;box-sizing:border-box;';
+                        inp.onchange = () => { obj[prop] = Math.max(1, parseInt(inp.value)||dv); _applySensorRange(obj); saveFactoryState(); };
+                        row.appendChild(lbl); row.appendChild(inp); _rangeWrap.appendChild(row);
+                    };
+                    _mkRI('Reichweite (px)', 'rangeW', _sDefW);
+                    _mkRI('Breite (px)', 'rangeH', _sDefH);
+                    let _btnReset = document.createElement('div'); _btnReset.className = 'ctx-item'; _btnReset.style.cssText = 'font-size:11px;color:#90a4ae;';
+                    _btnReset.textContent = '↩ Standard wiederherstellen';
+                    _btnReset.onclick = () => { delete obj.rangeW; delete obj.rangeH; _applySensorRange(obj); saveFactoryState(); ctxMenu.style.display = 'none'; };
+                    _rangeWrap.appendChild(_btnReset);
+                    ctxMenu.appendChild(_rangeWrap);
+                }
+                if (!isInput && !isOutput && ComponentRegistry[obj.type] && ComponentRegistry[obj.type].contextMenuVarSection) {
+                    ComponentRegistry[obj.type].contextMenuVarSection(obj, ctxMenu, { addVarSelect });
+                }
                 if (obj.type === 'conveyor') {
                     let rampWrap = document.createElement('div'); rampWrap.style.padding = '5px 15px'; rampWrap.onclick = e => e.stopPropagation();
                     rampWrap.innerHTML = `<div style="color:#aaa;font-size:10px;margin-bottom:3px;">⏱ Anlaufzeit (s)</div>`;
@@ -12684,7 +13229,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                 btnCol.textContent = isSolid ? window.t('ctx_fac_col_off') : window.t('ctx_fac_col_on');
                 btnCol.onclick = () => { obj.useCollision = !isSolid; updateObjTransform(obj); saveFactoryState(); }; ctxMenu.appendChild(btnCol);
             }
-            if (obj.type && obj.type.startsWith('spawner_')) {
+            if (obj.type && obj.type.startsWith('spawner_') && obj.type !== 'spawner_fluid') {
                 let sep = document.createElement('div'); sep.style.borderTop = '1px solid #555'; sep.style.margin = '5px 0'; ctxMenu.appendChild(sep);
                 let btnMode = document.createElement('div'); 
                 btnMode.className = 'ctx-item'; 
@@ -12917,7 +13462,7 @@ You must output exactly this JSON format. The logic code goes as a single string
             _positionContextMenu(x, y);
         }
         function deleteObjRecursive(obj) {
-            obj.el.remove(); factoryObjects = factoryObjects.filter(o => o !== obj); factoryItems = factoryItems.filter(o => o !== obj); 
+            obj.el.remove(); factoryObjects = factoryObjects.filter(o => o !== obj); factoryItems = factoryItems.filter(o => o !== obj); fluidGridDirty = true; 
             if (obj.children) obj.children.forEach(child => deleteObjRecursive(child));
             if (obj.parent && obj.parent.children) obj.parent.children = obj.parent.children.filter(c => c !== obj);
         }
@@ -13028,7 +13573,291 @@ You must output exactly this JSON format. The logic code goes as a single string
             let cpx = Math.max(lx, Math.min(lx + lw, localBx)); let cpy = Math.max(ly, Math.min(ly + lh, localBy));
             return ((localBx - cpx)**2 + (localBy - cpy)**2) < br * br;
         }
+        // ==================== FLUID SIMULATION ENGINE ====================
+        const FLUID_CELL = 8;
+        const FLUID_MATERIALS = {
+            water:   { color: 'rgb(15,90,200)',    viscosity: 0.95, density: 1.00 },
+            oil:     { color: 'rgb(160,100,20)',   viscosity: 0.55, density: 0.85 },
+            coolant: { color: 'rgb(80,210,130)',   viscosity: 0.97, density: 1.05 },
+            honey:   { color: 'rgb(210,140,0)',    viscosity: 0.25, density: 1.40 },
+        };
+        let fluidGrid = new Map();
+        let solidGrid = new Set();
+        let fluidGridDirty = true;
+        let _fluidCanvas, _fluidCtx;
+        let fluidPlacementMode = null; // active material name or null
+        let _fluidPainting = false;
+        let _lastFluidPaintX = 0, _lastFluidPaintY = 0;
+
+        function initFluidCanvas() {
+            _fluidCanvas = document.getElementById('fluid-canvas');
+            _fluidCtx = _fluidCanvas ? _fluidCanvas.getContext('2d') : null;
+        }
+
+        const FLUID_GRID_W = Math.ceil(4000 / FLUID_CELL); // 500
+        const FLUID_GRID_H = Math.ceil(3000 / FLUID_CELL); // 375
+
+        function rebuildSolidGrid() {
+            solidGrid.clear();
+            // Canvas boundary walls (fluid must not fall off the edges)
+            for (let gx = 0; gx < FLUID_GRID_W; gx++) {
+                solidGrid.add(gx + ',-1');                    // top
+                // bottom wall removed: fluid that falls off the bottom is despawned in simulateFluid
+            }
+            for (let gy = 0; gy < FLUID_GRID_H; gy++) {
+                solidGrid.add('-1,' + gy);                    // left
+                solidGrid.add(FLUID_GRID_W + ',' + gy);      // right
+            }
+            factoryObjects.forEach(obj => {
+                if (obj.useCollision === false) return;
+                if (ComponentRegistry[obj.type] && ComponentRegistry[obj.type].getFluidSolidCells) {
+                    ComponentRegistry[obj.type].getFluidSolidCells(obj).forEach(([cx, cy]) => solidGrid.add(cx + ',' + cy));
+                } else {
+                    _rasterizeToSolidGrid(obj);
+                }
+            });
+            // Open fluid outlets punch holes through any overlapping solid cells (e.g. U-container walls)
+            factoryObjects.forEach(obj => {
+                if (obj.type === 'fluid_outlet' && obj._isOpen) {
+                    let gx0 = Math.floor(obj.x / FLUID_CELL);
+                    let gx1 = Math.floor((obj.x + obj.width - 1) / FLUID_CELL);
+                    let gy0 = Math.floor(obj.y / FLUID_CELL);
+                    let gy1 = Math.floor((obj.y + obj.height - 1) / FLUID_CELL);
+                    for (let gx = gx0; gx <= gx1; gx++)
+                        for (let gy = gy0; gy <= gy1; gy++)
+                            solidGrid.delete(gx + ',' + gy);
+                }
+            });
+            fluidGridDirty = false;
+            // Evict fluid cells inside solid areas — but NOT during drag/resize/rotate
+            // (sub-cell quantization would otherwise delete cells that belong to the interior)
+            if (!draggedElement && !resizingElement && !resizingElementXY) {
+                for (let [k, v] of fluidGrid) {
+                    if (solidGrid.has(k) && !v._dragging) fluidGrid.delete(k);
+                }
+            }
+        }
+
+        function _rasterizeToSolidGrid(obj) {
+            let rot = (obj.rotation || 0) * Math.PI / 180;
+            let hw = obj.width / 2, hh = (obj.height || obj.width) / 2;
+            let ocx = obj.x + hw, ocy = obj.y + hh;
+            let cos = Math.cos(rot), sin = Math.sin(rot);
+            let ex = hw * Math.abs(cos) + hh * Math.abs(sin);
+            let ey = hw * Math.abs(sin) + hh * Math.abs(cos);
+            let x0 = Math.floor((ocx - ex) / FLUID_CELL), x1 = Math.ceil((ocx + ex) / FLUID_CELL);
+            let y0 = Math.floor((ocy - ey) / FLUID_CELL), y1 = Math.ceil((ocy + ey) / FLUID_CELL);
+            for (let gx = x0; gx <= x1; gx++) {
+                for (let gy = y0; gy <= y1; gy++) {
+                    // Test all 4 corners of the cell to catch partially-overlapped cells
+                    let hit = false;
+                    for (let cx = gx * FLUID_CELL; cx <= gx * FLUID_CELL + FLUID_CELL && !hit; cx += FLUID_CELL) {
+                        for (let cy = gy * FLUID_CELL; cy <= gy * FLUID_CELL + FLUID_CELL && !hit; cy += FLUID_CELL) {
+                            let px = cx - ocx, py = cy - ocy;
+                            let lx = px * cos + py * sin, ly = -px * sin + py * cos;
+                            if (Math.abs(lx) <= hw && Math.abs(ly) <= hh) hit = true;
+                        }
+                    }
+                    if (hit) solidGrid.add(gx + ',' + gy);
+                }
+            }
+        }
+
+        function simulateFluid() {
+            let isSide = globalViewMode === 'side';
+            let nextGrid = new Map();
+            let entries = Array.from(fluidGrid.entries());
+            if (isSide) entries.sort((a, b) => parseInt(b[0].split(',')[1]) - parseInt(a[0].split(',')[1]));
+
+            for (let [key, cell] of entries) {
+                // Cells marked _dragging travel with their container — skip simulation for them
+                if (cell._dragging) { if (!nextGrid.has(key)) nextGrid.set(key, cell); continue; }
+                let parts = key.split(',');
+                let cx = parseInt(parts[0]), cy = parseInt(parts[1]);
+                let placed = false;
+
+                if (isSide) {
+                    let bk = cx + ',' + (cy + 1);
+                    if (cy + 1 >= FLUID_GRID_H) {
+                        placed = true; // falls off canvas bottom → despawn (don't add to nextGrid)
+                    } else if (!solidGrid.has(bk) && !nextGrid.has(bk)) {
+                        nextGrid.set(bk, cell); placed = true;
+                    }
+                    if (!placed) {
+                        let dl = (cx - 1) + ',' + (cy + 1), dr = (cx + 1) + ',' + (cy + 1);
+                        let cl = (cx - 1 < 0) ? false : !solidGrid.has(dl) && !nextGrid.has(dl);
+                        let cr = (cx + 1 >= FLUID_GRID_W) ? false : !solidGrid.has(dr) && !nextGrid.has(dr);
+                        if (cy + 1 >= FLUID_GRID_H) { placed = true; } // diagonal off-bottom → despawn
+                        else if (cl && cr) { nextGrid.set(Math.random() < 0.5 ? dl : dr, cell); placed = true; }
+                        else if (cl)  { nextGrid.set(dl, cell); placed = true; }
+                        else if (cr)  { nextGrid.set(dr, cell); placed = true; }
+                    }
+                    if (!placed) {
+                        // Pressure: fluid stacked above increases lateral spread probability
+                        let pressureBoost = fluidGrid.has(cx + ',' + (cy - 1)) ? 0.5 : 0;
+                        let spreadChance = Math.min(cell.viscosity + pressureBoost, 1.0);
+                        if (Math.random() < spreadChance) {
+                            let sl = (cx - 1) + ',' + cy, sr = (cx + 1) + ',' + cy;
+                            let cl = !solidGrid.has(sl) && !nextGrid.has(sl) && !fluidGrid.has(sl);
+                            let cr = !solidGrid.has(sr) && !nextGrid.has(sr) && !fluidGrid.has(sr);
+                            if (cl && cr) { nextGrid.set(Math.random() < 0.5 ? sl : sr, cell); placed = true; }
+                            else if (cl)  { nextGrid.set(sl, cell); placed = true; }
+                            else if (cr)  { nextGrid.set(sr, cell); placed = true; }
+                        }
+                    }
+                } else {
+                    let dirs = [cx + ',' + (cy + 1), cx + ',' + (cy - 1), (cx - 1) + ',' + cy, (cx + 1) + ',' + cy]
+                        .filter(k => !solidGrid.has(k) && !nextGrid.has(k) && !fluidGrid.has(k));
+                    if (dirs.length > 0 && Math.random() < cell.viscosity) {
+                        nextGrid.set(dirs[Math.floor(Math.random() * dirs.length)], cell);
+                        placed = true;
+                    }
+                }
+                // Stay in place – only if this spot isn't already claimed by another cell's movement
+                if (!placed && !nextGrid.has(key)) nextGrid.set(key, cell);
+            }
+            // Buoyancy pass: denser cells sink below lighter ones
+            if (isSide) {
+                let buoySwaps = [];
+                for (let [k, cell] of nextGrid) {
+                    let p = k.split(','); let cx = +p[0], cy = +p[1];
+                    let bk = cx + ',' + (cy + 1);
+                    let below = nextGrid.get(bk);
+                    if (below && !solidGrid.has(bk) &&
+                        (FLUID_MATERIALS[cell.mat]?.density || 1) > (FLUID_MATERIALS[below.mat]?.density || 1))
+                        buoySwaps.push([k, bk, cell, below]);
+                }
+                let swapped = new Set();
+                for (let [k1, k2, c1, c2] of buoySwaps) {
+                    if (!swapped.has(k1) && !swapped.has(k2)) {
+                        nextGrid.set(k1, c2); nextGrid.set(k2, c1);
+                        swapped.add(k1); swapped.add(k2);
+                    }
+                }
+            }
+            fluidGrid = nextGrid;
+        }
+
+        function renderFluid() {
+            if (!_fluidCtx) return;
+            _fluidCtx.clearRect(0, 0, 4000, 3000);
+            if (fluidGrid.size === 0) return;
+            let byMat = {};
+            for (let [key, cell] of fluidGrid) {
+                if (!byMat[cell.mat]) byMat[cell.mat] = [];
+                let p = key.split(',');
+                byMat[cell.mat].push(parseInt(p[0]), parseInt(p[1]));
+            }
+            // Draw cells at ~1.75x size (4px padding each side) so the blurred boundary reaches
+            // adjacent solid surfaces — object renderings sit on top and hide the overflow
+            const FC_PAD = 4, FC_SZ = FLUID_CELL + FC_PAD * 2;
+            for (let mat in byMat) {
+                _fluidCtx.fillStyle = FLUID_MATERIALS[mat] ? FLUID_MATERIALS[mat].color : 'rgb(30,144,255)';
+                let coords = byMat[mat];
+                for (let i = 0; i < coords.length; i += 2) {
+                    _fluidCtx.fillRect(coords[i] * FLUID_CELL - FC_PAD, coords[i + 1] * FLUID_CELL - FC_PAD, FC_SZ, FC_SZ);
+                }
+            }
+        }
+
+        function addFluidBlob(material, x, y, radius, noSave) {
+            radius = radius || 3;
+            // If no position given, place at current viewport center
+            if (x == null || y == null) {
+                let area = document.getElementById('factory-canvas-area');
+                let areaRect = area ? area.getBoundingClientRect() : { left: 0, top: 0, width: 800, height: 600 };
+                let scale = factoryScale || 1;
+                x = (area.scrollLeft + areaRect.width / 2) / scale;
+                y = (area.scrollTop + areaRect.height / 2) / scale;
+            }
+            let mat = FLUID_MATERIALS[material] || FLUID_MATERIALS.water;
+            let cx0 = Math.floor(x / FLUID_CELL), cy0 = Math.floor(y / FLUID_CELL);
+            if (fluidGridDirty) rebuildSolidGrid();
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (dx * dx + dy * dy <= radius * radius) {
+                        let k = (cx0 + dx) + ',' + (cy0 + dy);
+                        if (!solidGrid.has(k)) fluidGrid.set(k, { mat: material, viscosity: mat.viscosity });
+                    }
+                }
+            }
+            if (!noSave) {
+                saveFactoryState();
+                updateFluidMenuVisibility();
+            }
+        }
+
+        function updateFluidMenuVisibility() {
+            let hasFluid = fluidGrid.size > 0 || factoryObjects.some(function(o) { return o.type === 'spawner_fluid'; });
+            let cb = document.getElementById('cb-show-fluid-menu');
+            let cbChecked = cb ? cb.checked : false;
+            let dd = document.getElementById('dd-fluessigkeiten');
+            if (dd) dd.style.display = (hasFluid || cbChecked) ? '' : 'none';
+        }
+        // Move fluid cells with a dragged container using a snapshot of relative offsets.
+        // On the first call (drag start), captures cells in the container's area as relative
+        // cell offsets and marks them _dragging so the simulation skips them.
+        // Each subsequent call recomputes absolute positions from the current pixel position —
+        // no incremental accumulation, no sub-cell drift.
+        function _translateFluidWithObj(obj, dx, dy) {
+            if (fluidGrid.size === 0 && !obj._fluidSnap) return;
+            let newX = obj.x + dx, newY = obj.y + dy;
+            let newBaseCX = Math.round(newX / FLUID_CELL);
+            let newBaseCY = Math.round(newY / FLUID_CELL);
+            // First call: snapshot fluid cells in the bounding box
+            if (!obj._fluidSnap) {
+                let baseCX = Math.round(obj.x / FLUID_CELL);
+                let baseCY = Math.round(obj.y / FLUID_CELL);
+                let gx0 = baseCX - 1, gx1 = Math.ceil((obj.x + obj.width) / FLUID_CELL) + 1;
+                let gy0 = baseCY - 1, gy1 = Math.ceil((obj.y + (obj.height || obj.width)) / FLUID_CELL) + 1;
+                obj._fluidSnap = [];
+                obj._fluidTmpKeys = [];
+                for (let [k, v] of fluidGrid) {
+                    let p = k.split(','); let cx = +p[0], cy = +p[1];
+                    if (cx >= gx0 && cx <= gx1 && cy >= gy0 && cy <= gy1) {
+                        obj._fluidSnap.push({ dcx: cx - baseCX, dcy: cy - baseCY, mat: v.mat, viscosity: v.viscosity });
+                        fluidGrid.delete(k);
+                    }
+                }
+            }
+            // Remove previously placed temp cells
+            for (let k of obj._fluidTmpKeys) fluidGrid.delete(k);
+            obj._fluidTmpKeys = [];
+            // Place cells at new position with _dragging flag so simulation leaves them alone
+            for (let s of obj._fluidSnap) {
+                let k = (newBaseCX + s.dcx) + ',' + (newBaseCY + s.dcy);
+                fluidGrid.set(k, { mat: s.mat, viscosity: s.viscosity, _dragging: true });
+                obj._fluidTmpKeys.push(k);
+            }
+        }
+        // Called on mouseup to release the snapshot and clear the _dragging flag
+        function _endFluidDragForObj(obj) {
+            if (!obj._fluidSnap) return;
+            // Clear the _dragging flag on all placed cells so simulation resumes
+            for (let k of obj._fluidTmpKeys) {
+                let c = fluidGrid.get(k);
+                if (c) delete c._dragging;
+            }
+            delete obj._fluidSnap;
+            delete obj._fluidTmpKeys;
+        }
+
+        function enterFluidPlacementMode(mat) {
+            fluidPlacementMode = mat;
+            _fluidPainting = false;
+            let area = document.getElementById('factory-canvas-area');
+            if (area) area.style.cursor = 'crosshair';
+        }
+        function exitFluidPlacementMode() {
+            fluidPlacementMode = null;
+            _fluidPainting = false;
+            let area = document.getElementById('factory-canvas-area');
+            if (area) area.style.cursor = '';
+        }
+        // ================================================================
+
         function factoryLoop() {
+            if (fluidGridDirty) rebuildSolidGrid();
             // ==========================================
             // 🌟 NEU: PNEUMATIK-ZONEN TRACKER (Löschen)
             // ==========================================
@@ -13129,7 +13958,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                 // Wir nutzen jetzt die ECHTE verstrichene Zeit für die Timer, statt fest 16.666ms!
                 let deltaMs = (deltaTime * 1000) * window.simSpeed; 
                 factoryObjects.forEach(obj => {
-                    if (obj.type.startsWith('spawner_')) {
+                    if (obj.type === 'spawner_fluid') {
+                        let isActive = obj.linkedVar ? resolveLinked(obj, spsState) : true;
+                        if (isActive) {
+                            obj.timeAccum = (obj.timeAccum || 0) + deltaMs;
+                            if (obj.timeAccum >= obj.interval * 1000) {
+                                obj.timeAccum -= obj.interval * 1000;
+                                addFluidBlob(obj.fluidMat || 'water', obj.x + obj.width / 2, obj.y + obj.height, 1, true);
+                            }
+                        } else { obj.timeAccum = 0; }
+                    } else if (obj.type.startsWith('spawner_')) {
                         let isActive = obj.linkedVar ? resolveLinked(obj, spsState) : true;
                         if (isActive) {
                             obj.timeAccum = (obj.timeAccum || 0) + deltaMs;
@@ -13157,6 +13995,17 @@ You must output exactly this JSON format. The logic code goes as a single string
                             }
                             return true;
                         });
+                        // Also despawn fluid cells in the despawner area
+                        if (fluidGrid.size > 0) {
+                            for (let k of [...fluidGrid.keys()]) {
+                                let p = k.split(',');
+                                let px = parseInt(p[0]) * FLUID_CELL + FLUID_CELL / 2;
+                                let py = parseInt(p[1]) * FLUID_CELL + FLUID_CELL / 2;
+                                if (px >= obj.x && px <= obj.x + obj.width && py >= obj.y && py <= obj.y + obj.height) {
+                                    fluidGrid.delete(k);
+                                }
+                            }
+                        }
                     }
                 });
                 factoryObjects.forEach(obj => {
@@ -13262,16 +14111,25 @@ You must output exactly this JSON format. The logic code goes as a single string
                         obj.magnetX = obj.x + (obj.width / 2) + mdx * Math.cos(rad) - mdy * Math.sin(rad);
                         obj.magnetY = obj.y + 15 + mdx * Math.sin(rad) + mdy * Math.cos(rad);
                         let deltaExt = obj.extension - oldExtension;
-                        if (deltaExt !== 0 && obj.children) {
-                            let movePixels = (deltaExt / 100) * obj.width;
-                            let moveX = movePixels * Math.cos(rad);
-                            let moveY = movePixels * Math.sin(rad);
-                            // Den Stempel physikalisch mitschieben!
-                            obj.children.forEach(child => {
-                                if (child.attachmentType === 'rod') {
-                                    moveObjRecursive(child, moveX, moveY);
-                                }
-                            });
+                        if (obj.children) {
+                            if (deltaExt !== 0) {
+                                let movePixels = (deltaExt / 100) * obj.width;
+                                let moveX = movePixels * Math.cos(rad);
+                                let moveY = movePixels * Math.sin(rad);
+                                // Den Stempel physikalisch mitschieben!
+                                // _translateFluidWithObj wird automatisch in moveObjRecursive aufgerufen
+                                obj.children.forEach(child => {
+                                    if (child.attachmentType === 'rod') {
+                                        moveObjRecursive(child, moveX, moveY);
+                                        fluidGridDirty = true;
+                                    }
+                                });
+                            } else {
+                                // Kolben hat gestoppt: Fluid-Snapshot freigeben
+                                obj.children.forEach(child => {
+                                    if (child.attachmentType === 'rod') _endFluidDragForObjRecursive(child);
+                                });
+                            }
                         }
                     }
                     if (obj.type === 'conveyor') {
@@ -13448,10 +14306,10 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (obj.type.startsWith('sensor_') && obj.type !== 'sensor_mech') {
                         let isTriggered = false;
                         let lx=0, ly=0, lw=0, lh=0;
-                        if(obj.type==='sensor_ind'){ lx=20; ly=15; lw=15; lh=10; }
-                        if(obj.type==='sensor_kap'){ lx=20; ly=10; lw=25; lh=20; }
-                        if(obj.type==='sensor_opt'){ lx=20; ly=15; lw=80; lh=10; }
-                        if(obj.type==='sensor_mag'){ lx=-5; ly=5; lw=30; lh=30; }
+                        if(obj.type==='sensor_ind'){ let rW=obj.rangeW||15,rH=obj.rangeH||10; lx=20; ly=20-rH/2; lw=rW; lh=rH; }
+                        if(obj.type==='sensor_kap'){ let rW=obj.rangeW||25,rH=obj.rangeH||20; lx=20; ly=20-rH/2; lw=rW; lh=rH; }
+                        if(obj.type==='sensor_opt'){ let rW=obj.rangeW||80,rH=obj.rangeH||10; lx=20; ly=20-rH/2; lw=rW; lh=rH; }
+                        if(obj.type==='sensor_mag'){ let rW=obj.rangeW||30,rH=obj.rangeH||30; lx=10-rW/2; ly=20-rH/2; lw=rW; lh=rH; }
                         factoryItems.forEach(item => {
                             if (isBlockInLocalRect(item, obj, lx, ly, lw, lh)) {
                                 if (obj.type === 'sensor_ind' && item.material === 'metall') isTriggered = true;
@@ -13523,6 +14381,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                 window._renderPathOverlay();
             }
             if (++_minimapFrame % 6 === 0) renderMinimap(); // ~10fps Minimap-Update
+            if (fluidGrid.size > 0) { simulateFluid(); if (fluidGrid.size > 0) simulateFluid(); }
+            renderFluid();
             requestAnimationFrame(factoryLoop);
         }
         function _ensurePathSvg() {
@@ -13533,7 +14393,10 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
         }
         window.clearFactory = function(force = false) {
-            factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; _ensurePathSvg(); saveFactoryState();
+            factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; fluidGrid.clear(); fluidGridDirty = true; draggedElement = null; resizingElement = null; resizingElementXY = null; rotatingElement = null; clearSelection(); ctxMenu.style.display = 'none'; _ensurePathSvg();
+            // Re-insert fluid canvas (was removed by innerHTML = '')
+            let fc = document.createElement('canvas'); fc.id = 'fluid-canvas'; fc.width = 4000; fc.height = 3000; fc.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:5;image-rendering:pixelated;filter:blur(4px) contrast(15);opacity:0.88;'; factoryCanvas.prepend(fc); initFluidCanvas();
+            saveFactoryState(); updateFluidMenuVisibility();
         };
 		// 🌟 NEU: Funktion für den Klick auf den Zuweisungs-Button
         window.assignKey = function(varName) {
@@ -13598,6 +14461,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             }
             // WICHTIG: Wenn der User gerade im Code-Editor oder einem Dropdown tippt, Shortcuts ignorieren!
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+            // ESC: Fluid placement mode beenden
+            if (e.key === 'Escape' && fluidPlacementMode) { exitFluidPlacementMode(); return; }
             // ENTF / BACKSPACE: Löschen
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (selectedElements.length > 0) {
@@ -13734,9 +14599,28 @@ You must output exactly this JSON format. The logic code goes as a single string
                     rollerSpeed: o.rollerSpeed,
                     curveAngle: o.curveAngle,
                     pressure: o.pressure, maxFlow: o.maxFlow,
-                    pistonD: o.pistonD, rodD: o.rodD, stroke: o.stroke
-                }))
+                    pistonD: o.pistonD, rodD: o.rodD, stroke: o.stroke,
+                    rangeW: o.rangeW || null, rangeH: o.rangeH || null,
+                    fluidMat: o.fluidMat || null
+                })),
+                fluid: Array.from(fluidGrid.entries()).map(function(e) { return { k: e[0], m: e[1].mat }; })
             };
+        }
+        function _applySensorRange(obj) {
+            if (!obj.rangeEl) return;
+            const t = obj.type;
+            if (obj.rangeW || obj.rangeH) {
+                const defW = t==='sensor_kap'?25:t==='sensor_opt'?80:t==='sensor_mag'?30:15;
+                const defH = t==='sensor_kap'?20:t==='sensor_mag'?30:10;
+                const rW = obj.rangeW || defW;
+                const rH = obj.rangeH || defH;
+                obj.rangeEl.style.width  = rW + 'px';
+                obj.rangeEl.style.height = rH + 'px';
+                obj.rangeEl.style.top    = (20 - rH/2) + 'px';
+                obj.rangeEl.style.left   = t === 'sensor_mag' ? (10 - rW/2) + 'px' : '20px';
+            } else {
+                obj.rangeEl.style.width = obj.rangeEl.style.height = obj.rangeEl.style.top = obj.rangeEl.style.left = '';
+            }
         }
         function saveFactoryState() {
             if (isLoadingFactory || isApplyingHistory) return;
@@ -13771,6 +14655,8 @@ You must output exactly this JSON format. The logic code goes as a single string
             try {
                 let state = JSON.parse(saved);
                 factoryCanvas.innerHTML = ''; factoryObjects = []; factoryItems = []; factoryPins = []; clearSelection(); _ensurePathSvg();
+                // Re-insert fluid canvas (removed by innerHTML reset)
+                let _fc = document.createElement('canvas'); _fc.id = 'fluid-canvas'; _fc.width = 4000; _fc.height = 3000; _fc.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:5;image-rendering:pixelated;filter:blur(4px) contrast(15);opacity:0.88;'; factoryCanvas.prepend(_fc); initFluidCanvas();
                 factoryLayers = state.layers || [];
                 if (state.pins) state.pins.forEach(p => { factoryPins.push(p); createPinEl(p); });
                 if (state.globalViewMode) {
@@ -13795,11 +14681,9 @@ You must output exactly this JSON format. The logic code goes as a single string
                     // FIX: var2 intelligent befüllen! Spawner brauchen 'solid'/'normal', Zylinder brauchen ihre Ret-Variable!
                     let var2 = o.linkedVarRet;
                     if (o.type.startsWith('spawner_')) var2 = o.spawnSolid ? 'solid' : 'normal';
-                    // 🌟 DER FIX: Ventile bekommen wieder ihr 'double' oder 'single' zurück! 
-                    // (Der Fallback !!o.linkedVarRet rettet alte, fehlerhafte Spielstände)
-                    if (o.type === 'valve_pneu') {
-                        let wasDouble = o.isDouble !== undefined ? o.isDouble : !!o.linkedVarRet;
-                        var2 = wasDouble ? 'double' : 'single';
+                    // Plugin-Hook: var2 für die Wiederherstellung anpassen (z.B. valve_pneu braucht 'double'/'single')
+                    if (ComponentRegistry[o.type] && ComponentRegistry[o.type].getVar2ForRestore) {
+                        var2 = ComponentRegistry[o.type].getVar2ForRestore(o);
                     }
                     let newObj = createFactoryObject(o.type, o.linkedVar || o.linkedVarExt, var2, o.id, o.color, o.interval, o.linkedVar3);
 					if (o.linkedVarX_Plus) newObj.linkedVarX_Plus = o.linkedVarX_Plus;
@@ -13813,6 +14697,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     newObj.x = o.x; newObj.y = o.y; newObj.width = o.width; newObj.rotation = o.rotation;
                     if (o.height) newObj.height = o.height; 
                     if (o.useCollision !== undefined) newObj.useCollision = o.useCollision;
+                    if (o.rangeW) { newObj.rangeW = o.rangeW; if (o.rangeH) newObj.rangeH = o.rangeH; _applySensorRange(newObj); }
 					if (o.muteSound !== undefined) newObj.muteSound = o.muteSound;
 					if (o.thickness) { 
                         newObj.thickness = o.thickness; 
@@ -13821,16 +14706,7 @@ You must output exactly this JSON format. The logic code goes as a single string
 					if (o.hasPneumatics) newObj.hasPneumatics = o.hasPneumatics;
 					if (o.targetCylinderId) newObj.targetCylinderId = o.targetCylinderId;
                     if (o.role) newObj.role = o.role;
-					// 🌟 FIX: Drossel-Öffnungswinkel und Optik wiederherstellen
-                    if (o.opening !== undefined) {
-                        newObj.opening = o.opening;
-                        if (newObj.type === 'throttle') {
-                            let knob = newObj.el.querySelector('.f2d-throttle-knob');
-                            let valD = newObj.el.querySelector('.f2d-throttle-val');
-                            if (knob) knob.style.transform = `rotate(${o.opening * 2.7}deg)`;
-                            if (valD) valD.textContent = o.opening + '%';
-                        }
-                    }
+	                    if (o.opening !== undefined) newObj.opening = o.opening;
                     // 🌟 FIX: Zylinder-Ausfahrzustand wiederherstellen (sonst driftet Anbauteil beim ersten Tick)
                     if (o.extension !== undefined && newObj.type && newObj.type.startsWith('zylinder')) {
                         newObj.extension = o.extension;
@@ -13901,6 +14777,7 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                     // conveyor_roller: Rollgeschwindigkeit
                     if (o.rollerSpeed !== undefined) newObj.rollerSpeed = o.rollerSpeed;
+                    if (o.fluidMat) newObj.fluidMat = o.fluidMat;
                     // conveyor_curve: Kurvenwinkel + SVG neu zeichnen
                     if (o.curveAngle !== undefined) {
                         newObj.curveAngle = o.curveAngle;
@@ -13918,9 +14795,8 @@ You must output exactly this JSON format. The logic code goes as a single string
                     if (o.rodD !== undefined) newObj.rodD = o.rodD;
                     if (o.stroke !== undefined) newObj.stroke = o.stroke;
                     _applyObjZIndex(newObj);
-                    if (newObj.type === 'hmi_panel' && o.frameVisible !== undefined) {
-                        newObj.frameVisible = o.frameVisible;
-                        if (!o.frameVisible) newObj.el.classList.add('frame-hidden');
+                    if (ComponentRegistry[newObj.type] && ComponentRegistry[newObj.type].onLoadState) {
+                        ComponentRegistry[newObj.type].onLoadState(newObj, o);
                     }
                     if(newObj.resizerEl || (ComponentRegistry[newObj.type] && ComponentRegistry[newObj.type].build)) newObj.el.style.width = newObj.width + 'px';
                     if(newObj.type.startsWith('zone_') || newObj.type === 'wall' || newObj.type === 'frame' || (ComponentRegistry[newObj.type] && (ComponentRegistry[newObj.type].hasHeight || ComponentRegistry[newObj.type].build))) {
@@ -13939,6 +14815,16 @@ You must output exactly this JSON format. The logic code goes as a single string
                     }
                     delete o._savedParentId;
                 });
+                // Restore fluid grid
+                fluidGrid.clear();
+                if (state.fluid && Array.isArray(state.fluid)) {
+                    state.fluid.forEach(function(e) {
+                        let mat = FLUID_MATERIALS[e.m];
+                        if (mat) fluidGrid.set(e.k, { mat: e.m, viscosity: mat.viscosity });
+                    });
+                }
+                fluidGridDirty = true;
+                if (typeof updateFluidMenuVisibility === 'function') updateFluidMenuVisibility();
                 // Initialen Zustand beim ersten Laden in History aufnehmen
                 if (!isApplyingHistory && factoryHistory.length === 0) {
                     const json = JSON.stringify(getFactoryStateObj());
@@ -15813,7 +16699,9 @@ You must output exactly this JSON format. The logic code goes as a single string
             loadFromStorage(); 
             updateHighlighting(); 
             updateEditor(); 
-            loadFactoryState(); 
+            loadFactoryState();
+            initFluidCanvas();
+            updateFluidMenuVisibility();
             // 🌟 NEU: Layout aus dem Speicher (F5) wiederherstellen
             let savedLayout = localStorage.getItem('valisLayout');
             if (savedLayout) {
